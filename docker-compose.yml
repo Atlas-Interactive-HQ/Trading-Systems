@@ -1,0 +1,23 @@
+# Phase 1 stub — public collectors only. No secrets, no private endpoints.
+services:
+  kraken-public:
+    build: .
+    command: ["python", "scripts/run_kraken_public.py", "--duration-sec", "3600"]
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    environment:
+      - ATLAS_CONFIG=/app/config/default.yaml
+      - ATLAS_DATA_DIR=/app/data
+    restart: unless-stopped
+
+  okx-public:
+    build: .
+    command: ["python", "scripts/run_okx_public.py", "--duration-sec", "3600"]
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    environment:
+      - ATLAS_CONFIG=/app/config/default.yaml
+      - ATLAS_DATA_DIR=/app/data
+    restart: unless-stopped

@@ -1,0 +1,153 @@
+# Atlas Phase 1 — public collectors + signed OKX EEA client (paper-first).
+# UTC everywhere. NEVER put API keys/secrets in this file.
+# Paper OMS target: OKX EEA demo (see phase1/07-venue-preflight-notes.md).
+
+data_dir: data
+log_level: INFO
+schema_version_raw: raw.envelope.v1
+
+# Fail closed: any of these env/config keys present → refuse to start PUBLIC collectors.
+forbidden_secret_keys:
+  - API_KEY
+  - API_SECRET
+  - API_PASSPHRASE
+  - OKX_API_KEY
+  - OKX_API_SECRET
+  - OKX_PASSPHRASE
+  - KRAKEN_API_KEY
+  - KRAKEN_API_SECRET
+  - PRIVATE_KEY
+  - SECRET_KEY
+
+# Signed OKX EEA client (src/atlas/okx). Live = READ-only. Trading only in demo
+# when allow_trade=True AND x-simulated-trading:1. Paths only — no secrets here.
+okx:
+  rest_base: https://eea.okx.com
+  ws_public: wss://wseea.okx.com:8443/ws/v5/public
+  ws_private: wss://wseea.okx.com:8443/ws/v5/private
+  ws_demo_private: wss://wseeapap.okx.com:8443/ws/v5/private
+  modes:
+    demo:
+      simulated_trading: true
+      allow_trade: false   # must be set True explicitly in code for paper orders
+    live:
+      simulated_trading: false
+      allow_trade: false   # HARD: live trading is blocked in code
+  universe:
+    primary: [BTC, DOGE, PEPE]
+    backup: [SOL]
+    collateral: USDC
+    inst_type: FUTURES
+    rule_type: xperp
+  # SPOT demo OMS (paper plumbing). Live trade remains blocked in code.
+  spot_oms:
+    inst_type: SPOT
+    quote_preference: [USDT, USD]
+    primary: [DOGE, PEPE, BTC]
+    backup: [SOL]
+    paper_equity_eur: 200.0
+    daily_kill_frac: 0.05
+    per_trade_risk_frac: 0.015   # locked 1–2%
+    one_position: true
+    tiny_notional_eur: 2.0
+  # Locked DOGE demo loop (PEPE deferred). Paper / OKX EEA demo only. No live.
+  doge_demo:
+    paper_equity_eur: 200.0
+    daily_kill_frac: 0.05
+    per_trade_risk_frac: 0.015   # locked 1–2%
+    one_position: true
+    tiny_notional_eur: 2.0
+    leverage: 2.0
+    leverage_hard_cap: 2.0
+    xperp_mgn_mode: isolated
+    xperp_pos_mode: net
+    spot_td_mode: cash
+    ranging: false
+    pepe_enabled: false
+    far_limit_offset_frac: 0.40
+    spot:
+      inst_id: DOGE-USD
+      inst_type: SPOT
+      td_mode: cash
+    xperp:
+      # Demo orders: GET /api/v5/account/instruments?instType=FUTURES + x-simulated-trading.
+      # Never fall back to public 310404 for place/cancel.
+      inst_id: DOGE-USD_UM_XPERP-310516
+      # Public candles/ticker fallback if 310516 has no public MD.
+      md_inst_id: DOGE-USD_UM_XPERP-310404
+      inst_type: FUTURES
+      rule_type: xperp
+      td_mode: isolated
+      leverage: 2.0
+  secrets:
+    env: ATLAS_OKX_SECRETS_PATH
+    demo_path: /home/box/agent-data/connector-secrets/c6243d50-c126-4d9a-b2c5-7c7c554e4bf5/okx-eea-demo.json
+    live_path: /home/box/agent-data/connector-secrets/c6243d50-c126-4d9a-b2c5-7c7c554e4bf5/okx-eea-live.json
+
+venues:
+  kraken_futures:
+    venue: kraken_deriv
+    # Public MD only — demo matching engine retired 2026-07-14
+    rest_base: https://futures.kraken.com/derivatives/api/v3
+    ws_url: wss://futures.kraken.com/ws/v1
+    symbols:
+      - PF_XBTUSD
+    rest_poll_sec: 5
+    # Docs: https://docs.kraken.com/api-reference/instrument-details/get-instruments
+    # WS: https://docs.kraken.com/api-reference/websocket-v1 (futures)
+
+  okx_eea:
+    venue: okx_eea
+    rest_base: https://eea.okx.com
+    ws_url: wss://wseea.okx.com:8443/ws/v5/public
+    # Prefer classic SWAP for public MD; X-Perp listed for discovery
+    symbols:
+      - BTC-USDT-SWAP
+    xperp_symbols:
+      - BTC-USD_UM_XPERP-310404
+      - DOGE-USD_UM_XPERP-310404
+      - PEPE-USD_UM_XPERP-310404
+      - SOL-USD_UM_XPERP-310404
+    rest_poll_sec: 5
+    # Tickers: GET /api/v5/market/ticker?instId=... (public; /public/tickers 404 on EEA host)
+    # Docs: https://my.okx.com/docs-v5/en/
+
+
+# Phase 1.5 — local paper engine (no live orders, no OKX demo required).
+# USDT/USD marks treated as EUR 1:1 (px_as_eur). Fee schedule UNVERIFIED;
+# 5 bps taker + 5 bps slip is a conservative placeholder, not a venue quote.
+paper:
+  equity_eur: 200.0
+  daily_kill_frac: 0.05
+  per_trade_risk_frac: 0.015   # locked 1–2%
+  leverage_default: 2.0
+  leverage_hard_cap: 5.0
+  fee_rate: 0.0005
+  slippage_bps: 5.0
+  one_position: true
+  ranging_enabled: false
+  flatten_on_kill: true
+  px_as_eur: true
+  liquidity_cap_eur: null       # null → leverage_hard_cap * equity
+  candle_source: auto           # auto | okx_eea | kraken | jsonl
+  bar: 15m
+  regime_bar: 1H
+  primary_symbols:
+    - BTC-USDT-SWAP
+    - DOGE-USDT-SWAP
+    - PEPE-USDT-SWAP
+  backup_symbols:
+    - SOL-USDT-SWAP
+
+strategy:
+  breakout:
+    version: v1
+    lookback_15m: 16
+    atr_period: 14
+    atr_stop_mult: 1.5
+    min_atr_frac: 0.001         # ATR/close below this → untradeable (not fade)
+    time_stop_bars: 16          # 4h
+    oneh_filter: stub           # stub (fail closed if 1h missing) | off
+    oneh_lookback: 12
+    ranging: false
+    confirm_closed_only: true

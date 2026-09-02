@@ -1,0 +1,37 @@
+
+!.env.example
+!data/.gitkeep
+# Data (local only)
+# IDE / OS
+# Notebooks checkpoints
+# Python
+# Secrets & env
+*$py.class
+**/credentials/
+**/secrets/
+*.egg-info/
+*.key
+*.pem
+*.py[cod]
+*.swp
+.DS_Store
+.coverage
+.eggs/
+.env
+.env.*
+.idea/
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.venv/
+.vscode/
+__pycache__/
+build/
+data/
+dist/
+htmlcov/
+venv/
+okx-eea-*.json
+**/okx-eea-*.json
