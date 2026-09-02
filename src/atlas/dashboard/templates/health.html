@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Gezondheid{% endblock %}
+{% block heading %}Gezondheid{% endblock %}
+{% block body %}
+<p class="lede">Pipeline-status uit config + lokale journals. Sleutels worden niet geladen en niet getoond.</p>
+
+<p class="health-roll state-{{ health.status }}">Totaal: {{ health.status }} · parsefouten {{ health.n_parse_errors }} · secrets_loaded={{ health.secrets_loaded }}</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Check</th>
+      <th>Status</th>
+      <th>Toelichting</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in health.items %}
+    <tr>
+      <td>{{ item.label }}</td>
+      <td><span class="pill pill-{{ item.status }}">{{ item.status }}</span></td>
+      <td>{{ item.detail }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

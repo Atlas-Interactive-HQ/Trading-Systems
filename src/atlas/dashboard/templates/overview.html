@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Overzicht{% endblock %}
+{% block heading %}Overzicht{% endblock %}
+{% block body %}
+<section class="grid-4">
+  <article class="card">
+    <h2>Paperboek</h2>
+    <p class="metric">€{{ "%.0f"|format(overview.paper_equity_eur) }}</p>
+    <p class="hint">Schaal voor sizing, geen OKX-wallet. Kill {{ "%.0f"|format(overview.daily_kill_frac * 100) }}%/dag · risico {{ "%.1f"|format(overview.per_trade_risk_frac * 100) }}%/trade · één positie.</p>
+  </article>
+  <article class="card">
+    <h2>Kill-switch</h2>
+    <p class="metric state-{{ 'error' if overview.killed else 'ok' }}">{{ overview.kill_status }}</p>
+    <p class="hint">{% if overview.kill_reason %}{{ overview.kill_reason }}{% elif overview.utc_day %}UTC-dag {{ overview.utc_day }}{% else %}Nog geen OMS-state.json{% endif %}</p>
+  </article>
+  <article class="card">
+    <h2>Modus</h2>
+    <p class="metric">{{ overview.mode_label }}</p>
+    <p class="hint">Live is geblokkeerd. Auto-demo staat uit tot een expliciete Phase-C-gate.</p>
+  </article>
+  <article class="card">
+    <h2>Laatste sessie</h2>
+    <p class="metric ts">{{ overview.last_session_utc or "—" }}</p>
+    <p class="hint">{% if overview.last_run_id %}{{ overview.last_run_id }}{% else %}Geen doge_demo_session in journals{% endif %}</p>
+  </article>
+</section>
+
+<section class="grid-2">
+  <article class="card">
+    <h2>Universum (vast)</h2>
+    <dl class="kv">
+      <div><dt>Spot</dt><dd>{{ overview.universe_spot }}</dd></div>
+      <div><dt>X-Perp demo</dt><dd>{{ overview.universe_xperp }}</dd></div>
+      <div><dt>PEPE</dt><dd>uitgesteld</dd></div>
+      <div><dt>Open inst</dt><dd>{{ overview.open_inst or "geen" }}{% if overview.open_side %} · {{ overview.open_side }}{% endif %}</dd></div>
+    </dl>
+  </article>
+  <article class="card">
+    <h2>Paper PnL (journal)</h2>
+    <p class="metric">{% if overview.paper_pnl is not none %}€{{ "%.2f"|format(overview.paper_pnl) }}{% else %}—{% endif %}</p>
+    <p class="hint">Alleen wat in <code>data/oms/state.json</code> staat. Geen verzonnen balances. {{ overview.n_signals }} signalen · {{ overview.n_orders }} OMS-rijen.</p>
+  </article>
+</section>
+
+{% if overview.empty %}
+<article class="empty">
+  <h2>Nog geen journals op deze Mac</h2>
+  <p>Lege staat is in orde. Draai een signal-only sessie, of open de UI met sample-data:</p>
+  <pre>python scripts/run_doge_demo_session.py --venue both --bars 96
+python scripts/run_dashboard.py --fixtures</pre>
+</article>
+{% else %}
+<section>
+  <h2 class="section-title">Laatste signalen per venue</h2>
+  <div class="grid-2">
+    {% for venue in ["spot", "xperp"] %}
+    {% set sig = latest[venue] %}
+    <article class="card">
+      <h2>{{ "DOGE spot" if venue == "spot" else "DOGE X-Perp" }}</h2>
+      {% if sig %}
+      <p class="metric">{{ sig.side }}</p>
+      <p class="hint">{{ sig.reason }} · {{ sig.ts_utc or "—" }} · stop {{ sig.stop if sig.stop is not none else "—" }}</p>
+      {% else %}
+      <p class="hint">Geen breakout-signaal in de journals.</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

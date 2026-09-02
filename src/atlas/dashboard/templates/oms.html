@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}OMS{% endblock %}
+{% block heading %}OMS-activiteit{% endblock %}
+{% block body %}
+<p class="lede">Beslissingen, orders en cancels uit <code>data/oms/</code>. Signal-only sessies journalen skips, geen fills. Deze pagina stuurt niets naar OKX.</p>
+
+{% if oms.empty %}
+<article class="empty">
+  <h2>Geen OMS-journals</h2>
+  <p>Lege staat is in orde tot er lokaal een sessie draait.</p>
+</article>
+{% else %}
+
+{% macro rows(title, items) -%}
+<section>
+  <h2 class="section-title">{{ title }} <span class="count">{{ items|length }}</span></h2>
+  {% if not items %}
+  <p class="hint">Geen rijen in dit kanaal.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tijd UTC</th>
+        <th>Kind</th>
+        <th>Venue</th>
+        <th>Inst</th>
+        <th>Samenvatting</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td>{{ r.ts_utc or "—" }}</td>
+        <td>{{ r.kind or "—" }}</td>
+        <td>{{ r.venue or "—" }}</td>
+        <td>{{ r.inst_id or "—" }}</td>
+        <td>{{ r.summary }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{{ rows("Beslissingen", oms.decisions) }}
+{{ rows("Orders / skips", oms.orders) }}
+{{ rows("Annuleringen", oms.cancels) }}
+{{ rows("Events", oms.events) }}
+{{ rows("Snapshots", oms.snapshots) }}
+{% endif %}
+{% endblock %}

@@ -5,7 +5,8 @@
 **Phase 1:** PUBLIC market-data collectors + a **gated** OKX EEA signed client.  
 **Phase 1.5:** **local paper engine** (simulated fills, no exchange demo required). **No live orders.**  
 **Phase 1.6:** **OKX EEA SPOT demo OMS plumbing** (read + optional single manual paper order). **Not live. Not auto-ML.**  
-**Phase 1.7:** **DOGE demo loop** — public 15m breakout signals on locked **DOGE-USD** (spot) + **DOGE-USD_UM_XPERP-310516** (X-Perp). Default signal-only journal. Optional far-limit demo orders behind `--place-demo-orders`. PEPE deferred. **Not live.**
+**Phase 1.7:** **DOGE demo loop** — public 15m breakout signals on locked **DOGE-USD** (spot) + **DOGE-USD_UM_XPERP-310516** (X-Perp). Default signal-only journal. Optional far-limit demo orders behind `--place-demo-orders`. PEPE deferred. **Not live.**  
+**Dashboard v0:** read-only local UI over journals (signals, OMS, health). **No live orders. No keys in git.**
 
 Design pack: [`phase1/`](./phase1/) — start with [`phase1/README.md`](./phase1/README.md) and venue preflight [`phase1/07-venue-preflight-notes.md`](./phase1/07-venue-preflight-notes.md).
 
@@ -48,7 +49,44 @@ source .venv/bin/activate
 pip install -U pip
 pip install -e ".[dev]"
 # or: pip install -r requirements.txt && pip install -e .
+# dashboard-only extra: pip install -e ".[dashboard]"
 ```
+
+## Dashboard v0 (read-only)
+
+Local UI so you can watch the paper stack grow. It **only reads** `data/oms/` and `data/paper/` journals plus config. It does **not** load OKX keys, and it has **no** place/cancel routes.
+
+```bash
+cd Trading-Systems
+source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Own journals (empty-state is OK until a session has run)
+python scripts/run_dashboard.py
+
+# Bundled sample journals (no local session required)
+python scripts/run_dashboard.py --fixtures
+```
+
+Open **http://127.0.0.1:8787**
+
+| Page | What you see |
+|------|----------------|
+| `/` Overzicht | €200 paper scale, kill status, mode (signal-only / demo), last session time |
+| `/signals` | Latest DOGE spot + X-Perp breakout rows from `decisions.jsonl` |
+| `/oms` | Decisions / orders / cancels / events from `data/oms/` |
+| `/health` | Pipeline ok/warn/fail — never secrets |
+
+Override data dir: `python scripts/run_dashboard.py --data-dir /path/to/data`  
+Same as `export ATLAS_DATA_DIR=...`. JSON: `/api/snapshot`, `/api/signals`, `/api/oms`, `/api/health`.
+
+**Grow path**
+
+1. **v0 (now)** — read-only HTML + JSON over local JSONL / empty journals  
+2. **later** — poll or SSE while sessions run on this Mac (`data/oms/` live-ish)  
+3. **much later** — controls; never live until an explicit `ga live`. Auto-demo stays off until Phase C gates + Kaje say so.
+
+Dutch copy, paper/demo labeled in the banner. Success metric remains **expectancy after costs on paper** — never a profit guarantee.
 
 ## Config
 
@@ -233,7 +271,7 @@ python scripts/run_doge_demo_session.py --venue xperp --place-demo-orders
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, and paper sizing / fill math.
+Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, paper sizing / fill math, **and dashboard v0 (empty journals, fixtures, secret redaction, GET-only)**.
 
 ## Docker (optional stub)
 

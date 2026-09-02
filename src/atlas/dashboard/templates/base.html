@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Overzicht{% endblock %} · Atlas Trading Systems</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <p class="brand">Atlas</p>
+      <p class="brand-sub">Trading Systems</p>
+      <nav>
+        <a href="/" class="{% if page == 'overview' %}is-on{% endif %}">Overzicht</a>
+        <a href="/signals" class="{% if page == 'signals' %}is-on{% endif %}">Signalen</a>
+        <a href="/oms" class="{% if page == 'oms' %}is-on{% endif %}">OMS</a>
+        <a href="/health" class="{% if page == 'health' %}is-on{% endif %}">Gezondheid</a>
+      </nav>
+      <p class="rail-foot">v0 · alleen lezen</p>
+    </aside>
+    <div class="stage">
+      <header class="banner">
+        <div>
+          <p class="kicker">Paper · demo · geen live</p>
+          <h1>{% block heading %}Overzicht{% endblock %}</h1>
+        </div>
+        <div class="banner-flags">
+          <span class="pill pill-paper">PAPER €{{ overview.paper_equity_eur|int }}</span>
+          <span class="pill">{{ overview.mode_label }}</span>
+          <span class="pill pill-{{ health.status }}">pipeline {{ health.status }}</span>
+        </div>
+      </header>
+      <main id="page"
+            hx-get="{{ request.url.path }}"
+            hx-trigger="every 20s"
+            hx-select="#page"
+            hx-target="this"
+            hx-swap="outerHTML">
+        {% block body %}{% endblock %}
+      </main>
+      <footer class="colophon">
+        <span>Bijgewerkt {{ snap.generated_at_utc or "—" }} · bron {{ snap.data_dir }}</span>
+        <span>Succes = expectancy na kosten op paper — geen winstgarantie. Deze UI plaatst geen orders.</span>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>
