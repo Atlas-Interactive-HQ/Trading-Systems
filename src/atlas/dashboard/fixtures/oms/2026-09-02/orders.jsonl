@@ -1,0 +1,2 @@
+{"run_id":"doge-demo-fixture01","seq":6,"kind":"skip","placed":false,"reason":"signal_only","venue":"spot","instId":"DOGE-USD","mdInstId":"DOGE-USD","ts_ms":1788350520000}
+{"run_id":"doge-demo-fixture01","seq":7,"kind":"skip","placed":false,"reason":"signal_only","venue":"xperp","instId":"DOGE-USD_UM_XPERP-310516","mdInstId":"DOGE-USD_UM_XPERP-310404","ts_ms":1788350520000}

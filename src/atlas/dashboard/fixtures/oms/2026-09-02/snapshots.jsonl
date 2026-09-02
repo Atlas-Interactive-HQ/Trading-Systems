@@ -1,0 +1,1 @@
+{"run_id":"doge-demo-fixture01","seq":8,"kind":"account","mode":"demo","code":"0","msg":"","totalEq":"200","totalEq_num":200.0,"demo_funds_ok":true,"account_mode":{"acctLv":"2","acctLv_name":"single_currency_margin","posMode":"net_mode"},"non_zero_ccys":[{"ccy":"USD","eq":"200","cashBal":"200","availBal":"200","frozenBal":"0"}],"http_status":200,"ts_ms":1788350460000}

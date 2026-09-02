@@ -1,0 +1,4 @@
+{"run_id":"doge-demo-fixture01","seq":2,"kind":"breakout_signal","symbol":"DOGE-USD","side":"long","stop":0.1482,"reason":"breakout_long","bar_ts_ms":1788349500000,"extras":{"lookback":16},"venue":"spot","ts_ms":1788350460000}
+{"run_id":"doge-demo-fixture01","seq":3,"kind":"breakout_current","symbol":"DOGE-USD","side":"long","stop":0.1482,"reason":"breakout_long","bar_ts_ms":1788350400000,"extras":{},"venue":"spot","ts_ms":1788350460000}
+{"run_id":"doge-demo-fixture01","seq":4,"kind":"breakout_signal","symbol":"DOGE-USD_UM_XPERP-310404","side":"short","stop":0.1611,"reason":"breakout_short","bar_ts_ms":1788348600000,"extras":{},"venue":"xperp","ts_ms":1788350520000}
+{"run_id":"doge-demo-fixture01","seq":5,"kind":"breakout_current","symbol":"DOGE-USD_UM_XPERP-310404","side":"short","stop":0.1611,"reason":"breakout_short","bar_ts_ms":1788350400000,"extras":{},"venue":"xperp","ts_ms":1788350520000}

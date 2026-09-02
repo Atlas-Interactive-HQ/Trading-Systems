@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Signalen{% endblock %}
+{% block heading %}Signalen{% endblock %}
+{% block body %}
+<p class="lede">DOGE breakout v1 uit <code>data/oms/*/decisions.jsonl</code> (kind <code>breakout_signal</code> / <code>breakout_current</code>). Spot = {{ overview.universe_spot }}. X-Perp-orders = {{ overview.universe_xperp }} (public MD mag 310404 zijn).</p>
+
+{% if not signals %}
+<article class="empty">
+  <h2>Geen signalen</h2>
+  <p>Lege journals zijn oké. Na een sessie verschijnen hier spot- en xperp-rijen.</p>
+</article>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Tijd UTC</th>
+      <th>Kind</th>
+      <th>Venue</th>
+      <th>Instrument</th>
+      <th>Kant</th>
+      <th>Stop</th>
+      <th>Reden</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in signals %}
+    <tr>
+      <td>{{ s.ts_utc or "—" }}</td>
+      <td>{{ s.kind }}</td>
+      <td>{{ s.venue or "—" }}</td>
+      <td>{{ s.symbol or "—" }}</td>
+      <td>{{ s.side or "—" }}</td>
+      <td>{% if s.stop is not none %}{{ "%.6g"|format(s.stop) }}{% else %}—{% endif %}</td>
+      <td>{{ s.reason or "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

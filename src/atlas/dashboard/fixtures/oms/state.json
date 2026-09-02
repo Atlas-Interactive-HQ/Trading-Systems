@@ -1,0 +1,12 @@
+{
+  "utc_day": "2026-09-02",
+  "day_start_total_eq": 200.0,
+  "paper_day_start": 200.0,
+  "paper_pnl": 0.0,
+  "killed": false,
+  "kill_reason": null,
+  "open_inst": null,
+  "open_side": null,
+  "open_ord_id": null,
+  "open_venue": null
+}
