@@ -22,10 +22,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Serve bundled sample journals (no local sessions required)",
     )
+    p.add_argument(
+        "--replay",
+        action="store_true",
+        help="Read data/replay journals (historical-replay). Distinct from Phase A data/oms/.",
+    )
     args = p.parse_args(argv)
+    if args.fixtures and args.replay:
+        raise SystemExit("kies --fixtures of --replay, niet beide")
 
     cfg = load_config(args.config)
     data_dir = Path(args.data_dir) if args.data_dir else Path(cfg.data_dir)
+    if args.replay and args.data_dir is None:
+        data_dir = Path(cfg.data_dir) / "replay"
     if not data_dir.is_absolute() and not args.fixtures:
         data_dir = Path.cwd() / data_dir
 
@@ -33,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         data_dir=None if args.fixtures else data_dir,
         config_path=args.config,
         use_fixtures=bool(args.fixtures),
+        use_replay=bool(args.replay),
     )
     try:
         import uvicorn
@@ -43,7 +53,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         f"Atlas dashboard v0  http://{args.host}:{args.port}  "
-        f"({'fixtures' if args.fixtures else data_dir})  — alleen lezen, geen orders",
+        f"({'fixtures' if args.fixtures else 'replay ' + str(data_dir) if args.replay else data_dir})  "
+        "— alleen lezen, geen orders",
         flush=True,
     )
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")

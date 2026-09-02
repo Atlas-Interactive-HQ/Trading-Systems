@@ -16,6 +16,9 @@
 | [05-data-quality-tests.md](./05-data-quality-tests.md) | Concrete DQ tests (gaps, clocks, books, funding, duplicates, …) |
 | [06-false-profitability-assumptions.md](./06-false-profitability-assumptions.md) | Checklist of backtest illusions |
 | [07-venue-preflight-notes.md](./07-venue-preflight-notes.md) | Kraken/OKX EEA preflight: demo retirement, public MD hosts, contract sizes |
+| [08-self-learning-paper-path.md](./08-self-learning-paper-path.md) | Observer → shadow → gated micro-demo → offline learn |
+| [09-handoff-grok-cli.md](./09-handoff-grok-cli.md) | Mac dashboard handoff |
+| [10-historical-replay.md](./10-historical-replay.md) | Similar-regime historical replay (signal-only; not a live Phase A week) |
 
 ## Locked highlights (see 00 for full list)
 

@@ -36,7 +36,15 @@ _SECRET_NAME_FRAGMENTS = (
     "private_key",
 )
 SIGNAL_KINDS = frozenset({"breakout_signal", "breakout_current"})
-SESSION_KINDS = frozenset({"doge_demo_session_start", "doge_demo_session_end"})
+SESSION_KINDS = frozenset(
+    {
+        "doge_demo_session_start",
+        "doge_demo_session_end",
+        "historical_replay_start",
+        "historical_replay_end",
+    }
+)
+REPLAY_SESSION_KINDS = frozenset({"historical_replay_start", "historical_replay_end"})
 ORDER_CANCEL_HINTS = frozenset({"cancel", "cancelled", "canceled"})
 DEFAULT_LIMIT = 200
 
@@ -221,6 +229,7 @@ class DashboardSnapshot:
     generated_at_ms: int
     data_dir: str
     using_fixtures: bool
+    using_replay: bool = False
 
     @property
     def generated_at_utc(self) -> str | None:
@@ -241,6 +250,7 @@ class DashboardSnapshot:
                 "generated_at_utc": fmt_ts_ms(self.generated_at_ms),
                 "data_dir": self.data_dir,
                 "using_fixtures": self.using_fixtures,
+                "using_replay": self.using_replay,
             }
         )
 
@@ -412,6 +422,8 @@ def _mode_from_events(events: list[dict[str, Any]]) -> tuple[str, str, dict[str,
     if not sessions:
         return "idle", "geen sessie", None
     latest = sessions[0]  # already newest-first
+    if _kind(latest) in REPLAY_SESSION_KINDS or latest.get("source") == "historical-replay":
+        return "historical-replay", "historical-replay (alleen signalen)", latest
     place = bool(latest.get("place_orders"))
     dry = latest.get("dry_run")
     if place:
@@ -486,12 +498,25 @@ def _collector_mtime(raw_root: Path) -> tuple[int | None, str | None]:
     return int(latest * 1000), latest_name
 
 
+def _journal_root(root: Path, using_replay: bool) -> Path:
+    """OMS layout (data/oms/{date}) or replay layout (data/replay/{date})."""
+    if using_replay:
+        return root
+    oms = root / "oms"
+    if oms.is_dir() and _dated_dirs(oms):
+        return oms
+    if root.is_dir() and _dated_dirs(root):
+        return root
+    return oms
+
+
 def load_snapshot(
     data_dir: str | Path,
     *,
     cfg: AppConfig | None = None,
     config_path: str | Path | None = None,
     using_fixtures: bool = False,
+    using_replay: bool = False,
     limit: int = DEFAULT_LIMIT,
 ) -> DashboardSnapshot:
     root = Path(data_dir)
@@ -500,7 +525,7 @@ def load_snapshot(
     risk = _public_risk(cfg)
     now = utc_ms()
 
-    oms_root = root / "oms"
+    oms_root = _journal_root(root, using_replay=using_replay)
     paper_root = root / "paper"
     raw_root = root / "raw"
 
@@ -592,7 +617,7 @@ def load_snapshot(
             detail=(
                 f"{len(decisions)} beslissingen, {len(orders)} orders, {len(events)} events"
                 if not oms.empty
-                else "leeg — draai een signal-only sessie of start met --fixtures"
+                else "leeg — draai een signal-only sessie, --replay, of --fixtures"
             ),
         ),
         HealthItem(
@@ -614,7 +639,7 @@ def load_snapshot(
             detail=(
                 f"{mode_label} · {fmt_ts_ms(last_session_ts)}"
                 if last_session_ts
-                else "nog geen doge_demo_session in journals"
+                else "nog geen sessie in journals"
             ),
         ),
         HealthItem(
@@ -642,6 +667,16 @@ def load_snapshot(
                 label="Bron",
                 status="ok",
                 detail="gebundelde sample-journals (geen echte sessie)",
+            ),
+        )
+    elif using_replay:
+        items.insert(
+            3,
+            HealthItem(
+                id="replay",
+                label="Bron",
+                status="ok",
+                detail="data/replay (historical-replay, geen live Phase A-week)",
             ),
         )
 
@@ -687,4 +722,5 @@ def load_snapshot(
         generated_at_ms=now,
         data_dir=display_dir,
         using_fixtures=using_fixtures,
+        using_replay=using_replay,
     )
