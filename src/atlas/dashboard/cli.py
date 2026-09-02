@@ -27,14 +27,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Read data/replay journals (historical-replay). Distinct from Phase A data/oms/.",
     )
+    p.add_argument(
+        "--shadow",
+        action="store_true",
+        help="Read data/shadow journals (would-place / blocked). No orders.",
+    )
     args = p.parse_args(argv)
-    if args.fixtures and args.replay:
-        raise SystemExit("kies --fixtures of --replay, niet beide")
+    chosen = [n for n, v in (("fixtures", args.fixtures), ("replay", args.replay), ("shadow", args.shadow)) if v]
+    if len(chosen) > 1:
+        raise SystemExit("kies één van --fixtures / --replay / --shadow")
 
     cfg = load_config(args.config)
     data_dir = Path(args.data_dir) if args.data_dir else Path(cfg.data_dir)
     if args.replay and args.data_dir is None:
         data_dir = Path(cfg.data_dir) / "replay"
+    if args.shadow and args.data_dir is None:
+        data_dir = Path(cfg.data_dir) / "shadow"
     if not data_dir.is_absolute() and not args.fixtures:
         data_dir = Path.cwd() / data_dir
 
@@ -43,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
         config_path=args.config,
         use_fixtures=bool(args.fixtures),
         use_replay=bool(args.replay),
+        use_shadow=bool(args.shadow),
     )
     try:
         import uvicorn
@@ -53,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         f"Atlas dashboard v0  http://{args.host}:{args.port}  "
-        f"({'fixtures' if args.fixtures else 'replay ' + str(data_dir) if args.replay else data_dir})  "
+        f"({'fixtures' if args.fixtures else 'shadow ' + str(data_dir) if args.shadow else 'replay ' + str(data_dir) if args.replay else data_dir})  "
         "— alleen lezen, geen orders",
         flush=True,
     )

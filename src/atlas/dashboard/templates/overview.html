@@ -36,9 +36,20 @@
     </dl>
   </article>
   <article class="card">
+    {% if snap.using_shadow %}
+    <h2>Would-place vs blocked</h2>
+    <p class="metric">{{ overview.n_would_place }} would-place</p>
+    <p class="hint">
+      {% if overview.blocked_by %}
+        {% for reason, n in overview.blocked_by.items() %}{{ reason }}={{ n }}{% if not loop.last %} · {% endif %}{% endfor %}
+      {% else %}geen blocked-rijen{% endif %}
+      — geen PnL-hero, geen orders.
+    </p>
+    {% else %}
     <h2>Paper PnL (journal)</h2>
     <p class="metric">{% if overview.paper_pnl is not none %}€{{ "%.2f"|format(overview.paper_pnl) }}{% else %}—{% endif %}</p>
     <p class="hint">Alleen wat in <code>data/oms/state.json</code> staat. Geen verzonnen balances. {{ overview.n_signals }} signalen · {{ overview.n_orders }} OMS-rijen.</p>
+    {% endif %}
   </article>
 </section>
 
