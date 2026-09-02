@@ -6,7 +6,8 @@
 **Phase 1.5:** **local paper engine** (simulated fills, no exchange demo required). **No live orders.**  
 **Phase 1.6:** **OKX EEA SPOT demo OMS plumbing** (read + optional single manual paper order). **Not live. Not auto-ML.**  
 **Phase 1.7:** **DOGE demo loop** — public 15m breakout signals on locked **DOGE-USD** (spot) + **DOGE-USD_UM_XPERP-310516** (X-Perp). Default signal-only journal. Optional far-limit demo orders behind `--place-demo-orders`. PEPE deferred. **Not live.**  
-**Dashboard v0:** read-only local UI over journals (signals, OMS, health). **No live orders. No keys in git.**
+**Dashboard v0:** read-only local UI over journals (signals, OMS, health). **No live orders. No keys in git.**  
+**Historical replay:** similar-regime public-candle walk for Phase A research (`scripts/replay_phase_a_history.py`). Journals in `data/replay/`. **Not a live week. No orders. No PnL boast.**
 
 Design pack: [`phase1/`](./phase1/) — start with [`phase1/README.md`](./phase1/README.md) and venue preflight [`phase1/07-venue-preflight-notes.md`](./phase1/07-venue-preflight-notes.md).
 
@@ -66,6 +67,9 @@ python scripts/run_dashboard.py
 
 # Bundled sample journals (no local session required)
 python scripts/run_dashboard.py --fixtures
+
+# Historical replay journals (data/replay) — not Phase A data/oms
+python scripts/run_dashboard.py --replay
 ```
 
 Open **http://127.0.0.1:8787**
@@ -265,13 +269,25 @@ python scripts/run_doge_demo_session.py --venue xperp --place-demo-orders
 
 `--place-demo-orders` (alias `--live-demo-orders`) requires a Demo Trading key and `allow_trade=True`. X-Perp calls `set-leverage` (isolated, ≤2x) before the order. OMS state clears `open_inst` after a successful cancel or when pending is empty / filled-flat so one-position does not stick.
 
+## Historical replay (Phase A accelerator)
+
+Public OKX EEA `history-candles` (paginated) + locked DOGE breakout, **signal-only**. Picks a ~7d window in ~90d whose fingerprint (vol, range%, trend, v1 signal count) is closest to the last ~7d. Poor match is reported and still used — no invented window. See [`phase1/10-historical-replay.md`](./phase1/10-historical-replay.md).
+
+```bash
+python scripts/replay_phase_a_history.py --venue both --lookback-days 90 --window-days 7
+# journals: data/replay/{UTC-date}/
+python scripts/run_dashboard.py --replay
+```
+
+Replay is **not** a live Phase A week. Similar-regime ≠ future performance. Summary JSON has counts and match scores, not “would have made €X”.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, paper sizing / fill math, **and dashboard v0 (empty journals, fixtures, secret redaction, GET-only)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, paper sizing / fill math, dashboard v0 (empty journals, fixtures, secret redaction, GET-only), **and historical replay (pagination parser, closed bars, determinism, no orders)**.
 
 ## Docker (optional stub)
 

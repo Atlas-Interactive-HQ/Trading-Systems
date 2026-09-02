@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlencode
@@ -27,6 +28,11 @@ log = logging.getLogger("atlas.paper.md")
 USER_AGENT = "atlas-trading/0.1.5 (local-paper; public-md; no-keys)"
 OKX_REST = "https://eea.okx.com"
 KRAKEN_CHARTS = "https://futures.kraken.com/api/charts/v1"
+OKX_CANDLES_PATH = "/api/v5/market/candles"
+OKX_HISTORY_CANDLES_PATH = "/api/v5/market/history-candles"
+# OKX docs: history-candles max 100 per request; /market/candles allows up to 300.
+OKX_HISTORY_LIMIT_MAX = 100
+OKX_CANDLES_LIMIT_MAX = 300
 
 BAR_MS = {"15m": 15 * 60 * 1000, "1H": 60 * 60 * 1000, "1h": 60 * 60 * 1000}
 
@@ -162,6 +168,11 @@ def parse_bar_dict(row: dict[str, Any], *, default_symbol: str, bar: str, source
         return None
 
 
+def merge_bars(*groups: Iterable[Bar]) -> list[Bar]:
+    """Dedupe by ts_open_ms, sort ascending. Closed bars only (validate)."""
+    return _dedupe_sort([b for g in groups for b in g])
+
+
 def _dedupe_sort(bars: Iterable[Bar]) -> list[Bar]:
     by_ts: dict[int, Bar] = {}
     for b in bars:
@@ -235,6 +246,32 @@ def _http_get_json(client: httpx.Client, url: str) -> Any:
     return r.json()
 
 
+def parse_okx_candles_payload(
+    payload: Any,
+    *,
+    symbol: str,
+    bar: str,
+    source: str,
+) -> list[Bar]:
+    """Parse an OKX candles envelope. Fail closed on bad payloads. Closed bars only."""
+    if not isinstance(payload, dict):
+        raise PaperDataError(f"OKX candles non-object for {symbol}")
+    code = str(payload.get("code", ""))
+    if code not in ("0", "0.0", ""):
+        raise PaperDataError(f"OKX candles {symbol} code={code} msg={payload.get('msg')}")
+    rows = payload.get("data")
+    if rows is None:
+        raise PaperDataError(f"OKX candles {symbol} missing data")
+    if not isinstance(rows, list):
+        raise PaperDataError(f"OKX candles {symbol} data is not a list")
+    bars: list[Bar] = []
+    for row in rows:
+        parsed = parse_okx_candle_row(row, symbol=symbol, bar=bar, source=source)
+        if parsed is not None:
+            bars.append(parsed)
+    return _dedupe_sort(bars)
+
+
 def fetch_okx_candles(
     client: httpx.Client,
     symbol: str,
@@ -243,23 +280,117 @@ def fetch_okx_candles(
     rest_base: str = OKX_REST,
     limit: int = 300,
 ) -> list[Bar]:
-    path = "/api/v5/market/candles"
+    """Recent closed candles via GET /api/v5/market/candles (now). No keys."""
+    path = OKX_CANDLES_PATH
     assert_public_only_path(path)
-    params = {"instId": symbol, "bar": okx_bar(bar), "limit": str(min(300, max(1, limit)))}
+    params = {
+        "instId": symbol,
+        "bar": okx_bar(bar),
+        "limit": str(min(OKX_CANDLES_LIMIT_MAX, max(1, limit))),
+    }
+    url = rest_base.rstrip("/") + path + "?" + urlencode(params)
+    payload = _http_get_json(client, url)
+    return parse_okx_candles_payload(payload, symbol=symbol, bar=bar, source="okx_eea")
+
+
+def fetch_okx_history_candles_page(
+    client: httpx.Client,
+    symbol: str,
+    bar: str,
+    *,
+    rest_base: str = OKX_REST,
+    after: int | None = None,
+    before: int | None = None,
+    limit: int = OKX_HISTORY_LIMIT_MAX,
+) -> tuple[list[Bar], int]:
+    """One page of GET /api/v5/market/history-candles. Public, unsigned.
+
+    OKX: `after` = records *earlier than* ts; `before` = records *newer than* ts.
+    Max limit is 100. Closed bars only (unconfirmed rows dropped by the parser).
+    Returns (closed_bars, raw_row_count) so pagination does not stop just
+    because the current (unconfirmed) candle was dropped.
+    """
+    path = OKX_HISTORY_CANDLES_PATH
+    assert_public_only_path(path)
+    params: dict[str, str] = {
+        "instId": symbol,
+        "bar": okx_bar(bar),
+        "limit": str(min(OKX_HISTORY_LIMIT_MAX, max(1, int(limit)))),
+    }
+    if after is not None:
+        params["after"] = str(int(after))
+    if before is not None:
+        params["before"] = str(int(before))
     url = rest_base.rstrip("/") + path + "?" + urlencode(params)
     payload = _http_get_json(client, url)
     if not isinstance(payload, dict):
-        raise PaperDataError(f"OKX candles non-object for {symbol}")
-    code = str(payload.get("code", ""))
-    if code not in ("0", "0.0", ""):
-        raise PaperDataError(f"OKX candles {symbol} code={code} msg={payload.get('msg')}")
-    rows = payload.get("data") or []
-    bars: list[Bar] = []
-    for row in rows:
-        parsed = parse_okx_candle_row(row, symbol=symbol, bar=bar, source="okx_eea")
-        if parsed is not None:
-            bars.append(parsed)
-    return _dedupe_sort(bars)
+        raise PaperDataError(f"OKX history-candles non-object for {symbol}")
+    raw = payload.get("data")
+    raw_n = len(raw) if isinstance(raw, list) else 0
+    bars = parse_okx_candles_payload(
+        payload, symbol=symbol, bar=bar, source="okx_eea_history"
+    )
+    return bars, raw_n
+
+
+def fetch_okx_history_candles(
+    client: httpx.Client,
+    symbol: str,
+    bar: str,
+    *,
+    rest_base: str = OKX_REST,
+    start_ms: int | None = None,
+    end_ms: int | None = None,
+    limit: int = OKX_HISTORY_LIMIT_MAX,
+    max_pages: int = 200,
+    pause_s: float = 0.12,
+) -> list[Bar]:
+    """Paginate history-candles from `end_ms` backward until `start_ms`.
+
+    Does not invent bars. Empty/bad pages fail closed (or stop pagination if
+    some bars already arrived). Rate-limit pause defaults to 0.12s (OKX 20/2s).
+    Short-page detection uses the *raw* row count, not closed-bar count.
+    """
+    page_limit = min(OKX_HISTORY_LIMIT_MAX, max(1, int(limit)))
+    after: int | None = int(end_ms) if end_ms is not None else None
+    collected: list[Bar] = []
+    pages = 0
+    while pages < max_pages:
+        page, raw_n = fetch_okx_history_candles_page(
+            client,
+            symbol,
+            bar,
+            rest_base=rest_base,
+            after=after,
+            limit=page_limit,
+        )
+        pages += 1
+        if raw_n == 0 and not page:
+            break
+        collected.extend(page)
+        if not page:
+            break
+        oldest = min(b.ts_open_ms for b in page)
+        if start_ms is not None and oldest <= int(start_ms):
+            break
+        if raw_n < page_limit:
+            break
+        if after is not None and oldest >= after:
+            break
+        after = oldest
+        if pause_s > 0:
+            time.sleep(pause_s)
+    bars = _dedupe_sort(collected)
+    if start_ms is not None:
+        bars = [b for b in bars if b.ts_open_ms >= int(start_ms)]
+    if end_ms is not None:
+        bars = [b for b in bars if b.ts_open_ms < int(end_ms)]
+    if not bars:
+        raise PaperDataError(
+            f"OKX history-candles empty for {symbol} {bar} "
+            f"(start_ms={start_ms} end_ms={end_ms} pages={pages})"
+        )
+    return bars
 
 
 def fetch_kraken_candles(

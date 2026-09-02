@@ -51,12 +51,17 @@ def _resolve_data_dir(
     cfg: AppConfig,
     *,
     use_fixtures: bool,
-) -> tuple[Path, bool]:
+    use_replay: bool,
+) -> tuple[Path, bool, bool]:
     if use_fixtures:
-        return bundled_fixtures_dir(), True
+        return bundled_fixtures_dir(), True, False
+    if use_replay:
+        if data_dir is not None:
+            return Path(data_dir), False, True
+        return Path(cfg.data_dir) / "replay", False, True
     if data_dir is not None:
-        return Path(data_dir), False
-    return Path(cfg.data_dir), False
+        return Path(data_dir), False, False
+    return Path(cfg.data_dir), False, False
 
 
 def create_app(
@@ -64,9 +69,12 @@ def create_app(
     data_dir: str | Path | None = None,
     config_path: str | Path | None = None,
     use_fixtures: bool = False,
+    use_replay: bool = False,
 ) -> FastAPI:
     cfg = load_config(config_path)
-    resolved, fixtures = _resolve_data_dir(data_dir, cfg, use_fixtures=use_fixtures)
+    resolved, fixtures, replay = _resolve_data_dir(
+        data_dir, cfg, use_fixtures=use_fixtures, use_replay=use_replay
+    )
 
     app = FastAPI(
         title="Atlas Trading Systems — dashboard v0",
@@ -80,12 +88,14 @@ def create_app(
     app.state.data_dir = resolved
     app.state.cfg = cfg
     app.state.use_fixtures = fixtures
+    app.state.use_replay = replay
 
     def snapshot() -> DashboardSnapshot:
         return load_snapshot(
             app.state.data_dir,
             cfg=app.state.cfg,
             using_fixtures=bool(app.state.use_fixtures),
+            using_replay=bool(app.state.use_replay),
         )
 
     def page(request: Request, template: str, extra: dict[str, Any] | None = None) -> HTMLResponse:

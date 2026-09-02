@@ -160,6 +160,51 @@ def test_app_rejects_writes_and_has_no_order_routes():
     assert "/order" not in joined
 
 
+def test_replay_journals_mode(tmp_path: Path):
+    day = tmp_path / "2026-09-02"
+    day.mkdir()
+    (day / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "historical_replay_end",
+                "source": "historical-replay",
+                "ok": True,
+                "place_orders": False,
+                "dry_run": True,
+                "mode": "historical-replay",
+                "run_id": "replay-ui",
+                "ts_ms": 1788350580000,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (day / "decisions.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "breakout_signal",
+                "source": "historical-replay",
+                "venue": "spot",
+                "symbol": "DOGE-USD",
+                "side": "long",
+                "stop": 0.14,
+                "reason": "donchian_break_up|oneh_ok",
+                "ts_ms": 1788350460000,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    snap = load_snapshot(tmp_path, cfg=load_config(), using_replay=True)
+    assert snap.overview.mode == "historical-replay"
+    assert snap.using_replay is True
+    assert snap.signals[0].venue == "spot"
+    app = create_app(data_dir=tmp_path, use_replay=True)
+    html = TestClient(app).get("/").text
+    assert "historical-replay" in html
+    assert "PAPER" in html
+
+
 def test_static_css_and_no_docs():
     app = create_app(use_fixtures=True)
     c = TestClient(app)
