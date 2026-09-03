@@ -27,6 +27,7 @@ Q4 ids `YYYY-10` / `YYYY-11` / `YYYY-12` are **true calendar months** (Oct 1–3
 | `2022-bear` | 2022-01-01 → 2022-12-31 |
 | `2022-h1` | 2022-01-01 → 2022-06-30 |
 | `2023-chop` | 2023-01-01 → 2023-08-31 |
+| `2026-funding` | 2026-06-04 → 2026-09-02 |
 
 ## Why DOGE-USDT (research MD)
 
