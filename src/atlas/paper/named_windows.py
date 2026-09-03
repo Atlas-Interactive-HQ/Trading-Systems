@@ -98,6 +98,13 @@ def _build_named_windows() -> dict[str, dict[str, str]]:
             "end": "2023-08-31",
             "label": "2023-01-01 → 2023-08-31 UTC",
         },
+        # Clipped to OKX funding-rate-history coverage (~3 months; skip 2026-06-03 00:00 missing print). Research only.
+        "2026-funding": {
+            "id": "2026-funding",
+            "start": "2026-06-04",
+            "end": "2026-09-02",
+            "label": "2026-06-04 → 2026-09-02 UTC",
+        },
     }
     for year in Q4_YEARS:
         for month in Q4_MONTHS:

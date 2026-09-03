@@ -222,6 +222,20 @@ def test_oos_stress_window_bounds():
         parse_windows_arg("2022-bull")
 
 
+def test_2026_funding_window_bounds():
+    """Inclusive UTC span overlapping OKX funding-rate-history (~3 months)."""
+    w = parse_windows_arg("2026-funding")[0]
+    assert w.id == "2026-funding"
+    assert w.start == "2026-06-04" and w.end == "2026-09-02"
+    assert w.start_ms == int(
+        datetime(2026, 6, 4, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    assert w.end_ms_exclusive == int(
+        datetime(2026, 9, 3, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    assert NAMED_WINDOWS["2026-funding"]["label"] == "2026-06-04 → 2026-09-02 UTC"
+
+
 def test_q4_token_expands_nine_months():
     ids = expand_window_ids("q4")
     assert ids == list(Q4_WINDOW_IDS)
