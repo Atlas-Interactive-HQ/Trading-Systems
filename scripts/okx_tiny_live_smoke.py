@@ -29,7 +29,7 @@ from atlas.okx.client import (  # noqa: E402
 )
 from atlas.oms.spot_demo import redact_record  # noqa: E402
 
-LOCKED_INST = "DOGE-USDT"
+LOCKED_INST = "DOGE-USDC"  # EEA Crypto allowlist on this live key is USDC, not USDT
 DEFAULT_SZ = "10"
 PX_MULT = 2.0
 
@@ -243,7 +243,11 @@ def main(argv: list[str] | None = None, *, client: OkxEeaClient | None = None) -
         )
     )
     p.add_argument("--secrets-path", default=None)
-    p.add_argument("--inst-id", default=LOCKED_INST)
+    p.add_argument(
+        "--inst-id",
+        default=LOCKED_INST,
+        help="SPOT instId (default DOGE-USDC; override e.g. DOGE-USDT if the key allowlists it)",
+    )
     p.add_argument("--sz", default=DEFAULT_SZ, help="Base size to sell (default 10 DOGE)")
     p.add_argument(
         "--place-far-limit",

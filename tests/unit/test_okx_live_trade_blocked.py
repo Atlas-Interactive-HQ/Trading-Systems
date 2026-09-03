@@ -53,7 +53,7 @@ def _client(
                 json={
                     "code": "0",
                     "msg": "",
-                    "data": [{"instId": "DOGE-USDT", "last": "0.12"}],
+                    "data": [{"instId": request.url.params.get("instId") or "DOGE-USDC", "last": "0.12"}],
                 },
             )
         if path.endswith("/account/balance"):
@@ -246,6 +246,8 @@ def test_smoke_dry_run_does_not_post():
     assert any(p.endswith("/asset/balances") for p in paths)
     assert any(p.endswith("/market/ticker") for p in paths)
     assert any(p.endswith("/trade/orders-pending") for p in paths)
+    ticker_urls = [x["url"] for x in calls if x["path"].endswith("/market/ticker")]
+    assert ticker_urls and "DOGE-USDC" in ticker_urls[0]
 
 
 def test_smoke_one_flag_still_dry_run_no_post():
@@ -271,9 +273,23 @@ def test_smoke_mutate_places_far_limit_and_cancels(capsys: pytest.CaptureFixture
     assert '"side":"sell"' in posts[0]["body"]
     assert '"ordType":"limit"' in posts[0]["body"]
     assert '"sz":"10"' in posts[0]["body"]
+    assert '"instId":"DOGE-USDC"' in posts[0]["body"]
     # px = 2 × last 0.12 = 0.24
     assert "0.24" in posts[0]["body"]
     assert "/cancel-order" in posts[1]["url"]
+    assert "DOGE-USDT" not in posts[0]["body"]
+
+
+def test_smoke_inst_id_override_still_accepted():
+    calls: list = []
+    c = _client("live", allow_trade=True, tiny_live=True, calls=calls)
+    smoke = _load_smoke()
+    code = smoke.main(
+        ["--inst-id", "DOGE-USDT", "--place-far-limit", "--cancel"], client=c
+    )
+    assert code == 0
+    posts = [x for x in calls if x["method"] == "POST"]
+    assert '"instId":"DOGE-USDT"' in posts[0]["body"]
 
 
 def test_resolve_xperp_universe_picks_primary_and_backup():

@@ -2,7 +2,7 @@
 
 **Stance:** `not_a_forecast: true`. **Not Phase C.** **Not a weekday auto-trade routine.** Manual far-limit + cancel only, on a box that already has live keys. Default remains **fail-closed**.
 
-Universe for this smoke: **live SPOT DOGE-USDT** already sitting on the trading account. BTC EMA observer (`phase1/21`) and Phase A DOGE 15m demo loop are **unchanged**. `config/default.yaml` breakout params are **unchanged**.
+Universe for this smoke: **live SPOT DOGE-USDC**. On this EEA live key, **USDT cannot be added to the Crypto allowlist**; `DOGE-USDT` returned **50123**. The successful far-limit+cancel was **DOGE-USDC** (did not fill; not Phase C). Override with `--inst-id` only if another quote is allowlisted. BTC EMA observer (`phase1/21`) and Phase A DOGE 15m demo loop are **unchanged**. `config/default.yaml` breakout params are **unchanged**.
 
 ## What “tiny-live” is
 
@@ -22,14 +22,16 @@ A second, explicit opt-in on `OkxEeaClient` so Atlas can later run **one** SELL 
 On the box with **live** keys (never commit those files; never print them):
 
 ```bash
-# Read-only snapshot (trading balance, funding balances, DOGE-USDT ticker, pending)
+# Read-only snapshot (trading balance, funding balances, DOGE-USDC ticker, pending)
 python scripts/okx_tiny_live_smoke.py
 
 # Mutating ONLY if BOTH flags are set: SELL sz=10 DOGE, px=2× last, then cancel same ordId
 python scripts/okx_tiny_live_smoke.py --place-far-limit --cancel
+# Optional override if a different quote is allowlisted:
+# python scripts/okx_tiny_live_smoke.py --inst-id DOGE-USDT --place-far-limit --cancel
 ```
 
-Refuse if available DOGE < `sz` or notional > 20. First intended smoke: **~281 DOGE** on trading, **no USDT**, funding empty, no positions — SELL ~10 DOGE far-limit then cancel.
+Refuse if available DOGE < `sz` or notional > 20. Account shape: **~281 DOGE** on trading, funding empty, no positions — SELL ~10 DOGE far-limit then cancel on **DOGE-USDC**.
 
 Do **not** install a cron / Grok Bot routine from this document.
 
