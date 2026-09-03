@@ -306,13 +306,24 @@ python scripts/run_shadow_replay.py --windows 2020-09,2023-09 --venue spot
 
 Named-window ≠ forecast. Omit `--windows` to keep the similar-regime default.
 
+## Paper eval (Phase D-lite)
+
+Expectancy after costs on the €200 book, 70/30 chronological split, stress (2× fees / 1-bar delay / 10% misses). Research only. See [`phase1/13-paper-eval.md`](./phase1/13-paper-eval.md).
+
+```bash
+python scripts/run_paper_eval.py --samples similar,2020-09,2023-09
+python scripts/run_dashboard.py   # then open /eval
+```
+
+`not_a_forecast`. Do not headline PnL. Do not treat this as a Phase C or live gate.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, DOGE venue routing, paper sizing / fill math, dashboard v0, historical replay, Phase B shadow, **and named windows (2020 fixture parse, xperp skip, DOGE-USDT research MD label)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, **and paper eval (70/30 split, 2× fee drag, no trade client)**.
 
 ## Docker (optional stub)
 

@@ -21,6 +21,7 @@
 | [10-historical-replay.md](./10-historical-replay.md) | Similar-regime historical replay (signal-only; not a live Phase A week) |
 | [11-shadow-replay.md](./11-shadow-replay.md) | Phase B would-place vs blocked (no orders; not Phase C) |
 | [12-named-windows.md](./12-named-windows.md) | Calendar windows 2020-09 / 2023-09 on DOGE-USDT research MD |
+| [13-paper-eval.md](./13-paper-eval.md) | Phase D-lite: expectancy after costs, DD, kill-days (not a forecast) |
 
 ## Locked highlights (see 00 for full list)
 

@@ -224,15 +224,17 @@ class ShadowEngine(PaperEngine):
                 equity=ledger.equity,
             )
             if allow_queue and not queued and self._pending is None:
-                self._pending = Order(
-                    symbol=symbol,
-                    side=sig.side,
-                    qty=sized.qty,
-                    kind="entry",
-                    reason=sig.reason,
-                    stop=sig.stop,
-                    decision_ts_ms=last.ts_close_ms,
-                    cloid=self._cloid(),
+                self._queue_entry(
+                    Order(
+                        symbol=symbol,
+                        side=sig.side,
+                        qty=sized.qty,
+                        kind="entry",
+                        reason=sig.reason,
+                        stop=sig.stop,
+                        decision_ts_ms=last.ts_close_ms,
+                        cloid=self._cloid(),
+                    )
                 )
                 queued = True
 

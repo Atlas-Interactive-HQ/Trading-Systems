@@ -13,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from atlas.common.config import AppConfig, load_config
 from atlas.dashboard.reader import DashboardSnapshot, bundled_fixtures_dir, load_snapshot, redact
+from atlas.paper.eval import load_eval_reports
 
 PKG = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(PKG / "templates"))
@@ -100,6 +101,10 @@ def create_app(
     app.state.use_fixtures = fixtures
     app.state.use_replay = replay
     app.state.use_shadow = shadow
+    reports = Path(cfg.data_dir)
+    if not reports.is_absolute():
+        reports = Path.cwd() / reports
+    app.state.reports_dir = reports / "reports"
 
     def snapshot() -> DashboardSnapshot:
         return load_snapshot(
@@ -141,6 +146,65 @@ def create_app(
     @app.get("/health", response_class=HTMLResponse)
     def health(request: Request) -> HTMLResponse:
         return page(request, "health.html")
+
+    @app.get("/eval", response_class=HTMLResponse)
+    def eval_page(request: Request) -> HTMLResponse:
+        raw = load_eval_reports(app.state.reports_dir)
+        evals: list[dict[str, Any]] = []
+        for sample in raw:
+            if not sample.get("ok"):
+                evals.append(
+                    {
+                        "sample_id": sample.get("sample_id"),
+                        "ok": False,
+                        "error": sample.get("error"),
+                    }
+                )
+                continue
+            rows = []
+            for key, label in (
+                ("full", "full"),
+                ("in_sample", "in-sample 70%"),
+                ("holdout", "holdout 30%"),
+                ):
+                m = sample.get(key) or {}
+                rows.append(
+                    {
+                        "label": label,
+                        "n_trades": m.get("n_trades"),
+                        "n_would_place": m.get("n_would_place"),
+                        "n_kill_days": m.get("n_kill_days"),
+                        "expectancy_after_costs_eur": m.get("expectancy_after_costs_eur"),
+                        "max_dd_eur": m.get("max_dd_eur"),
+                        "fee_drag_eur": m.get("fee_drag_eur"),
+                    }
+                )
+            for skey, slabel in (
+                ("2x_fees", "stress 2× fees"),
+                ("1bar_entry_delay", "stress 1-bar delay"),
+                ("miss_10pct_entries", "stress miss 10%"),
+            ):
+                m = (sample.get("stress") or {}).get(skey) or {}
+                rows.append(
+                    {
+                        "label": slabel,
+                        "n_trades": m.get("n_trades"),
+                        "n_would_place": m.get("n_would_place"),
+                        "n_kill_days": m.get("n_kill_days"),
+                        "expectancy_after_costs_eur": m.get("expectancy_after_costs_eur"),
+                        "max_dd_eur": m.get("max_dd_eur"),
+                        "fee_drag_eur": m.get("fee_drag_eur"),
+                    }
+                )
+            evals.append(
+                {
+                    "sample_id": sample.get("sample_id"),
+                    "ok": True,
+                    "md_label": sample.get("md_label"),
+                    "rows": rows,
+                }
+            )
+        return page(request, "eval.html", {"evals": evals})
 
     @app.get("/api/snapshot")
     def api_snapshot() -> JSONResponse:

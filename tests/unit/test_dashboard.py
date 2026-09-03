@@ -286,6 +286,68 @@ def test_named_window_journals_mode(tmp_path: Path):
     assert "2020-09" in html
 
 
+def test_eval_page_empty_and_table(tmp_path: Path):
+    app = create_app(data_dir=tmp_path)
+    app.state.reports_dir = tmp_path / "reports"
+    html = TestClient(app).get("/eval").text
+    assert "Paper eval" in html or "eval" in html.lower()
+    assert "PnL hero" not in html
+    (tmp_path / "reports").mkdir()
+    (tmp_path / "reports" / "eval_bundle.json").write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "not_a_forecast": True,
+                "samples": [
+                    {
+                        "ok": True,
+                        "sample_id": "similar",
+                        "md_label": "fixture",
+                        "full": {
+                            "n_trades": 2,
+                            "n_would_place": 2,
+                            "n_kill_days": 0,
+                            "expectancy_after_costs_eur": -0.12,
+                            "max_dd_eur": 4.0,
+                            "fee_drag_eur": 0.5,
+                        },
+                        "in_sample": {
+                            "n_trades": 1,
+                            "n_would_place": 1,
+                            "n_kill_days": 0,
+                            "expectancy_after_costs_eur": -0.1,
+                            "max_dd_eur": 2.0,
+                            "fee_drag_eur": 0.2,
+                        },
+                        "holdout": {
+                            "n_trades": 1,
+                            "n_would_place": 1,
+                            "n_kill_days": 0,
+                            "expectancy_after_costs_eur": -0.2,
+                            "max_dd_eur": 3.0,
+                            "fee_drag_eur": 0.3,
+                        },
+                        "stress": {
+                            "2x_fees": {
+                                "n_trades": 2,
+                                "expectancy_after_costs_eur": -0.3,
+                                "max_dd_eur": 5.0,
+                                "fee_drag_eur": 1.0,
+                            }
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    html = TestClient(app).get("/eval").text
+    assert "similar" in html
+    assert "expectancy after costs" in html
+    assert "-0.12" in html or "−0.12" in html
+    assert "holdout" in html.lower()
+
+
 def test_static_css_and_no_docs():
     app = create_app(use_fixtures=True)
     c = TestClient(app)
