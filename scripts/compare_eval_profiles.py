@@ -21,7 +21,12 @@ if str(_SRC) not in sys.path:
 
 from atlas.common.config import load_config  # noqa: E402
 from atlas.oms.spot_demo import redact_record  # noqa: E402
-from atlas.paper.compare import compare_profiles, render_candidate_markdown  # noqa: E402
+from atlas.paper.compare import (  # noqa: E402
+    compare_profiles,
+    extract_heading,
+    extract_run_note,
+    render_candidate_markdown,
+)
 from atlas.paper.eval import load_profile_reports  # noqa: E402
 from atlas.paper.profiles import BASELINE, ProfileError, get_profile, profile_names  # noqa: E402
 
@@ -40,11 +45,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Comparison JSON path (gitignored). Default data/reports/compare_<cand>_vs_<base>.json",
     )
     p.add_argument("--write-md", default="", help="Full markdown doc path (committed). Empty to skip.")
-    p.add_argument("--md-heading", default=None, help="Markdown H1 for --write-md.")
+    p.add_argument(
+        "--md-heading",
+        default=None,
+        help="Markdown H1 for --write-md. Default: reuse the H1 of the existing file, else a generic one.",
+    )
     p.add_argument(
         "--md-note",
         default=None,
-        help="Optional run note paragraph (e.g. 'Mac run 2026-09-03, cached candles').",
+        help="Run-note section (markdown). Default: carry over the note between the run-note markers "
+        "of the existing file, so a plain re-run reproduces the committed doc.",
     )
     args = p.parse_args(argv)
 
@@ -114,7 +124,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_md:
         md_path = Path(args.write_md)
         md_path.parent.mkdir(parents=True, exist_ok=True)
-        heading = args.md_heading or f"Candidate {cand.name} vs frozen baseline (Phase D trial)"
+        existing = md_path.read_text(encoding="utf-8") if md_path.is_file() else ""
+        heading = args.md_heading or extract_heading(existing) or f"Candidate {cand.name} vs frozen baseline (Phase D trial)"
+        run_note = args.md_note if args.md_note is not None else extract_run_note(existing)
         reproduce = [
             "source .venv/bin/activate",
             f"python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile {base.name} --write-md ''",
@@ -125,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         ]
         md_path.write_text(
             render_candidate_markdown(
-                cmp, heading=heading, reproduce=reproduce, run_note=args.md_note
+                cmp, heading=heading, reproduce=reproduce, run_note=run_note
             ),
             encoding="utf-8",
         )

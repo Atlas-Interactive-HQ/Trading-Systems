@@ -201,6 +201,14 @@ def test_daily_cap_counts_decision_even_if_fill_missed(tmp_path: Path):
     assert eng.blocked["daily_cap"] >= 1  # second decision blocked by the cap
 
 
+def test_queue_entry_requires_ledger():
+    eng = PaperEngine(PaperSettings(), BreakoutV1(BreakoutParams(oneh_filter="off")), journal=ListJournal())
+    from atlas.paper.types import Order, Side
+    order = Order(symbol=SYM, side=Side.LONG, qty=1.0, kind="entry", reason="t")
+    with pytest.raises(TypeError):
+        eng._queue_entry(order)  # type: ignore[call-arg]  — the cap can never be bypassed silently
+
+
 @pytest.mark.parametrize("bad", [0, -1, True, 1.5])
 def test_daily_cap_invalid_fails_closed(bad):
     settings = replace(PaperSettings(), max_would_place_per_utc_day=bad)  # type: ignore[arg-type]
@@ -346,8 +354,11 @@ def test_run_paper_eval_profiles_no_trade_client_and_per_profile_files(
     assert (rp / "profiles" / BASELINE / "eval_similar.json").is_file()
     assert (rp / "profiles" / CANDIDATE_V1 / "eval_similar.json").is_file()
     assert (rp / "profiles" / CANDIDATE_V1 / "eval_bundle.json").is_file()
+    # legacy location is reserved for the baseline: the candidate run must NOT overwrite it
     legacy = json.loads((rp / "eval_similar.json").read_text(encoding="utf-8"))
-    assert legacy["profile"] == CANDIDATE_V1  # legacy = last run, stamped
+    assert legacy["profile"] == BASELINE and legacy["full"]["n_blocked_daily_cap"] == 0
+    legacy_bundle = json.loads((rp / "eval_bundle.json").read_text(encoding="utf-8"))
+    assert legacy_bundle["profile"] == BASELINE
     # a second candidate run on another sample MERGES into the profile bundle
     inj2 = {"2024-11": ({SYM: bars}, {SYM: h1}, {SYM: "spot"}, "fixture")}
     run_paper_eval(cfg, samples=["2024-11"], data_dir=tmp_path, bars_by_sample=inj2, profile=CANDIDATE_V1)
@@ -396,6 +407,16 @@ def test_pass_rule_requires_both_windows_strictly_greater_and_dd_within_10pct():
     missing = index_samples([_row("2020-09", hold_exp=-0.20, hold_dd=90.0)])
     r2 = evaluate_pass_rule(base, missing)
     assert r2["verdict"] == "FAIL" and r2["per_window"]["2023-09"]["available"] is False
+    # zero-trade holdout carrying a numeric expectancy (0.0 > negative baseline) must still fail closed
+    zero = index_samples([_row("2020-09", hold_exp=-0.20, hold_dd=90.0), _row("2023-09", hold_exp=0.0, hold_dd=0.0)])
+    zero["2023-09"]["holdout"]["n_trades"] = 0
+    r3 = evaluate_pass_rule(base, zero)
+    assert r3["verdict"] == "FAIL" and "zero-trade" in " ".join(r3["per_window"]["2023-09"]["fail_closed_reasons"])
+    # missing candidate max DD must fail closed, not pass as 0.0
+    nodd = index_samples([_row("2020-09", hold_exp=-0.20, hold_dd=90.0), _row("2023-09", hold_exp=-0.10, hold_dd=90.0)])
+    del nodd["2023-09"]["holdout"]["max_dd_eur"]
+    r4 = evaluate_pass_rule(base, nodd)
+    assert r4["verdict"] == "FAIL" and r4["per_window"]["2023-09"]["max_dd_within_tolerance"] is False
 
 
 def test_stress_notes_flag_kill_truncation_not_a_win():
@@ -451,6 +472,11 @@ def test_compare_and_markdown_say_fail_plainly_and_flag_truncation():
     assert "not_a_forecast" in md
     assert "would have made" not in md.lower()
     assert "Not a candidate_v2 proposal" in md
+    # run note is wrapped in markers and round-trips through extract_run_note / extract_heading
+    from atlas.paper.compare import extract_heading, extract_run_note
+    md_n = render_candidate_markdown(cmp, heading="16 — test", run_note="## Mac run\n\nnote body")
+    assert extract_run_note(md_n) == "## Mac run\n\nnote body" and extract_heading(md_n) == "16 — test"
+    assert extract_run_note(md) is None
     # a PASS renders as PASS but still not a live pitch
     cand_pass = [_row("2020-09", hold_exp=-0.20, hold_dd=100.0), _row("2023-09", hold_exp=-0.10, hold_dd=100.0)]
     md2 = render_candidate_markdown(compare_profiles(base[:2], cand_pass, cand_name=CANDIDATE_V1), heading="x")
@@ -472,7 +498,12 @@ def test_eval_page_shows_profile_comparison_without_pnl_hero(tmp_path: Path):
         for r in rows:
             r = {**r, "profile": prof, "profile_overlay": {} if prof == BASELINE else {"max_would_place_per_utc_day": 1}}
             (d / f"eval_{r['sample_id']}.json").write_text(json.dumps(r), encoding="utf-8")
+    # a stray directory under profiles/ is not a candidate and must not render a verdict
+    stray = tmp_path / "reports" / "profiles" / "candidate_v9_typo"
+    stray.mkdir()
+    (stray / "eval_2020-09.json").write_text(json.dumps({**_row("2020-09", hold_exp=9.0, hold_dd=1.0), "profile": "candidate_v9_typo"}), encoding="utf-8")
     html = TestClient(app).get("/eval").text
+    assert "candidate_v9_typo" not in html
     assert "Profielvergelijking" in html
     assert CANDIDATE_V1 in html and BASELINE in html
     assert "n_blocked_daily_cap" in html

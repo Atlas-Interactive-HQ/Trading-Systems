@@ -17,7 +17,7 @@ from atlas.paper.compare import METRICS as CMP_METRICS
 from atlas.paper.compare import SLICES as CMP_SLICES
 from atlas.paper.compare import evaluate_pass_rule, index_samples
 from atlas.paper.eval import load_eval_reports, load_profile_reports
-from atlas.paper.profiles import BASELINE
+from atlas.paper.profiles import BASELINE, PROFILES
 
 PKG = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(PKG / "templates"))
@@ -105,8 +105,8 @@ def _profile_comparison(profiles: dict[str, list[dict[str, Any]]]) -> dict[str, 
     base_idx = index_samples(profiles[BASELINE])
     out_candidates: list[dict[str, Any]] = []
     for name, rows in profiles.items():
-        if name == BASELINE:
-            continue
+        if name == BASELINE or name not in PROFILES:
+            continue  # stray directories are not candidates; only named profiles render
         cand_idx = index_samples(rows)
         rule = evaluate_pass_rule(base_idx, cand_idx)
         samples: list[dict[str, Any]] = []

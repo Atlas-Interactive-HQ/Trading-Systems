@@ -23,13 +23,15 @@ PASS (research only) iff on BOTH 2020-09 and 2023-09: candidate holdout-30% expe
 
 At least one primary window fails the rule. **FAIL** — keep the frozen baseline. No candidate_v2 is proposed in this trial.
 
+<!-- run-note:start -->
 ## Mac run (2026-09-03)
 
 Cached research candles under `data/eval_cache/` (no refetch); similar-regime window from the existing replay summary. Wall-clock ≈ 4 min per 6-month window, ≈ 10 s per Q4 month, per profile.
 
-**Baseline reproducibility (measured, not assumed).** The `baseline` profile reproduces the committed 13/14 JSON exactly — every field — for 2020-09, 2023-09 and all nine Q4 months, and reproduces a fresh run of pristine `origin/main` on the same cache exactly for every sample including `similar`. So the profile plumbing did not move the frozen baseline. The `similar` figures do differ from the 25-trade full-sample row in `13-paper-eval.md`: that row came from the first, uncached run, whose fetched 1h series carried a 48h pre-window pad; the cached path resamples 1h from the window only, so the first ~13 hours have no 1h context (`oneh_missing`) and the full/IS slices lose two early trades (holdout is identical). Pre-existing on main, not introduced here; both profiles use the same cached path so the similar comparison is apples-to-apples, and similar is secondary regardless.
+**Baseline reproducibility (measured, not assumed).** The `baseline` profile reproduces the figures in `13-paper-eval.md` / `14-q4-months.md` exactly — every field of the local (gitignored) JSON those runs left under `data/reports/` — for 2020-09, 2023-09 and all nine Q4 months, and reproduces a fresh run of pristine `origin/main` on the same cache exactly for every sample including `similar`. So the profile plumbing did not move the frozen baseline. The `similar` figures do differ from the 25-trade full-sample row in `13-paper-eval.md`: that row came from the first, uncached run, whose fetched 1h series carried a 48h pre-window pad; the cached path resamples 1h from the window only, so the first ~13 hours have no 1h context (`oneh_missing`) and the full/IS slices lose two early trades (holdout is identical). Pre-existing on main, not introduced here; both profiles use the same cached path so the similar comparison is apples-to-apples, and similar is secondary regardless.
 
-**Mechanical note.** The candidate never trips the 5% daily kill (0 kill-days on every sample): with one would-place per UTC day at 1.5% risk, a single stop-out costs ≈1.5% of equity plus costs, far from the 5% threshold unless a gap blows through the stop. That is a consequence of the cap, not evidence of edge — and it is exactly why the candidate's stress rows cannot show kill truncation while the baseline's can.
+**Mechanical note.** The candidate shows 0 kill-days on every full / in-sample / holdout slice of every sample, and its 2× fees rows stay at 0→0 kill-days — which is why the candidate's flagged 2× rows are equity-path sizing, not kill truncation. With one would-place per UTC day at 1.5% risk, a single stop-out costs ≈1.5% of equity plus costs, so the 5% daily kill is rarely reachable — not unreachable: the 1-bar entry delay stress trips it once on 2020-09 and twice on 2023-09 (a delayed fill plus a gap through the stop). Fewer kills are a consequence of the cap, not evidence of edge.
+<!-- run-note:end -->
 
 ## Primary windows (pass rule)
 
@@ -58,7 +60,7 @@ Stress (full sample, same engine path):
 | baseline | 2× fees | 675→667 | 52→60 | -0.2032→-0.1685 | 196.10 | 54.13→83.71 | 1.56 | **kill-truncation: less-negative expectancy is NOT a win** |
 | baseline | 1-bar entry delay | 675→670 | 52→45 | -0.2032→-0.2040 | 192.15 | 54.13→54.19 | — | trade set differs by construction |
 | baseline | 10% missed entries | 675→633 | 52→45 | -0.2032→-0.2320 | 192.88 | 54.13→45.94 | — | trade set differs by construction |
-| candidate | 2× fees | 163→163 | 0→0 | -0.5844→-0.5377 | 145.78 | 25.75→47.47 | 1.84 | **equity-path sizing: less-negative expectancy is NOT a win** |
+| candidate | 2× fees | 163→163 | 0→0 | -0.5844→-0.5377 | 145.78 | 25.75→47.47 | 1.84 | **equity-path sizing (same trade/kill counts): less-negative expectancy is NOT a win** |
 | candidate | 1-bar entry delay | 163→163 | 0→1 | -0.5844→-0.4819 | 115.23 | 25.75→26.60 | — | trade set differs by construction |
 | candidate | 10% missed entries | 163→149 | 0→0 | -0.5844→-0.5747 | 123.44 | 25.75→25.25 | — | trade set differs by construction |
 
@@ -87,7 +89,7 @@ Stress (full sample, same engine path):
 | baseline | 2× fees | 734→710 | 38→51 | -0.1647→-0.1350 | 197.30 | 68.87→101.21 | 1.52 | **kill-truncation: less-negative expectancy is NOT a win** |
 | baseline | 1-bar entry delay | 734→729 | 38→31 | -0.1647→-0.1692 | 192.83 | 68.87→68.87 | — | trade set differs by construction |
 | baseline | 10% missed entries | 734→690 | 38→31 | -0.1647→-0.1726 | 189.08 | 68.87→69.03 | — | trade set differs by construction |
-| candidate | 2× fees | 128→128 | 0→0 | -0.5407→-0.5206 | 112.30 | 24.38→44.95 | 1.84 | **equity-path sizing: less-negative expectancy is NOT a win** |
+| candidate | 2× fees | 128→128 | 0→0 | -0.5407→-0.5206 | 112.30 | 24.38→44.95 | 1.84 | **equity-path sizing (same trade/kill counts): less-negative expectancy is NOT a win** |
 | candidate | 1-bar entry delay | 128→128 | 0→2 | -0.5407→-0.7135 | 114.70 | 24.38→23.05 | — | trade set differs by construction |
 | candidate | 10% missed entries | 128→115 | 0→0 | -0.5407→-0.5021 | 88.39 | 24.38→23.29 | — | trade set differs by construction |
 
@@ -120,7 +122,7 @@ Stress (full sample, same engine path):
 | baseline | 2× fees | 23→22 | 0→1 | 0.0198→-0.1499 | 32.28 | 9.21→17.10 | 1.94 | kill-truncation (trade set differs) |
 | baseline | 1-bar entry delay | 23→22 | 0→1 | 0.0198→-0.4693 | 24.43 | 9.21→8.41 | — | trade set differs by construction |
 | baseline | 10% missed entries | 23→23 | 0→0 | 0.0198→-0.0988 | 23.68 | 9.21→9.15 | — |  |
-| candidate | 2× fees | 3→3 | 0→0 | -2.6446→-2.6410 | 9.99 | 1.03→2.06 | 2.00 | **equity-path sizing: less-negative expectancy is NOT a win** |
+| candidate | 2× fees | 3→3 | 0→0 | -2.6446→-2.6410 | 9.99 | 1.03→2.06 | 2.00 | **equity-path sizing (same trade/kill counts): less-negative expectancy is NOT a win** |
 | candidate | 1-bar entry delay | 3→3 | 0→0 | -2.6446→-2.3875 | 8.19 | 1.03→1.03 | — |  |
 | candidate | 10% missed entries | 3→3 | 0→0 | -2.6446→-2.6446 | 8.97 | 1.03→1.03 | — |  |
 
@@ -151,28 +153,28 @@ Candidate holdout expectancy is less negative than baseline in 2 of 9 Q4 months.
 Flagged rows in this run:
 
 - `2020-09` / baseline: 2× fees reads -0.1685 vs -0.2032 base (less negative) with n_trades 675→667 and kill-days 52→60. Fee rate doubled (fee/trade ratio 1.56; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2020-09` / candidate: 2× fees reads -0.5377 vs -0.5844 base (less negative) with the SAME trade set (n_trades 163, kill-days 0) and total fee drag 25.75→47.47. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2020-09` / candidate: 2× fees reads -0.5377 vs -0.5844 base (less negative) with the same n_trades (163) and kill-day count (0) — a count-based check — and total fee drag 25.75→47.47. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2023-09` / baseline: 2× fees reads -0.1350 vs -0.1647 base (less negative) with n_trades 734→710 and kill-days 38→51. Fee rate doubled (fee/trade ratio 1.52; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2023-09` / candidate: 2× fees reads -0.5206 vs -0.5407 base (less negative) with the SAME trade set (n_trades 128, kill-days 0) and total fee drag 24.38→44.95. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2023-09` / candidate: 2× fees reads -0.5206 vs -0.5407 base (less negative) with the same n_trades (128) and kill-day count (0) — a count-based check — and total fee drag 24.38→44.95. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `similar` / baseline: 2× fees trade set differs (n_trades 23→22, kill-days 0→1); expectancy 0.0198→-0.1499 is not on a comparable basis.
-- `similar` / candidate: 2× fees reads -2.6410 vs -2.6446 base (less negative) with the SAME trade set (n_trades 3, kill-days 0) and total fee drag 1.03→2.06. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `similar` / candidate: 2× fees reads -2.6410 vs -2.6446 base (less negative) with the same n_trades (3) and kill-day count (0) — a count-based check — and total fee drag 1.03→2.06. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2020-10` / baseline: 2× fees reads -0.6333 vs -0.6717 base (less negative) with n_trades 93→93 and kill-days 0→1. Fee rate doubled (fee/trade ratio 1.85; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2020-10` / candidate: 2× fees reads -1.5812 vs -1.5897 base (less negative) with the SAME trade set (n_trades 9, kill-days 0) and total fee drag 2.71→5.39. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2020-10` / candidate: 2× fees reads -1.5812 vs -1.5897 base (less negative) with the same n_trades (9) and kill-day count (0) — a count-based check — and total fee drag 2.71→5.39. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2020-11` / baseline: 2× fees reads -0.4915 vs -0.5331 base (less negative) with n_trades 98→98 and kill-days 5→6. Fee rate doubled (fee/trade ratio 1.86; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2020-11` / candidate: 2× fees reads -1.0870 vs -1.1049 base (less negative) with the SAME trade set (n_trades 21, kill-days 0) and total fee drag 5.41→10.68. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2020-11` / candidate: 2× fees reads -1.0870 vs -1.1049 base (less negative) with the same n_trades (21) and kill-day count (0) — a count-based check — and total fee drag 5.41→10.68. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2020-12` / baseline: 2× fees reads -0.2916 vs -0.3779 base (less negative) with n_trades 100→99 and kill-days 10→11. Fee rate doubled (fee/trade ratio 1.89; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2020-12` / candidate: 2× fees reads -1.9141 vs -1.9429 base (less negative) with the SAME trade set (n_trades 27, kill-days 0) and total fee drag 5.56→10.95. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2020-12` / candidate: 2× fees reads -1.9141 vs -1.9429 base (less negative) with the same n_trades (27) and kill-day count (0) — a count-based check — and total fee drag 5.56→10.95. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2023-10` / baseline: 2× fees reads -0.4245 vs -0.4839 base (less negative) with n_trades 102→101 and kill-days 3→5. Fee rate doubled (fee/trade ratio 1.84; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2023-10` / candidate: 2× fees reads -1.3075 vs -1.3128 base (less negative) with the SAME trade set (n_trades 9, kill-days 0) and total fee drag 2.54→5.04. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2023-10` / candidate: 2× fees reads -1.3075 vs -1.3128 base (less negative) with the same n_trades (9) and kill-day count (0) — a count-based check — and total fee drag 2.54→5.04. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2023-11` / baseline: 2× fees trade set differs (n_trades 95→94, kill-days 6→8); expectancy -0.3845→-0.3964 is not on a comparable basis.
-- `2023-11` / candidate: 2× fees reads -1.4144 vs -1.4402 base (less negative) with the SAME trade set (n_trades 26, kill-days 0) and total fee drag 7.27→14.26. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2023-11` / candidate: 2× fees reads -1.4144 vs -1.4402 base (less negative) with the same n_trades (26) and kill-day count (0) — a count-based check — and total fee drag 7.27→14.26. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2023-12` / baseline: 2× fees reads -0.2724 vs -0.3281 base (less negative) with n_trades 114→105 and kill-days 10→12. Fee rate doubled (fee/trade ratio 1.84; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2023-12` / candidate: 2× fees reads -1.4067 vs -1.4419 base (less negative) with the SAME trade set (n_trades 26, kill-days 0) and total fee drag 7.43→14.58. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2023-12` / candidate: 2× fees reads -1.4067 vs -1.4419 base (less negative) with the same n_trades (26) and kill-day count (0) — a count-based check — and total fee drag 7.43→14.58. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2024-10` / baseline: 2× fees trade set differs (n_trades 113→111, kill-days 4→9); expectancy -0.4769→-0.4983 is not on a comparable basis.
 - `2024-11` / baseline: 2× fees reads -0.2912 vs -0.3521 base (less negative) with n_trades 103→102 and kill-days 6→8. Fee rate doubled (fee/trade ratio 1.94; below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**
-- `2024-11` / candidate: 2× fees reads 0.1513 vs 0.1465 base (less negative) with the SAME trade set (n_trades 30, kill-days 0) and total fee drag 6.11→12.04. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2024-11` / candidate: 2× fees reads 0.1513 vs 0.1465 base (less negative) with the same n_trades (30) and kill-day count (0) — a count-based check — and total fee drag 6.11→12.04. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 - `2024-12` / baseline: 2× fees trade set differs (n_trades 98→96, kill-days 8→10); expectancy -0.6571→-0.7117 is not on a comparable basis.
-- `2024-12` / candidate: 2× fees reads -1.6070 vs -1.6343 base (less negative) with the SAME trade set (n_trades 31, kill-days 0) and total fee drag 7.14→14.00. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
+- `2024-12` / candidate: 2× fees reads -1.6070 vs -1.6343 base (less negative) with the same n_trades (31) and kill-day count (0) — a count-based check — and total fee drag 7.14→14.00. Sizing scales with equity, so the poorer equity path under 2× fees shrinks positions and € losses per trade. **Not a win.**
 
 ## Reproduce
 
@@ -185,7 +187,7 @@ python scripts/run_paper_eval.py --samples q4 --profile candidate_v1_filters    
 python scripts/compare_eval_profiles.py --candidate candidate_v1_filters --write-md phase1/16-candidate-v1.md
 ```
 
-JSON under gitignored `data/reports/` (`profiles/<profile>/eval_*.json`, `compare_*.json`). Cached research candles under `data/eval_cache/` are reused; nothing is refetched unless missing.
+JSON under gitignored `data/reports/` (`profiles/<profile>/eval_*.json`, `compare_*.json`). Cached research candles under `data/eval_cache/` are reused; nothing is refetched unless missing. Re-running the last command on the existing file carries over its H1 and the run-note section between the `run-note` markers, so it regenerates this document as committed.
 
 ## What this is not
 

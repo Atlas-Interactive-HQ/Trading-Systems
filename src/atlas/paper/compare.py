@@ -194,10 +194,21 @@ def evaluate_pass_rule(
             continue
         bh = b.get("holdout") or {}
         ch = c.get("holdout") or {}
+        bn = int(bh.get("n_trades") or 0)
+        cn = int(ch.get("n_trades") or 0)
         be, ce = _num(bh.get("expectancy_after_costs_eur")), _num(ch.get("expectancy_after_costs_eur"))
-        exp_ok = be is not None and ce is not None and ce > be
-        bdd, cdd = _num(bh.get("max_dd_eur")) or 0.0, _num(ch.get("max_dd_eur")) or 0.0
-        dd_ok = cdd <= bdd * (1.0 + dd_tol) + 1e-9
+        bdd, cdd = _num(bh.get("max_dd_eur")), _num(ch.get("max_dd_eur"))
+        # Fail closed on anything that cannot be scored: a zero-trade holdout (no expectancy
+        # to compare, whatever number the row carries), or a missing expectancy / max DD.
+        fail_closed: list[str] = []
+        if bn <= 0 or cn <= 0:
+            fail_closed.append(f"zero-trade holdout (baseline n={bn}, candidate n={cn})")
+        if be is None or ce is None:
+            fail_closed.append("missing holdout expectancy")
+        if bdd is None or cdd is None:
+            fail_closed.append("missing holdout max DD")
+        exp_ok = not fail_closed and ce > be  # type: ignore[operator]
+        dd_ok = not fail_closed and cdd <= bdd * (1.0 + dd_tol) + 1e-9  # type: ignore[operator]
         per[w] = {
             "available": True,
             "baseline_holdout_expectancy": be,
@@ -206,8 +217,9 @@ def evaluate_pass_rule(
             "expectancy_strictly_greater": bool(exp_ok),
             "baseline_holdout_max_dd": bdd,
             "candidate_holdout_max_dd": cdd,
-            "max_dd_rel_change": None if not bdd else round((cdd - bdd) / bdd, 6),
+            "max_dd_rel_change": None if not bdd or cdd is None else round((cdd - bdd) / bdd, 6),
             "max_dd_within_tolerance": bool(dd_ok),
+            "fail_closed_reasons": fail_closed,
             "baseline_holdout_n_trades": bh.get("n_trades"),
             "candidate_holdout_n_trades": ch.get("n_trades"),
             "baseline_holdout_n_kill_days": bh.get("n_kill_days"),
@@ -367,7 +379,7 @@ def _stress_table(row: Mapping[str, Any]) -> list[str]:
             if n.get("false_win_risk") and n.get("false_win_mechanism") == "kill_truncation":
                 flag = "**kill-truncation: less-negative expectancy is NOT a win**"
             elif n.get("false_win_risk"):
-                flag = "**equity-path sizing: less-negative expectancy is NOT a win**"
+                flag = "**equity-path sizing (same trade/kill counts): less-negative expectancy is NOT a win**"
             elif n.get("kill_truncation_confound"):
                 flag = "kill-truncation (trade set differs)"
             elif key != "2x_fees" and n.get("trade_set_differs"):
@@ -417,13 +429,14 @@ def _confound_prose(cmp: Mapping[str, Any]) -> list[str]:
                 out.append(
                     f"- `{row['sample_id']}` / {prof}: 2× fees reads {_f(n.get('expectancy_stress'), 4)} vs {_f(n.get('expectancy_full'), 4)} base "
                     f"(less negative) with n_trades {_i(n.get('n_trades_full'))}→{_i(n.get('n_trades_stress'))} and kill-days "
-                    f"{_i(n.get('n_kill_days_full'))}→{_i(n.get('n_kill_days_stress'))}. Fee rate doubled (fee/trade ratio {_f(n.get('fee_per_trade_ratio'), 2)}; "
-                    f"below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**"
+                    f"{_i(n.get('n_kill_days_full'))}→{_i(n.get('n_kill_days_stress'))}. Fee rate doubled (fee/trade ratio {_f(n.get('fee_per_trade_ratio'), 2)}"
+                    + ("; below 2.0 because positions shrink on the poorer equity path" if (_num(n.get('fee_per_trade_ratio')) or 0) < 2.0 else "")
+                    + "); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**"
                 )
             elif n.get("false_win_risk"):
                 out.append(
                     f"- `{row['sample_id']}` / {prof}: 2× fees reads {_f(n.get('expectancy_stress'), 4)} vs {_f(n.get('expectancy_full'), 4)} base "
-                    f"(less negative) with the SAME trade set (n_trades {_i(n.get('n_trades_full'))}, kill-days {_i(n.get('n_kill_days_full'))}) and total fee drag "
+                    f"(less negative) with the same n_trades ({_i(n.get('n_trades_full'))}) and kill-day count ({_i(n.get('n_kill_days_full'))}) — a count-based check — and total fee drag "
                     f"{_f(n.get('fee_drag_full'), 2)}→{_f(n.get('fee_drag_stress'), 2)}. Sizing scales with equity, so the poorer equity path under 2× fees "
                     f"shrinks positions and € losses per trade. **Not a win.**"
                 )
@@ -437,6 +450,26 @@ def _confound_prose(cmp: Mapping[str, Any]) -> list[str]:
                     f"- `{row['sample_id']}` / {prof}: 2× fees total fee drag is LOWER than base ({_f(n.get('fee_drag_full'), 2)}→{_f(n.get('fee_drag_stress'), 2)}) without a trade-set change — inspect."
                 )
     return out or ["- No 2× fee row on any sample shows a kill-truncation confound."]
+
+
+RUN_NOTE_START = "<!-- run-note:start -->"
+RUN_NOTE_END = "<!-- run-note:end -->"
+
+
+def extract_run_note(markdown: str) -> str | None:
+    """Return the run note carried between the markers of an existing doc (None if absent)."""
+    i = markdown.find(RUN_NOTE_START)
+    j = markdown.find(RUN_NOTE_END)
+    if i < 0 or j < 0 or j < i:
+        return None
+    return markdown[i + len(RUN_NOTE_START) : j].strip("\n")
+
+
+def extract_heading(markdown: str) -> str | None:
+    for line in markdown.splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return None
 
 
 def render_candidate_markdown(
@@ -478,7 +511,8 @@ def render_candidate_markdown(
         lines.append("At least one primary window fails the rule. **FAIL** — keep the frozen baseline. No candidate_v2 is proposed in this trial.")
     lines.append("")
     if run_note:
-        lines.extend([run_note.rstrip(), ""])
+        # Markers let a plain re-run of the compare script carry this note over verbatim.
+        lines.extend([RUN_NOTE_START, run_note.strip("\n"), RUN_NOTE_END, ""])
 
     def section(title: str, role: str, intro: str) -> None:
         rows = [r for r in (cmp.get("samples") or []) if r.get("role") == role]
@@ -571,7 +605,7 @@ def render_candidate_markdown(
     if reproduce:
         lines.extend(["## Reproduce", "", "```bash"])
         lines.extend(list(reproduce))
-        lines.extend(["```", "", "JSON under gitignored `data/reports/` (`profiles/<profile>/eval_*.json`, `compare_*.json`). Cached research candles under `data/eval_cache/` are reused; nothing is refetched unless missing.", ""])
+        lines.extend(["```", "", "JSON under gitignored `data/reports/` (`profiles/<profile>/eval_*.json`, `compare_*.json`). Cached research candles under `data/eval_cache/` are reused; nothing is refetched unless missing. Re-running the last command on the existing file carries over its H1 and the run-note section between the `run-note` markers, so it regenerates this document as committed.", ""])
     lines.extend(
         [
             "## What this is not",

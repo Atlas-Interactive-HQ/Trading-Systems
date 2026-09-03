@@ -504,12 +504,13 @@ class PaperEngine:
             )
             return  # first valid symbol in universe order
 
-    def _queue_entry(self, order: Order, ledger: Ledger | None = None) -> None:
+    def _queue_entry(self, order: Order, ledger: Ledger) -> None:
         self._pending = order
         self._entry_delay_left = max(0, int(self.settings.entry_delay_bars or 0))
-        if order.kind == "entry" and ledger is not None:
+        if order.kind == "entry":
             # A queued entry IS the would-place decision (counts toward the daily cap
             # even if the fill is later missed/dropped — the decision was made).
+            # `ledger` is required so a caller can never bypass the cap silently.
             self._note_would_place(ledger)
 
     def _execute_pending(self, ledger: Ledger, bar: Bar, *, bar_i: int) -> None:

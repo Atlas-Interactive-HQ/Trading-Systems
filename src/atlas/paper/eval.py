@@ -512,9 +512,11 @@ def run_paper_eval(
             }
         results.append(row)
         payload = json.dumps(redact_record(row), indent=2, ensure_ascii=False, default=str) + "\n"
-        # Legacy "last run" location (dashboard v0 + 13/14 docs) …
-        (reports_dir / f"eval_{key}.json").write_text(payload, encoding="utf-8")
-        # … and the per-profile copy so baseline and candidates coexist for comparison.
+        # Legacy location data/reports/eval_<sample>.json is RESERVED for the frozen baseline
+        # (13/14 docs and dashboard v0 read it). Candidate profiles write only to their own
+        # profile dir, so a candidate run can never overwrite the baseline artifacts.
+        if prof.is_baseline:
+            (reports_dir / f"eval_{key}.json").write_text(payload, encoding="utf-8")
         (profile_dir / f"eval_{key}.json").write_text(payload, encoding="utf-8")
     bundle = {
         "ok": any(r.get("ok") for r in results),
@@ -529,10 +531,11 @@ def run_paper_eval(
             "research only. expectancy after costs is not a forecast and not a Phase C/live gate."
         ),
     }
-    (reports_dir / "eval_bundle.json").write_text(
-        json.dumps(redact_record(bundle), indent=2, ensure_ascii=False, default=str) + "\n",
-        encoding="utf-8",
-    )
+    if prof.is_baseline:
+        (reports_dir / "eval_bundle.json").write_text(
+            json.dumps(redact_record(bundle), indent=2, ensure_ascii=False, default=str) + "\n",
+            encoding="utf-8",
+        )
     # Per-profile bundle = every sample ever evaluated under this profile (rebuilt from
     # the per-sample files, so re-running a subset never drops the others).
     profile_bundle = {
