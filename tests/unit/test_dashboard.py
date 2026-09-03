@@ -259,6 +259,33 @@ def test_shadow_journals_mode(tmp_path: Path):
     assert "€" in html  # paper scale, not a PnL hero from research
 
 
+def test_named_window_journals_mode(tmp_path: Path):
+    day = tmp_path / "2026-09-03"
+    day.mkdir()
+    (day / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "named_window_replay_end",
+                "source": "named-window",
+                "ok": True,
+                "place_orders": False,
+                "window_ids": ["2020-09", "2023-09"],
+                "window_id": "2020-09,2023-09",
+                "run_id": "named-ui",
+                "ts_ms": 1788370000000,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    snap = load_snapshot(tmp_path, cfg=load_config(), using_replay=True)
+    assert snap.overview.mode == "named-window"
+    assert "2020-09" in snap.overview.named_window_ids
+    html = TestClient(create_app(data_dir=tmp_path, use_replay=True)).get("/").text
+    assert "named-window" in html
+    assert "2020-09" in html
+
+
 def test_static_css_and_no_docs():
     app = create_app(use_fixtures=True)
     c = TestClient(app)

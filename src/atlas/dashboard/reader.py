@@ -44,10 +44,13 @@ SESSION_KINDS = frozenset(
         "historical_replay_end",
         "shadow_replay_start",
         "shadow_replay_end",
+        "named_window_replay_start",
+        "named_window_replay_end",
     }
 )
 REPLAY_SESSION_KINDS = frozenset({"historical_replay_start", "historical_replay_end"})
 SHADOW_SESSION_KINDS = frozenset({"shadow_replay_start", "shadow_replay_end"})
+NAMED_SESSION_KINDS = frozenset({"named_window_replay_start", "named_window_replay_end"})
 ORDER_CANCEL_HINTS = frozenset({"cancel", "cancelled", "canceled"})
 DEFAULT_LIMIT = 200
 
@@ -169,6 +172,7 @@ class Overview:
     empty: bool
     n_would_place: int = 0
     blocked_by: dict[str, int] = field(default_factory=dict)
+    named_window_ids: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -433,6 +437,12 @@ def _mode_from_events(events: list[dict[str, Any]]) -> tuple[str, str, dict[str,
     if not sessions:
         return "idle", "geen sessie", None
     latest = sessions[0]  # already newest-first
+    if latest.get("source") == "named-window" or _kind(latest) in NAMED_SESSION_KINDS:
+        wid = str(latest.get("window_id") or ",".join(latest.get("window_ids") or []) or "")
+        label = f"named-window {wid}".strip() if wid else "named-window (research MD)"
+        if latest.get("n_would_place") is not None:
+            label += " · shadow"
+        return "named-window", label + " (geen orders)", latest
     if _kind(latest) in SHADOW_SESSION_KINDS or latest.get("source") == "shadow-replay":
         return "shadow-replay", "shadow-replay (would-place, geen orders)", latest
     if _kind(latest) in REPLAY_SESSION_KINDS or latest.get("source") == "historical-replay":
@@ -563,6 +573,16 @@ def load_snapshot(
             latest_by_venue[venue] = row
 
     mode, mode_label, session = _mode_from_events(events)
+    named_window_ids: list[str] = []
+    seen_nw: set[str] = set()
+    for ev in events:
+        if ev.get("source") != "named-window":
+            continue
+        for wid in ev.get("window_ids") or ([] if not ev.get("window_id") else str(ev.get("window_id")).split(",")):
+            w = str(wid).strip()
+            if w and w not in seen_nw:
+                seen_nw.add(w)
+                named_window_ids.append(w)
     n_would_place = 0
     blocked_by: dict[str, int] = {}
     if session and isinstance(session.get("n_blocked_by_reason"), dict):
@@ -748,6 +768,7 @@ def load_snapshot(
         empty=oms.empty,
         n_would_place=n_would_place,
         blocked_by=blocked_by,
+        named_window_ids=named_window_ids,
     )
 
     display_dir = "fixtures" if using_fixtures else str(root)
