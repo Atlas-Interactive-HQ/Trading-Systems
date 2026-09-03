@@ -62,8 +62,9 @@ cd Trading-Systems
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Own journals (empty-state is OK until a session has run)
+# Own journals (empty-state is OK until a session has run). --oms is the default.
 python scripts/run_dashboard.py
+python scripts/run_dashboard.py --oms
 
 # Bundled sample journals (no local session required)
 python scripts/run_dashboard.py --fixtures
@@ -73,15 +74,19 @@ python scripts/run_dashboard.py --replay
 
 # Phase B shadow (would-place / blocked) — no orders
 python scripts/run_dashboard.py --shadow
+
+# EMA paper observer journals (data/ema) — no orders, not Phase A DOGE
+python scripts/run_dashboard.py --ema
 ```
 
 Open **http://127.0.0.1:8787**
 
 | Page | What you see |
 |------|----------------|
-| `/` Overzicht | €200 paper scale, kill status, mode (signal-only / demo), last session time |
-| `/signals` | Latest DOGE spot + X-Perp breakout rows from `decisions.jsonl` |
-| `/oms` | Decisions / orders / cancels / events from `data/oms/` |
+| `/` Overzicht | €200 paper scale, kill status, mode (signal-only / demo / EMA observer), last session time |
+| `/signals` | Latest DOGE spot + X-Perp breakout rows from `decisions.jsonl` (or EMA state with `--ema`) |
+| `/oms` | Decisions / orders / cancels / events from `data/oms/` (or `data/ema/` with `--ema`) |
+| `/eval` | Paper eval tables + EMA observer section when journals exist. **No PnL hero.** |
 | `/health` | Pipeline ok/warn/fail — never secrets |
 
 Override data dir: `python scripts/run_dashboard.py --data-dir /path/to/data`  
@@ -94,6 +99,16 @@ Same as `export ATLAS_DATA_DIR=...`. JSON: `/api/snapshot`, `/api/signals`, `/ap
 3. **much later** — controls; never live until an explicit `ga live`. Auto-demo stays off until Phase C gates + Kaje say so.
 
 Dutch copy, paper/demo labeled in the banner. Success metric remains **expectancy after costs on paper** — never a profit guarantee.
+
+## EMA paper observer (forward journals)
+
+Daily **EMA(12)/EMA(30)** long/flat on public **BTC-USDT** 1D. Journals under `data/ema/` tagged `source=ema-paper-observer`. **Observer only. No orders.** Does not replace Phase A DOGE (`data/oms/`). Historical OOS CLEAR ≠ live. See [`phase1/21-ema-paper-observer.md`](./phase1/21-ema-paper-observer.md).
+
+```bash
+python scripts/run_ema_paper_session.py              # state/signal JSONL
+python scripts/run_ema_paper_session.py --paper-shadow  # optional 1× next-open ledger
+python scripts/run_dashboard.py --ema
+```
 
 ## Config
 

@@ -4,6 +4,49 @@
 {% block body %}
 <p class="lede">Phase D-lite. Primary score is <strong>expectancy after costs</strong> on the €200 book. <code>not_a_forecast</code>. Geen PnL-hero. Geen Phase C / live-advies.</p>
 
+{% if ema_observer %}
+<section class="card" style="margin-bottom:16px">
+  <h2>EMA paper observer (forward journals)</h2>
+  <p class="hint">Observer only. Geen orders. OOS CLEAR ≠ live. <code>not_a_forecast</code>. Geen PnL-hero. Phase A DOGE onaangeroerd. Journals: <code>data/ema/</code>.</p>
+  <dl class="kv">
+    <div><dt>desired</dt><dd>{{ ema_observer.desired or "—" }}</dd></div>
+    <div><dt>symbol</dt><dd>{{ ema_observer.symbol or "BTC-USDT" }}</dd></div>
+    <div><dt>strategy</dt><dd>{{ ema_observer.strategy or "—" }}</dd></div>
+    <div><dt>EMA12</dt><dd>{{ ema_observer.ema_fast if ema_observer.ema_fast is not none else "—" }}</dd></div>
+    <div><dt>EMA30</dt><dd>{{ ema_observer.ema_slow if ema_observer.ema_slow is not none else "—" }}</dd></div>
+    <div><dt>last close</dt><dd>{{ ema_observer.last_close if ema_observer.last_close is not none else "—" }}</dd></div>
+    <div><dt>as-of bar</dt><dd>{{ ema_observer.as_of_utc or "—" }}</dd></div>
+    <div><dt>paper-shadow</dt><dd>{{ "1× hypothetisch" if ema_observer.paper_shadow else "state only" }}</dd></div>
+  </dl>
+  {% if ema_observer.rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>kind</th>
+        <th>desired</th>
+        <th>EMA12</th>
+        <th>EMA30</th>
+        <th>last close</th>
+        <th>as-of open ms</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in ema_observer.rows %}
+      <tr>
+        <td>{{ row.kind }}</td>
+        <td>{{ row.desired or "—" }}</td>
+        <td>{{ row.ema_fast if row.ema_fast is not none else "—" }}</td>
+        <td>{{ row.ema_slow if row.ema_slow is not none else "—" }}</td>
+        <td>{{ row.last_close if row.last_close is not none else "—" }}</td>
+        <td>{{ row.as_of_bar_ts_open_ms or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if ema_evals %}
 <section class="card" style="margin-bottom:16px">
   <h2>EMA long/flat (daily, research)</h2>

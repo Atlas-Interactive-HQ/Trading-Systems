@@ -35,7 +35,7 @@ _SECRET_NAME_FRAGMENTS = (
     "passphrase",
     "private_key",
 )
-SIGNAL_KINDS = frozenset({"breakout_signal", "breakout_current"})
+SIGNAL_KINDS = frozenset({"breakout_signal", "breakout_current", "ema_state", "ema_decision"})
 SESSION_KINDS = frozenset(
     {
         "doge_demo_session_start",
@@ -46,11 +46,14 @@ SESSION_KINDS = frozenset(
         "shadow_replay_end",
         "named_window_replay_start",
         "named_window_replay_end",
+        "ema_paper_session_start",
+        "ema_paper_session_end",
     }
 )
 REPLAY_SESSION_KINDS = frozenset({"historical_replay_start", "historical_replay_end"})
 SHADOW_SESSION_KINDS = frozenset({"shadow_replay_start", "shadow_replay_end"})
 NAMED_SESSION_KINDS = frozenset({"named_window_replay_start", "named_window_replay_end"})
+EMA_SESSION_KINDS = frozenset({"ema_paper_session_start", "ema_paper_session_end"})
 ORDER_CANCEL_HINTS = frozenset({"cancel", "cancelled", "canceled"})
 DEFAULT_LIMIT = 200
 
@@ -173,6 +176,11 @@ class Overview:
     n_would_place: int = 0
     blocked_by: dict[str, int] = field(default_factory=dict)
     named_window_ids: list[str] = field(default_factory=list)
+    ema_desired: str | None = None
+    ema_fast: float | None = None
+    ema_slow: float | None = None
+    ema_last_close: float | None = None
+    ema_as_of_utc: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -240,6 +248,7 @@ class DashboardSnapshot:
     using_fixtures: bool
     using_replay: bool = False
     using_shadow: bool = False
+    using_ema: bool = False
 
     @property
     def generated_at_utc(self) -> str | None:
@@ -262,6 +271,7 @@ class DashboardSnapshot:
                 "using_fixtures": self.using_fixtures,
                 "using_replay": self.using_replay,
                 "using_shadow": self.using_shadow,
+                "using_ema": self.using_ema,
             }
         )
 
@@ -329,6 +339,43 @@ def _kind(row: Mapping[str, Any]) -> str:
     return str(row.get("kind") or row.get("type") or "")
 
 
+def _ema_row(decisions: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for r in decisions:
+        if _kind(r) in ("ema_state", "ema_decision"):
+            return r
+    return None
+
+
+def _ema_field(decisions: list[dict[str, Any]], key: str) -> str | None:
+    row = _ema_row(decisions)
+    if not row:
+        return None
+    val = row.get(key)
+    return str(val) if val not in (None, "") else None
+
+
+def _ema_float(decisions: list[dict[str, Any]], key: str) -> float | None:
+    row = _ema_row(decisions)
+    if not row:
+        return None
+    try:
+        v = row.get(key)
+        return float(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _ema_int(decisions: list[dict[str, Any]], key: str) -> int | None:
+    row = _ema_row(decisions)
+    if not row:
+        return None
+    try:
+        v = row.get(key)
+        return int(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _venue(row: Mapping[str, Any]) -> str:
     v = row.get("venue")
     if v:
@@ -370,6 +417,8 @@ def _summarize(row: Mapping[str, Any]) -> str:
         bits.append(f"blocked={row.get('blocked_reason')}")
     if row.get("kind") == "would_place" or row.get("allowed") is True:
         bits.append("would-place")
+    if row.get("desired") in ("long", "flat"):
+        bits.append(f"desired={row.get('desired')}")
     return " · ".join(bits) if bits else "—"
 
 
@@ -443,6 +492,8 @@ def _mode_from_events(events: list[dict[str, Any]]) -> tuple[str, str, dict[str,
         if latest.get("n_would_place") is not None:
             label += " · shadow"
         return "named-window", label + " (geen orders)", latest
+    if _kind(latest) in EMA_SESSION_KINDS or latest.get("source") == "ema-paper-observer":
+        return "ema-paper-observer", "EMA observer (geen orders)", latest
     if _kind(latest) in SHADOW_SESSION_KINDS or latest.get("source") == "shadow-replay":
         return "shadow-replay", "shadow-replay (would-place, geen orders)", latest
     if _kind(latest) in REPLAY_SESSION_KINDS or latest.get("source") == "historical-replay":
@@ -521,9 +572,11 @@ def _collector_mtime(raw_root: Path) -> tuple[int | None, str | None]:
     return int(latest * 1000), latest_name
 
 
-def _journal_root(root: Path, using_replay: bool, using_shadow: bool = False) -> Path:
-    """OMS layout (data/oms/{date}) or replay/shadow dated dirs at root."""
-    if using_replay or using_shadow:
+def _journal_root(
+    root: Path, using_replay: bool, using_shadow: bool = False, using_ema: bool = False
+) -> Path:
+    """OMS layout (data/oms/{date}) or replay/shadow/ema dated dirs at root."""
+    if using_replay or using_shadow or using_ema:
         return root
     oms = root / "oms"
     if oms.is_dir() and _dated_dirs(oms):
@@ -541,6 +594,7 @@ def load_snapshot(
     using_fixtures: bool = False,
     using_replay: bool = False,
     using_shadow: bool = False,
+    using_ema: bool = False,
     limit: int = DEFAULT_LIMIT,
 ) -> DashboardSnapshot:
     root = Path(data_dir)
@@ -549,7 +603,9 @@ def load_snapshot(
     risk = _public_risk(cfg)
     now = utc_ms()
 
-    oms_root = _journal_root(root, using_replay=using_replay, using_shadow=using_shadow)
+    oms_root = _journal_root(
+        root, using_replay=using_replay, using_shadow=using_shadow, using_ema=using_ema
+    )
     paper_root = root / "paper"
     raw_root = root / "raw"
 
@@ -595,7 +651,14 @@ def load_snapshot(
             if _kind(r) == "blocked" and r.get("blocked_reason"):
                 key = str(r.get("blocked_reason"))
                 blocked_by[key] = blocked_by.get(key, 0) + 1
-    killed, kill_status, kill_reason = _kill_from_state(state)
+    if using_ema:
+        killed, kill_status, kill_reason = (
+            False,
+            "n.v.t.",
+            "geen daily-kill (1× long/flat observer)",
+        )
+    else:
+        killed, kill_status, kill_reason = _kill_from_state(state)
 
     last_session_ts = _ts(session) if session else None
     last_session_ok: bool | None = None
@@ -610,6 +673,8 @@ def load_snapshot(
         paper_pnl = float(paper_pnl_raw) if paper_pnl_raw is not None else None
     except (TypeError, ValueError):
         paper_pnl = None
+    if using_ema:
+        paper_pnl = None  # observer: never a PnL hero
 
     order_rows = [_to_journal_row(r, "orders") for r in orders]
     cancel_rows = [
@@ -658,12 +723,16 @@ def load_snapshot(
         ),
         HealthItem(
             id="journals",
-            label="OMS-journals",
+            label="EMA-journals" if using_ema else "OMS-journals",
             status="ok" if not oms.empty else "warn",
             detail=(
                 f"{len(decisions)} beslissingen, {len(orders)} orders, {len(events)} events"
                 if not oms.empty
-                else "leeg — draai een signal-only sessie, --replay, of --fixtures"
+                else (
+                    "leeg — draai python scripts/run_ema_paper_session.py"
+                    if using_ema
+                    else "leeg — draai een signal-only sessie, --replay, of --fixtures"
+                )
             ),
         ),
         HealthItem(
@@ -691,7 +760,15 @@ def load_snapshot(
         HealthItem(
             id="kill",
             label="Kill-switch",
-            status="fail" if killed else "ok" if state else "warn",
+            status=(
+                "ok"
+                if using_ema
+                else "fail"
+                if killed
+                else "ok"
+                if state
+                else "warn"
+            ),
             detail=kill_reason or kill_status,
         ),
         HealthItem(
@@ -735,6 +812,16 @@ def load_snapshot(
                 detail="data/shadow (would-place / blocked — geen orders, geen Phase C)",
             ),
         )
+    elif using_ema:
+        items.insert(
+            3,
+            HealthItem(
+                id="ema",
+                label="Bron",
+                status="ok",
+                detail="data/ema (EMA paper observer — geen orders, Phase A DOGE onaangeroerd)",
+            ),
+        )
 
     health = HealthReport(
         status=_roll_status(items),
@@ -769,6 +856,11 @@ def load_snapshot(
         n_would_place=n_would_place,
         blocked_by=blocked_by,
         named_window_ids=named_window_ids,
+        ema_desired=_ema_field(decisions, "desired"),
+        ema_fast=_ema_float(decisions, "ema_fast"),
+        ema_slow=_ema_float(decisions, "ema_slow"),
+        ema_last_close=_ema_float(decisions, "last_close"),
+        ema_as_of_utc=fmt_ts_ms(_ema_int(decisions, "as_of_bar_ts_open_ms")),
     )
 
     display_dir = "fixtures" if using_fixtures else str(root)
@@ -783,4 +875,5 @@ def load_snapshot(
         using_fixtures=using_fixtures,
         using_replay=using_replay,
         using_shadow=using_shadow,
+        using_ema=using_ema,
     )
