@@ -248,6 +248,9 @@ def compare_profiles(
     cand_name: str,
     base_overlay: Mapping[str, Any] | None = None,
     cand_overlay: Mapping[str, Any] | None = None,
+    cand_description: str = "",
+    cand_notes: Iterable[str] = (),
+    cand_baseline_note: str = "",
 ) -> dict[str, Any]:
     base_idx = index_samples(base_samples)
     cand_idx = index_samples(cand_samples)
@@ -295,7 +298,13 @@ def compare_profiles(
         "not_a_forecast": True,
         "source": COMPARE_SOURCE,
         "baseline": {"name": base_name, "overlay": dict(base_overlay or {})},
-        "candidate": {"name": cand_name, "overlay": dict(cand_overlay or {})},
+        "candidate": {
+            "name": cand_name,
+            "overlay": dict(cand_overlay or {}),
+            "description": cand_description,
+            "notes": list(cand_notes),
+            "baseline_note": cand_baseline_note,
+        },
         "roles": {
             "primary": list(PRIMARY_WINDOWS),
             "secondary": list(SECONDARY_WINDOWS),
@@ -490,11 +499,9 @@ def render_candidate_markdown(
         "",
         "## Candidate",
         "",
-        f"- Baseline: `{base.get('name')}` — frozen BreakoutV1 + `config/default.yaml` (no overlay; `min_atr_frac: 0.001`, no daily cap).",
+        f"- Baseline: `{base.get('name')}` — frozen BreakoutV1 + `config/default.yaml` (no overlay{cand.get('baseline_note') or ''}).",
         f"- Candidate: `{cand.get('name')}` — overlay `{json.dumps(cand.get('overlay') or {}, sort_keys=True)}`.",
-        "- `max_would_place_per_utc_day: 1` → the first would-place decision of a UTC day is allowed; further same-day signals are blocked with `blocked_reason: daily_cap` (checked after kill / one-position, before sizing; counted at decision time even if the fill is later missed).",
-        "- `min_atr_frac: 0.005` → 15m ATR/close below 0.5% is untradeable (baseline 0.1%). Not a fade; ranging stays off.",
-        "- Unchanged: `oneh_filter: stub`, lookback 16, ATR period 14, ATR stop 1.5×, time-stop 16 bars, €200 book, 5% daily kill, 1.5% risk/trade, one position, X-Perp ≤2x. No grid search; one candidate, one trial.",
+        *[f"- {note}" for note in (cand.get("notes") or [])],
         "",
         "## Pass / fail rule (decided up front)",
         "",

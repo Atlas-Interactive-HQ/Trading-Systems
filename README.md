@@ -331,7 +331,7 @@ Same journal path (no re-sequence). `not_a_forecast`. Not a candidate_v1 PR.
 
 ## Candidate profiles (Phase D trial #1)
 
-`--profile` runs the same eval under a **named overlay** without touching the frozen baseline. `baseline` is the identity (exactly `config/default.yaml`); `candidate_v1_filters` = at most **1 would-place per UTC day** (further same-day signals → `blocked_reason: daily_cap`) + `min_atr_frac: 0.005` (baseline 0.001). Everything else — 1h stub, lookback, ATR stop, time-stop, €200, 5% kill, 1–2% risk — is inherited unchanged. No grid search. See [`phase1/16-candidate-v1.md`](./phase1/16-candidate-v1.md).
+`--profile` runs the same eval under a **named overlay** without touching the frozen baseline. `baseline` is the identity (exactly `config/default.yaml`); `candidate_v1_filters` = at most **1 would-place per UTC day** (further same-day signals → `blocked_reason: daily_cap`) + `min_atr_frac: 0.005` (baseline 0.001) — trial #1, **FAIL**, see [`phase1/16-candidate-v1.md`](./phase1/16-candidate-v1.md). `candidate_v2_stops` = `atr_stop_mult` **2.0× the baseline multiplier** read from config (1.5 → 3.0; 2.5 if the baseline were already 2.0) and nothing else — trial #2, see [`phase1/17-candidate-v2-stops.md`](./phase1/17-candidate-v2-stops.md). Everything not named in a profile — 1h stub, lookback, time-stop, €200, 5% kill, 1–2% risk — is inherited unchanged. No grid search: one candidate per trial.
 
 ```bash
 python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile baseline --write-md ''
@@ -339,7 +339,10 @@ python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile can
 python scripts/run_paper_eval.py --samples q4 --profile baseline --write-md ''            # secondary season check
 python scripts/run_paper_eval.py --samples q4 --profile candidate_v1_filters
 python scripts/compare_eval_profiles.py --candidate candidate_v1_filters --write-md phase1/16-candidate-v1.md
-python scripts/run_dashboard.py   # /eval shows baseline vs candidate when both exist
+python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile candidate_v2_stops
+python scripts/run_paper_eval.py --samples q4 --profile candidate_v2_stops                   # secondary
+python scripts/compare_eval_profiles.py --candidate candidate_v2_stops --write-md phase1/17-candidate-v2-stops.md
+python scripts/run_dashboard.py   # /eval shows baseline vs every candidate profile on disk
 ```
 
 Per-profile JSON lands in gitignored `data/reports/profiles/<profile>/`; the comparison in `data/reports/compare_<candidate>_vs_baseline.json`. The pass rule (holdout expectancy strictly better on **both** 2020-09 and 2023-09, holdout max DD not worse than +10%) is asserted in `atlas.paper.compare`, decided up front. Stress is documented, not scored: a less-negative expectancy under 2× fees with fewer trades is kill truncation, **not** a win. A candidate profile never writes `13-paper-eval.md` / `14-q4-months.md`. PASS is a research result, not a Phase C or live gate; FAIL keeps the baseline.
