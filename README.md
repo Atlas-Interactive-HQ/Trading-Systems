@@ -319,13 +319,23 @@ python scripts/run_dashboard.py   # then open /eval
 
 `not_a_forecast`. Do not headline PnL. Do not treat this as a Phase C or live gate.
 
+## Loss attribution (research)
+
+Fee drag vs stop / time-stop / kill-flatten on the same paper fills, plus one bull-gate counterfactual (`1h SMA20` rising → long only). See [`phase1/15-loss-attribution-bull-gate.md`](./phase1/15-loss-attribution-bull-gate.md).
+
+```bash
+python scripts/run_loss_attribution.py --samples similar,2020-09,2023-09,q4
+```
+
+Same journal path (no re-sequence). `not_a_forecast`. Not a candidate_v1 PR.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, **and paper eval (70/30 split, 2× fee drag, no trade client)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, paper eval (70/30 split, 2× fee drag, no trade client), **and loss attribution (drivers, bull-gate fail-closed)**.
 
 ## Docker (optional stub)
 

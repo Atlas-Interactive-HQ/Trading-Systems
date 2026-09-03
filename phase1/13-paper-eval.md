@@ -86,6 +86,8 @@ Stress (full sample):
 
 Q4 calendar months (Oct/Nov/Dec) are a **separate** seasonal-definition set — see [`14-q4-months.md`](./14-q4-months.md). They do not rewrite this holdout table.
 
+Loss drivers + one bull-gate counterfactual: [`15-loss-attribution-bull-gate.md`](./15-loss-attribution-bull-gate.md).
+
 ## What this is not
 
 - Not a Phase C recommendation.

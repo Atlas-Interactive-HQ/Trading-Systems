@@ -23,6 +23,7 @@
 | [12-named-windows.md](./12-named-windows.md) | Calendar windows 2020-09 / 2023-09 plus Q4 months on DOGE-USDT research MD |
 | [13-paper-eval.md](./13-paper-eval.md) | Phase D-lite: expectancy after costs, DD, kill-days (not a forecast) |
 | [14-q4-months.md](./14-q4-months.md) | Q4 calendar-month samples (Oct/Nov/Dec) for seasonal definition |
+| [15-loss-attribution-bull-gate.md](./15-loss-attribution-bull-gate.md) | Loss drivers + one bull-gate counterfactual (not a forecast) |
 
 ## Locked highlights (see 00 for full list)
 
