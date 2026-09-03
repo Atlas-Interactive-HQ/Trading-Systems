@@ -79,6 +79,25 @@ def _build_named_windows() -> dict[str, dict[str, str]]:
             "end": "2024-03-31",
             "label": "2023-09-01 → 2024-03-31 UTC",
         },
+        # Non-bull stress windows for daily EMA (not similar-regime matching).
+        "2022-bear": {
+            "id": "2022-bear",
+            "start": "2022-01-01",
+            "end": "2022-12-31",
+            "label": "2022-01-01 → 2022-12-31 UTC",
+        },
+        "2022-h1": {
+            "id": "2022-h1",
+            "start": "2022-01-01",
+            "end": "2022-06-30",
+            "label": "2022-01-01 → 2022-06-30 UTC",
+        },
+        "2023-chop": {
+            "id": "2023-chop",
+            "start": "2023-01-01",
+            "end": "2023-08-31",
+            "label": "2023-01-01 → 2023-08-31 UTC",
+        },
     }
     for year in Q4_YEARS:
         for month in Q4_MONTHS:

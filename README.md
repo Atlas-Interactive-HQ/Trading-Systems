@@ -358,9 +358,10 @@ Daily EMA(12)/EMA(30) **long or cash** on BTC-USDT (never short). Not BreakoutV1
 python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --windows 2020-09,2023-09
 python scripts/run_ema_long_flat_eval.py --asset DOGE-USDT --windows 2020-09,2023-09
 python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --samples q4
+python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --windows 2022-bear,2023-chop,2020-09,2023-09
 ```
 
-`not_a_forecast`. Named bull windows bias a long-only rule. Does not replace Phase A.
+`not_a_forecast`. Named bull windows bias a long-only rule. OOS stress: [`phase1/20-ema-oos-stress.md`](./phase1/20-ema-oos-stress.md). Does not replace Phase A.
 
 ## Tests
 

@@ -15,7 +15,13 @@ if str(_SRC) not in sys.path:
 
 from atlas.common.config import load_config  # noqa: E402
 from atlas.common.logging import setup_logging  # noqa: E402
-from atlas.paper.ema_eval import render_ema_markdown, run_ema_eval  # noqa: E402
+from atlas.paper.ema_eval import (  # noqa: E402
+    OOS_BEAR,
+    OOS_CHOP,
+    render_ema_markdown,
+    render_oos_markdown,
+    run_ema_eval,
+)
 from atlas.paper.replay import ReplayError  # noqa: E402
 
 
@@ -33,8 +39,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--pause-s", type=float, default=0.12)
     p.add_argument(
         "--write-md",
-        default=str(_ROOT / "phase1" / "19-ema-long-flat.md"),
-        help="Markdown path. Empty to skip.",
+        default=None,
+        help="Markdown path. Default 19 for bull windows, 20 if OOS stress windows are present. Empty to skip.",
     )
     p.add_argument("--no-neighbors", action="store_true")
     args = p.parse_args(argv)
@@ -67,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         "asset": bundle.get("asset"),
         "strategy": bundle.get("strategy"),
         "interesting": bundle.get("interesting"),
+        "oos_stress": bundle.get("oos_stress"),
         "errors": bundle.get("errors"),
         "disclaimer": bundle.get("disclaimer"),
         "samples": [
@@ -93,10 +100,18 @@ def main(argv: list[str] | None = None) -> int:
         ],
     }
     print(json.dumps(public, indent=2, default=str))
-    if args.write_md:
-        md_path = Path(args.write_md)
+    write_md = args.write_md
+    ids = {s.get("sample_id") for s in (bundle.get("samples") or [])}
+    oos_run = OOS_BEAR in ids or OOS_CHOP in ids
+    if write_md is None:
+        write_md = str(
+            _ROOT / "phase1" / ("20-ema-oos-stress.md" if oos_run else "19-ema-long-flat.md")
+        )
+    if write_md:
+        md_path = Path(write_md)
         md_path.parent.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(render_ema_markdown(bundle), encoding="utf-8")
+        render = render_oos_markdown if oos_run else render_ema_markdown
+        md_path.write_text(render(bundle), encoding="utf-8")
         print(f"wrote {md_path}", file=sys.stderr)
     return 0 if bundle.get("ok") else 1
 

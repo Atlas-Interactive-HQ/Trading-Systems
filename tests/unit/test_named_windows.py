@@ -200,6 +200,28 @@ def test_unknown_month_id_fails_closed():
         parse_windows_arg("2019-01")
 
 
+def test_oos_stress_window_bounds():
+    bear = parse_windows_arg("2022-bear")[0]
+    assert bear.start == "2022-01-01" and bear.end == "2022-12-31"
+    assert bear.end_ms_exclusive == int(
+        datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    h1 = parse_windows_arg("2022-h1")[0]
+    assert h1.start == "2022-01-01" and h1.end == "2022-06-30"
+    assert h1.end_ms_exclusive == int(
+        datetime(2022, 7, 1, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    chop = parse_windows_arg("2023-chop")[0]
+    assert chop.start == "2023-01-01" and chop.end == "2023-08-31"
+    assert chop.end_ms_exclusive == int(
+        datetime(2023, 9, 1, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    wins = parse_windows_arg("2022-bear,2023-chop,2020-09")
+    assert [w.id for w in wins] == ["2022-bear", "2023-chop", "2020-09"]
+    with pytest.raises(ReplayError, match="unknown"):
+        parse_windows_arg("2022-bull")
+
+
 def test_q4_token_expands_nine_months():
     ids = expand_window_ids("q4")
     assert ids == list(Q4_WINDOW_IDS)

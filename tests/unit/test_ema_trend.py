@@ -16,6 +16,7 @@ from atlas.paper.ema_eval import (
     EmaBookSettings,
     buy_and_hold,
     interesting_bar,
+    oos_stress_bar,
     run_ema_eval,
     walk_long_flat,
 )
@@ -237,4 +238,72 @@ def test_empty_injected_window_skips():
     )
     assert bundle["samples"][0]["ok"] is False
     assert "empty" in str(bundle["samples"][0].get("error") or "").lower()
+    assert bundle["place_orders"] is False
+
+
+def _full_sample(sid: str, ret: float, dd: float, bh_ret: float, bh_dd: float) -> dict:
+    return {
+        "ok": True,
+        "sample_id": sid,
+        "full": {
+            "net_return_eur": ret,
+            "max_dd_eur": dd,
+            "n_trades": 2,
+            "buy_and_hold": {"net_return_eur": bh_ret, "max_dd_eur": bh_dd},
+        },
+    }
+
+
+def test_oos_stress_bar_bear_and_chop_rules():
+    clear = oos_stress_bar(
+        [
+            _full_sample("2022-bear", -40.0, 80.0, -100.0, 120.0),
+            _full_sample("2023-chop", 5.0, 30.0, 10.0, 40.0),
+        ]
+    )
+    assert clear["verdict"] == "CLEAR"
+    assert clear["per_window"]["2022-bear"]["cleared"] is True
+    assert clear["per_window"]["2023-chop"]["cleared"] is True
+    # bear return not better than BH
+    fail_bear = oos_stress_bar(
+        [
+            _full_sample("2022-bear", -110.0, 80.0, -100.0, 120.0),
+            _full_sample("2023-chop", 5.0, 30.0, 10.0, 40.0),
+        ]
+    )
+    assert fail_bear["verdict"] == "NOT CLEAR"
+    # chop negative and not better than BH
+    fail_chop = oos_stress_bar(
+        [
+            _full_sample("2022-bear", -40.0, 80.0, -100.0, 120.0),
+            _full_sample("2023-chop", -20.0, 50.0, -10.0, 40.0),
+        ]
+    )
+    assert fail_chop["verdict"] == "NOT CLEAR"
+    # missing window fail closed
+    missing = oos_stress_bar([_full_sample("2022-bear", -40.0, 80.0, -100.0, 120.0)])
+    assert missing["verdict"] == "NOT CLEAR"
+
+
+def test_thin_window_skips_holdout(tmp_path: Path):
+    cfg = load_config()
+    win = parse_windows_arg("2022-h1")[0]
+    bars = []
+    t0 = win.start_ms
+    for i in range(25):  # < 60 full bars → holdout skipped
+        ts = t0 + i * DAY
+        px = 100.0 + i
+        bars.append(Bar(SYM, ts, ts + DAY, px, px + 1, px - 1, px, 1.0, True, "test"))
+    bundle = run_ema_eval(
+        cfg,
+        asset=SYM,
+        windows="2022-h1",
+        data_dir=tmp_path,
+        neighbors=False,
+        bars_by_window={"2022-h1": bars},
+    )
+    row = bundle["samples"][0]
+    assert row["ok"] is True
+    assert row["split"]["holdout_skipped"] is True
+    assert row["holdout"] is None
     assert bundle["place_orders"] is False

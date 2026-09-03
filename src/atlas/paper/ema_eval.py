@@ -25,6 +25,10 @@ EMA_SOURCE = "ema-long-flat"
 WARMUP_DAYS = 40
 DAY_MS = 24 * 60 * 60 * 1000
 NEIGHBORS: tuple[tuple[int, int], ...] = ((10, 30), (15, 25))  # sensitivity only, not candidates
+MIN_FULL_BARS_FOR_HOLDOUT = 60
+MIN_HOLDOUT_BARS = 20
+OOS_BEAR = "2022-bear"
+OOS_CHOP = "2023-chop"
 
 
 @dataclass(frozen=True)
@@ -303,9 +307,23 @@ def evaluate_window(
             "not_a_forecast": True,
         }
     ins, hold = chronological_split(scored, frac=SPLIT_FRAC)
+    holdout_ok = len(scored) >= MIN_FULL_BARS_FOR_HOLDOUT and len(hold) >= MIN_HOLDOUT_BARS
     full = evaluate_slice(all_bars=bars, slice_bars=scored, strategy=strategy, settings=settings)
-    in_s = evaluate_slice(all_bars=bars, slice_bars=ins, strategy=strategy, settings=settings) if ins else None
-    ho = evaluate_slice(all_bars=bars, slice_bars=hold, strategy=strategy, settings=settings) if hold else None
+    in_s = evaluate_slice(all_bars=bars, slice_bars=ins, strategy=strategy, settings=settings) if ins and holdout_ok else None
+    ho = evaluate_slice(all_bars=bars, slice_bars=hold, strategy=strategy, settings=settings) if hold and holdout_ok else None
+    split: dict[str, Any] = {
+        "frac_in_sample": SPLIT_FRAC,
+        "n_bars_full": len(scored),
+        "n_bars_in_sample": len(ins) if holdout_ok else None,
+        "n_bars_holdout": len(hold) if holdout_ok else None,
+        "holdout_skipped": not holdout_ok,
+        "rule": "first 70% of daily bars by time, last 30% holdout; cut never searched. EMA uses pad+prior bars (causal).",
+    }
+    if not holdout_ok:
+        split["holdout_skip_reason"] = (
+            f"thin window (full {len(scored)} daily bars, holdout {len(hold)}; "
+            f"need full≥{MIN_FULL_BARS_FOR_HOLDOUT} and holdout≥{MIN_HOLDOUT_BARS})"
+        )
     return {
         "ok": True,
         "place_orders": False,
@@ -315,13 +333,7 @@ def evaluate_window(
         "symbol": symbol,
         "md_label": f"research MD {symbol} 1D; window {window.label}",
         "strategy": strategy.label,
-        "split": {
-            "frac_in_sample": SPLIT_FRAC,
-            "n_bars_full": len(scored),
-            "n_bars_in_sample": len(ins),
-            "n_bars_holdout": len(hold),
-            "rule": "first 70% of daily bars by time, last 30% holdout; cut never searched. EMA uses pad+prior bars (causal).",
-        },
+        "split": split,
         "full": full,
         "in_sample": in_s,
         "holdout": ho,
@@ -378,6 +390,64 @@ def interesting_bar(samples: list[dict[str, Any]], *, primary: tuple[str, ...] =
     }
 
 
+def _full_vs_bh(row: dict[str, Any] | None) -> dict[str, Any]:
+    if not row or not row.get("ok"):
+        return {"available": False, "cleared": False}
+    full = row.get("full") or {}
+    bh = full.get("buy_and_hold") or {}
+    ret = full.get("net_return_eur")
+    dd = full.get("max_dd_eur")
+    bh_ret = bh.get("net_return_eur")
+    bh_dd = bh.get("max_dd_eur")
+    return {
+        "available": True,
+        "return_eur": ret,
+        "bh_return_eur": bh_ret,
+        "max_dd_eur": dd,
+        "bh_max_dd_eur": bh_dd,
+        "return_gt_bh": ret is not None and bh_ret is not None and float(ret) > float(bh_ret),
+        "return_ge_zero": ret is not None and float(ret) >= 0,
+        "dd_le_bh": dd is not None and bh_dd is not None and float(dd) <= float(bh_dd) + 1e-9,
+        "time_in_market": full.get("time_in_market"),
+        "n_trades": full.get("n_trades"),
+    }
+
+
+def oos_stress_bar(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    """Decision bar for non-bull windows (full span, not vs breakout).
+
+    2022-bear: after-costs return > buy-and-hold AND max DD ≤ buy-and-hold DD.
+    2023-chop: after-costs return ≥ 0 OR (return > buy-and-hold AND DD ≤ buy-and-hold DD).
+    """
+    by_id = {s.get("sample_id"): s for s in samples}
+    bear = _full_vs_bh(by_id.get(OOS_BEAR))  # type: ignore[arg-type]
+    chop = _full_vs_bh(by_id.get(OOS_CHOP))  # type: ignore[arg-type]
+    bear_clear = bool(bear.get("available") and bear.get("return_gt_bh") and bear.get("dd_le_bh"))
+    chop_clear = bool(
+        chop.get("available")
+        and (chop.get("return_ge_zero") or (chop.get("return_gt_bh") and chop.get("dd_le_bh")))
+    )
+    bear["cleared"] = bear_clear
+    bear["rule"] = "return > buy-and-hold AND max DD ≤ buy-and-hold DD (full 2022)"
+    chop["cleared"] = chop_clear
+    chop["rule"] = "return ≥ 0 OR (return > buy-and-hold AND DD ≤ buy-and-hold DD) (full Jan–Aug 2023)"
+    cleared = bear_clear and chop_clear
+    return {
+        "label": "oos-stress",
+        "not_a_forecast": True,
+        "not_a_pass_vs_breakout": True,
+        "slice": "full",
+        "cleared": cleared,
+        "verdict": "CLEAR" if cleared else "NOT CLEAR",
+        "per_window": {OOS_BEAR: bear, OOS_CHOP: chop},
+        "rule": (
+            "CLEAR iff 2022-bear (full): after-costs return > buy-and-hold AND max DD ≤ BH DD; "
+            "AND 2023-chop (full): return ≥ 0 OR (return > BH AND DD ≤ BH DD). "
+            "not_a_forecast. not live. does not replace Phase A."
+        ),
+    }
+
+
 def run_ema_eval(
     cfg: Any,
     *,
@@ -418,17 +488,20 @@ def run_ema_eval(
             if neighbors and row.get("ok"):
                 scored = _window_days(bars, win)
                 _ins, hold = chronological_split(scored, frac=SPLIT_FRAC)
+                holdout_ok = not bool((row.get("split") or {}).get("holdout_skipped"))
+                slice_for_n = hold if holdout_ok and hold else scored
                 neigh: list[dict[str, Any]] = []
                 for f, s in NEIGHBORS:
                     st = EmaTrendV1(EmaTrendParams(fast=f, slow=s))
-                    h = evaluate_slice(all_bars=bars, slice_bars=hold, strategy=st, settings=settings) if hold else None
+                    h = evaluate_slice(all_bars=bars, slice_bars=slice_for_n, strategy=st, settings=settings)
                     neigh.append(
                         {
                             "fast": f,
                             "slow": s,
                             "label": st.label,
-                            "holdout_net_return_eur": None if not h else h.get("net_return_eur"),
-                            "holdout_max_dd_eur": None if not h else h.get("max_dd_eur"),
+                            "holdout_net_return_eur": h.get("net_return_eur"),
+                            "holdout_max_dd_eur": h.get("max_dd_eur"),
+                            "slice": "holdout" if holdout_ok else "full",
                             "not_a_candidate": True,
                         }
                     )
@@ -450,6 +523,7 @@ def run_ema_eval(
             encoding="utf-8",
         )
     interesting = interesting_bar(results)
+    oos = oos_stress_bar(results)
     bundle = {
         "ok": any(r.get("ok") for r in results),
         "place_orders": False,
@@ -462,6 +536,7 @@ def run_ema_eval(
         "leverage": settings.leverage,
         "bull_window_selection_bias": True,
         "interesting": interesting,
+        "oos_stress": oos,
         "samples": results,
         "errors": errors,
         "disclaimer": (
@@ -531,8 +606,15 @@ def render_ema_markdown(bundle: dict[str, Any]) -> str:
             "| Slice | n_trades | net return € | net return % | max DD € | max DD % | expectancy after costs | time in market | fee drag € | BH return € | BH max DD € |"
         )
         lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+        skipped = bool(split.get("holdout_skipped"))
+        if skipped:
+            lines.append(f"Holdout skipped: {split.get('holdout_skip_reason')}. Full slice only.")
+            lines.append("")
         for key, title in (("full", "full"), ("in_sample", "in-sample 70%"), ("holdout", "holdout 30%")):
-            m = sample.get(key) or {}
+            m = sample.get(key)
+            if not m:
+                lines.append(f"| {title} | — | — | — | — | — | — | — | — | — | — |")
+                continue
             bh = m.get("buy_and_hold") or {}
             lines.append(
                 f"| {title} | {m.get('n_trades')} | {_f(m.get('net_return_eur'))} | {_f(m.get('net_return_pct'), 2)} "
@@ -560,6 +642,85 @@ def render_ema_markdown(bundle: dict[str, Any]) -> str:
         lines.append("`not_a_forecast: true`.")
         lines.append("")
 
+    lines.extend(
+        [
+            "## What this is not",
+            "",
+            "- Not a Phase C recommendation.",
+            "- Not a live-trading recommendation.",
+            "- Not a replacement for Phase A BreakoutV1.",
+            "- Not a PASS/FAIL vs the breakout baseline (different family).",
+            "- Neighbor EMA pairs are a sensitivity note, not an optimized winner.",
+            "",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def render_oos_markdown(bundle: dict[str, Any]) -> str:
+    oos = bundle.get("oos_stress") or {}
+    interesting = bundle.get("interesting") or {}
+    verdict = str(oos.get("verdict") or "NOT CLEAR")
+    lines = [
+        "# 20 — EMA long/flat OOS stress (2022 bear + 2023 chop)",
+        "",
+        "**Stance:** Research. `not_a_forecast: true`. Do not headline PnL. Do not promote to Phase C or live. Does **not** replace Phase A BreakoutV1.",
+        "",
+        f"Strategy: `{bundle.get('strategy')}` on **{bundle.get('asset')}** 1D. Fixed 12/30. Neighbors 10/30 and 15/25 are a sensitivity table only — not a search.",
+        "",
+        "PR #11’s bull-window “interesting” bar is restated below for comparison. **This PR’s decision bar is bear + chop (full span).**",
+        "",
+        f"## Decision bar (2022-bear + 2023-chop): **{verdict}**",
+        "",
+        str(oos.get("rule") or ""),
+        "",
+        "| window | EMA return € | BH return € | EMA > BH? | EMA max DD € | BH max DD € | DD ≤ BH? | cleared |",
+        "|---|---:|---:|:---:|---:|---:|:---:|:---:|",
+    ]
+    for w in (OOS_BEAR, OOS_CHOP):
+        p = (oos.get("per_window") or {}).get(w) or {}
+        if not p.get("available"):
+            lines.append(f"| {w} | — | — | — | — | — | — | no |")
+            continue
+        lines.append(
+            f"| {w} | {_f(p.get('return_eur'))} | {_f(p.get('bh_return_eur'))} "
+            f"| {'yes' if p.get('return_gt_bh') else 'no'} | {_f(p.get('max_dd_eur'), 2)} | {_f(p.get('bh_max_dd_eur'), 2)} "
+            f"| {'yes' if p.get('dd_le_bh') else 'no'} | {'yes' if p.get('cleared') else 'no'} |"
+        )
+    lines.extend(["", "`not_a_forecast: true`. Still not live / not replacing Phase A.", ""])
+    lines.extend(
+        [
+            "## Restated: PR #11 interesting bar (bull named windows, holdout)",
+            "",
+            f"**{'CLEARED' if interesting.get('cleared') else 'NOT CLEARED'}** — {interesting.get('rule')}",
+            "",
+            "| window | holdout return € | > 0? | holdout max DD € | BH max DD € | DD < BH? | cleared |",
+            "|---|---:|:---:|---:|---:|:---:|:---:|",
+        ]
+    )
+    for w, p in (interesting.get("per_window") or {}).items():
+        if not p.get("available"):
+            lines.append(f"| {w} | — | — | — | — | — | no |")
+            continue
+        lines.append(
+            f"| {w} | {_f(p.get('holdout_return_eur'))} | {'yes' if p.get('holdout_return_positive') else 'no'} "
+            f"| {_f(p.get('holdout_max_dd_eur'), 2)} | {_f(p.get('buy_hold_max_dd_eur'), 2)} "
+            f"| {'yes' if p.get('dd_less_than_buy_hold') else 'no'} | {'yes' if p.get('cleared') else 'no'} |"
+        )
+    lines.extend(["", "Bull-window selection bias still applies to those two rows.", ""])
+    generic = render_ema_markdown(bundle)
+    start = -1
+    for sample in bundle.get("samples") or []:
+        sid = sample.get("sample_id")
+        marker = f"## {sid} ("
+        idx = generic.find(marker)
+        if idx >= 0:
+            start = idx
+            break
+    if start >= 0:
+        rest = generic[start:]
+        w = rest.find("## What this is not")
+        lines.append(rest[:w] if w >= 0 else rest)
     lines.extend(
         [
             "## What this is not",
