@@ -4,6 +4,43 @@
 {% block body %}
 <p class="lede">Phase D-lite. Primary score is <strong>expectancy after costs</strong> on the €200 book. <code>not_a_forecast</code>. Geen PnL-hero. Geen Phase C / live-advies.</p>
 
+{% if ema_evals %}
+<section class="card" style="margin-bottom:16px">
+  <h2>EMA long/flat (daily, research)</h2>
+  <p class="hint">Parallel family — not BreakoutV1. Holdout 30% only. Never short. Bull-window bias. <code>not_a_forecast</code>. Geen PnL-hero.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>sample</th>
+        <th>asset / strategy</th>
+        <th>holdout n_trades</th>
+        <th>holdout net € (after costs)</th>
+        <th>holdout max DD €</th>
+        <th>BH max DD €</th>
+        <th>time in market</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in ema_evals %}
+      <tr>
+        <td>{{ row.sample_id }}</td>
+        {% if not row.ok %}
+        <td colspan="6">skipped: {{ row.error }}</td>
+        {% else %}
+        <td>{{ row.symbol }} · {{ row.strategy }}</td>
+        <td>{{ row.n_trades }}</td>
+        <td>{% if row.net_return_eur is not none %}{{ "%.2f"|format(row.net_return_eur) }}{% else %}—{% endif %}</td>
+        <td>{% if row.max_dd_eur is not none %}{{ "%.2f"|format(row.max_dd_eur) }}{% else %}—{% endif %}</td>
+        <td>{% if row.bh_max_dd_eur is not none %}{{ "%.2f"|format(row.bh_max_dd_eur) }}{% else %}—{% endif %}</td>
+        <td>{% if row.time_in_market is not none %}{{ "%.2f"|format(row.time_in_market) }}{% else %}—{% endif %}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
 {% if comparison %}
 <section class="card" style="margin-bottom:16px">
   <h2>Profielvergelijking: <code>{{ comparison.baseline }}</code> vs kandidaat (research)</h2>

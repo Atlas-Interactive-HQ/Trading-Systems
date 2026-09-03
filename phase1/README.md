@@ -27,6 +27,7 @@
 | [16-candidate-v1.md](./16-candidate-v1.md) | Phase D trial #1: frozen baseline vs `candidate_v1_filters` (daily_cap 1/UTC-day + min_atr 0.005); pass/fail rule in code; not a forecast |
 | [17-candidate-v2-stops.md](./17-candidate-v2-stops.md) | Phase D trial #2: frozen baseline vs `candidate_v2_stops` (atr_stop_mult 1.5 → 3.0, nothing else); same pass/fail rule; not a forecast |
 | [18-candidate-v3-combo.md](./18-candidate-v3-combo.md) | Phase D trial #3: frozen baseline vs `candidate_v3_combo` (stop 3.0 + daily_cap 1; min_atr unchanged); same pass/fail rule; not a forecast |
+| [19-ema-long-flat.md](./19-ema-long-flat.md) | Parallel daily EMA long/flat research (BTC-USDT 1D); not a breakout PASS; not a forecast |
 
 ## Locked highlights (see 00 for full list)
 
