@@ -2,7 +2,7 @@
 {% block title %}OMS{% endblock %}
 {% block heading %}OMS-activiteit{% endblock %}
 {% block body %}
-<p class="lede">Beslissingen, orders en cancels uit <code>data/oms/</code>. Signal-only sessies journalen skips, geen fills. Deze pagina stuurt niets naar OKX.</p>
+<p class="lede">{% if snap.using_shadow %}Shadow-beslissingen (would-place / blocked_reason) uit <code>data/shadow/</code>. Hypothetisch, geen venue-orders.{% else %}Beslissingen, orders en cancels uit <code>data/oms/</code>. Signal-only sessies journalen skips, geen fills.{% endif %} Deze pagina stuurt niets naar OKX.</p>
 
 {% if oms.empty %}
 <article class="empty">

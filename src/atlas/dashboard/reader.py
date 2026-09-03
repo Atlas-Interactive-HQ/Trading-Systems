@@ -42,9 +42,12 @@ SESSION_KINDS = frozenset(
         "doge_demo_session_end",
         "historical_replay_start",
         "historical_replay_end",
+        "shadow_replay_start",
+        "shadow_replay_end",
     }
 )
 REPLAY_SESSION_KINDS = frozenset({"historical_replay_start", "historical_replay_end"})
+SHADOW_SESSION_KINDS = frozenset({"shadow_replay_start", "shadow_replay_end"})
 ORDER_CANCEL_HINTS = frozenset({"cancel", "cancelled", "canceled"})
 DEFAULT_LIMIT = 200
 
@@ -164,6 +167,8 @@ class Overview:
     universe_spot: str
     universe_xperp: str
     empty: bool
+    n_would_place: int = 0
+    blocked_by: dict[str, int] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -230,6 +235,7 @@ class DashboardSnapshot:
     data_dir: str
     using_fixtures: bool
     using_replay: bool = False
+    using_shadow: bool = False
 
     @property
     def generated_at_utc(self) -> str | None:
@@ -251,6 +257,7 @@ class DashboardSnapshot:
                 "data_dir": self.data_dir,
                 "using_fixtures": self.using_fixtures,
                 "using_replay": self.using_replay,
+                "using_shadow": self.using_shadow,
             }
         )
 
@@ -355,6 +362,10 @@ def _summarize(row: Mapping[str, Any]) -> str:
         bits.append(str(side))
     if row.get("dry_run") is True:
         bits.append("dry-run")
+    if row.get("blocked_reason"):
+        bits.append(f"blocked={row.get('blocked_reason')}")
+    if row.get("kind") == "would_place" or row.get("allowed") is True:
+        bits.append("would-place")
     return " · ".join(bits) if bits else "—"
 
 
@@ -422,6 +433,8 @@ def _mode_from_events(events: list[dict[str, Any]]) -> tuple[str, str, dict[str,
     if not sessions:
         return "idle", "geen sessie", None
     latest = sessions[0]  # already newest-first
+    if _kind(latest) in SHADOW_SESSION_KINDS or latest.get("source") == "shadow-replay":
+        return "shadow-replay", "shadow-replay (would-place, geen orders)", latest
     if _kind(latest) in REPLAY_SESSION_KINDS or latest.get("source") == "historical-replay":
         return "historical-replay", "historical-replay (alleen signalen)", latest
     place = bool(latest.get("place_orders"))
@@ -498,9 +511,9 @@ def _collector_mtime(raw_root: Path) -> tuple[int | None, str | None]:
     return int(latest * 1000), latest_name
 
 
-def _journal_root(root: Path, using_replay: bool) -> Path:
-    """OMS layout (data/oms/{date}) or replay layout (data/replay/{date})."""
-    if using_replay:
+def _journal_root(root: Path, using_replay: bool, using_shadow: bool = False) -> Path:
+    """OMS layout (data/oms/{date}) or replay/shadow dated dirs at root."""
+    if using_replay or using_shadow:
         return root
     oms = root / "oms"
     if oms.is_dir() and _dated_dirs(oms):
@@ -517,6 +530,7 @@ def load_snapshot(
     config_path: str | Path | None = None,
     using_fixtures: bool = False,
     using_replay: bool = False,
+    using_shadow: bool = False,
     limit: int = DEFAULT_LIMIT,
 ) -> DashboardSnapshot:
     root = Path(data_dir)
@@ -525,7 +539,7 @@ def load_snapshot(
     risk = _public_risk(cfg)
     now = utc_ms()
 
-    oms_root = _journal_root(root, using_replay=using_replay)
+    oms_root = _journal_root(root, using_replay=using_replay, using_shadow=using_shadow)
     paper_root = root / "paper"
     raw_root = root / "raw"
 
@@ -549,6 +563,18 @@ def load_snapshot(
             latest_by_venue[venue] = row
 
     mode, mode_label, session = _mode_from_events(events)
+    n_would_place = 0
+    blocked_by: dict[str, int] = {}
+    if session and isinstance(session.get("n_blocked_by_reason"), dict):
+        blocked_by = {str(k): int(v) for k, v in session["n_blocked_by_reason"].items()}
+        n_would_place = int(session.get("n_would_place") or 0)
+    else:
+        for r in decisions:
+            if _kind(r) == "would_place":
+                n_would_place += 1
+            if _kind(r) == "blocked" and r.get("blocked_reason"):
+                key = str(r.get("blocked_reason"))
+                blocked_by[key] = blocked_by.get(key, 0) + 1
     killed, kill_status, kill_reason = _kill_from_state(state)
 
     last_session_ts = _ts(session) if session else None
@@ -679,6 +705,16 @@ def load_snapshot(
                 detail="data/replay (historical-replay, geen live Phase A-week)",
             ),
         )
+    elif using_shadow:
+        items.insert(
+            3,
+            HealthItem(
+                id="shadow",
+                label="Bron",
+                status="ok",
+                detail="data/shadow (would-place / blocked — geen orders, geen Phase C)",
+            ),
+        )
 
     health = HealthReport(
         status=_roll_status(items),
@@ -710,6 +746,8 @@ def load_snapshot(
         universe_spot=LOCKED_SPOT_INST,
         universe_xperp=LOCKED_XPERP_INST,
         empty=oms.empty,
+        n_would_place=n_would_place,
+        blocked_by=blocked_by,
     )
 
     display_dir = "fixtures" if using_fixtures else str(root)
@@ -723,4 +761,5 @@ def load_snapshot(
         data_dir=display_dir,
         using_fixtures=using_fixtures,
         using_replay=using_replay,
+        using_shadow=using_shadow,
     )

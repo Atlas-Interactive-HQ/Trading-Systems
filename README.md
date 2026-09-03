@@ -70,6 +70,9 @@ python scripts/run_dashboard.py --fixtures
 
 # Historical replay journals (data/replay) — not Phase A data/oms
 python scripts/run_dashboard.py --replay
+
+# Phase B shadow (would-place / blocked) — no orders
+python scripts/run_dashboard.py --shadow
 ```
 
 Open **http://127.0.0.1:8787**
@@ -281,13 +284,24 @@ python scripts/run_dashboard.py --replay
 
 Replay is **not** a live Phase A week. Similar-regime ≠ future performance. Summary JSON has counts and match scores, not “would have made €X”.
 
+## Phase B shadow (would-place)
+
+Same locked breakout, then paper risk (€200, 5% kill, 1–2%/trade, one position, X-Perp ≤2x) decides **would-place vs blocked**. No auto-place. See [`phase1/11-shadow-replay.md`](./phase1/11-shadow-replay.md).
+
+```bash
+python scripts/run_shadow_replay.py --venue both
+python scripts/run_dashboard.py --shadow
+```
+
+Shadow ≠ Phase C gated micro-demo. Live Phase A stays signal-only.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, paper sizing / fill math, dashboard v0 (empty journals, fixtures, secret redaction, GET-only), **and historical replay (pagination parser, closed bars, determinism, no orders)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, paper sizing / fill math, dashboard v0, historical replay, **and Phase B shadow (one_position, kill, €200 size, no orders)**.
 
 ## Docker (optional stub)
 

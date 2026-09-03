@@ -52,16 +52,21 @@ def _resolve_data_dir(
     *,
     use_fixtures: bool,
     use_replay: bool,
-) -> tuple[Path, bool, bool]:
+    use_shadow: bool = False,
+) -> tuple[Path, bool, bool, bool]:
     if use_fixtures:
-        return bundled_fixtures_dir(), True, False
+        return bundled_fixtures_dir(), True, False, False
+    if use_shadow:
+        if data_dir is not None:
+            return Path(data_dir), False, False, True
+        return Path(cfg.data_dir) / "shadow", False, False, True
     if use_replay:
         if data_dir is not None:
-            return Path(data_dir), False, True
-        return Path(cfg.data_dir) / "replay", False, True
+            return Path(data_dir), False, True, False
+        return Path(cfg.data_dir) / "replay", False, True, False
     if data_dir is not None:
-        return Path(data_dir), False, False
-    return Path(cfg.data_dir), False, False
+        return Path(data_dir), False, False, False
+    return Path(cfg.data_dir), False, False, False
 
 
 def create_app(
@@ -70,10 +75,15 @@ def create_app(
     config_path: str | Path | None = None,
     use_fixtures: bool = False,
     use_replay: bool = False,
+    use_shadow: bool = False,
 ) -> FastAPI:
     cfg = load_config(config_path)
-    resolved, fixtures, replay = _resolve_data_dir(
-        data_dir, cfg, use_fixtures=use_fixtures, use_replay=use_replay
+    resolved, fixtures, replay, shadow = _resolve_data_dir(
+        data_dir,
+        cfg,
+        use_fixtures=use_fixtures,
+        use_replay=use_replay,
+        use_shadow=use_shadow,
     )
 
     app = FastAPI(
@@ -89,6 +99,7 @@ def create_app(
     app.state.cfg = cfg
     app.state.use_fixtures = fixtures
     app.state.use_replay = replay
+    app.state.use_shadow = shadow
 
     def snapshot() -> DashboardSnapshot:
         return load_snapshot(
@@ -96,6 +107,7 @@ def create_app(
             cfg=app.state.cfg,
             using_fixtures=bool(app.state.use_fixtures),
             using_replay=bool(app.state.use_replay),
+            using_shadow=bool(app.state.use_shadow),
         )
 
     def page(request: Request, template: str, extra: dict[str, Any] | None = None) -> HTMLResponse:

@@ -303,6 +303,7 @@ class PaperEngine:
                     hist[s].append(b)
 
             if ledger.has_position or self._pending is not None or ledger.killed or exited_this_bar:
+                self._on_skip_enter(ledger, hist, bars_1h_by_symbol, symbols, i)
                 continue
             self._maybe_enter(ledger, hist, bars_1h_by_symbol, symbols, i)
 
@@ -345,6 +346,17 @@ class PaperEngine:
         )
         self.journal.write_summary(summary.as_dict(), ts_ms=last_ts)
         return summary
+
+    def _on_skip_enter(
+        self,
+        ledger: Ledger,
+        hist: Mapping[str, list[Bar]],
+        bars_1h_by_symbol: Mapping[str, Sequence[Bar]],
+        symbols: Sequence[str],
+        bar_i: int,
+    ) -> None:
+        """Hook for shadow: observe signals that cannot queue. Default no-op."""
+        return
 
     def _maybe_enter(
         self,

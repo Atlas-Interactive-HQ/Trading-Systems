@@ -205,6 +205,60 @@ def test_replay_journals_mode(tmp_path: Path):
     assert "PAPER" in html
 
 
+def test_shadow_journals_mode(tmp_path: Path):
+    day = tmp_path / "2026-09-02"
+    day.mkdir()
+    (day / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "shadow_replay_end",
+                "source": "shadow-replay",
+                "ok": True,
+                "place_orders": False,
+                "n_would_place": 4,
+                "n_blocked_by_reason": {"one_position": 12, "kill": 3, "no_signal": 80},
+                "run_id": "shadow-ui",
+                "ts_ms": 1788350580000,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (day / "decisions.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "would_place",
+                "source": "shadow-replay",
+                "venue": "spot",
+                "symbol": "DOGE-USD",
+                "allowed": True,
+                "place_orders": False,
+                "ts_ms": 1788350460000,
+            }
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "kind": "blocked",
+                "blocked_reason": "one_position",
+                "source": "shadow-replay",
+                "venue": "spot",
+                "ts_ms": 1788350470000,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    snap = load_snapshot(tmp_path, cfg=load_config(), using_shadow=True)
+    assert snap.overview.mode == "shadow-replay"
+    assert snap.overview.n_would_place == 4
+    assert snap.overview.blocked_by.get("one_position") == 12
+    html = TestClient(create_app(data_dir=tmp_path, use_shadow=True)).get("/").text
+    assert "would-place" in html.lower() or "Would-place" in html
+    assert "one_position=12" in html
+    assert "€" in html  # paper scale, not a PnL hero from research
+
+
 def test_static_css_and_no_docs():
     app = create_app(use_fixtures=True)
     c = TestClient(app)

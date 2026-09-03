@@ -19,6 +19,7 @@
 | [08-self-learning-paper-path.md](./08-self-learning-paper-path.md) | Observer → shadow → gated micro-demo → offline learn |
 | [09-handoff-grok-cli.md](./09-handoff-grok-cli.md) | Mac dashboard handoff |
 | [10-historical-replay.md](./10-historical-replay.md) | Similar-regime historical replay (signal-only; not a live Phase A week) |
+| [11-shadow-replay.md](./11-shadow-replay.md) | Phase B would-place vs blocked (no orders; not Phase C) |
 
 ## Locked highlights (see 00 for full list)
 
