@@ -16,6 +16,7 @@ from atlas.dashboard.reader import DashboardSnapshot, bundled_fixtures_dir, load
 from atlas.paper.compare import METRICS as CMP_METRICS
 from atlas.paper.compare import SLICES as CMP_SLICES
 from atlas.paper.compare import evaluate_pass_rule, index_samples
+from atlas.paper.ema_eval import load_ema_reports
 from atlas.paper.eval import load_eval_reports, load_profile_reports
 from atlas.paper.profiles import BASELINE, PROFILES
 
@@ -284,7 +285,39 @@ def create_app(
                 }
             )
         comparison = _profile_comparison(load_profile_reports(app.state.reports_dir))
-        return page(request, "eval.html", {"evals": evals, "comparison": comparison})
+        ema_raw = load_ema_reports(app.state.reports_dir)
+        ema_evals: list[dict[str, Any]] = []
+        for sample in ema_raw:
+            if not sample.get("ok"):
+                ema_evals.append(
+                    {
+                        "sample_id": sample.get("sample_id"),
+                        "ok": False,
+                        "error": sample.get("error"),
+                    }
+                )
+                continue
+            hold = sample.get("holdout") or {}
+            bh = hold.get("buy_and_hold") or {}
+            ema_evals.append(
+                {
+                    "sample_id": sample.get("sample_id"),
+                    "ok": True,
+                    "symbol": sample.get("symbol"),
+                    "strategy": sample.get("strategy"),
+                    "md_label": sample.get("md_label"),
+                    "n_trades": hold.get("n_trades"),
+                    "net_return_eur": hold.get("net_return_eur"),
+                    "max_dd_eur": hold.get("max_dd_eur"),
+                    "bh_max_dd_eur": bh.get("max_dd_eur"),
+                    "time_in_market": hold.get("time_in_market"),
+                }
+            )
+        return page(
+            request,
+            "eval.html",
+            {"evals": evals, "comparison": comparison, "ema_evals": ema_evals},
+        )
 
     @app.get("/api/snapshot")
     def api_snapshot() -> JSONResponse:

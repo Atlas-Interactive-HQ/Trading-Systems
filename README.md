@@ -350,6 +350,18 @@ python scripts/run_dashboard.py   # /eval shows baseline vs every candidate prof
 
 Per-profile JSON lands in gitignored `data/reports/profiles/<profile>/`; the comparison in `data/reports/compare_<candidate>_vs_baseline.json`. The pass rule (holdout expectancy strictly better on **both** 2020-09 and 2023-09, holdout max DD not worse than +10%) is asserted in `atlas.paper.compare`, decided up front. Stress is documented, not scored: a less-negative expectancy under 2× fees with fewer trades is kill truncation, **not** a win. A candidate profile never writes `13-paper-eval.md` / `14-q4-months.md`. PASS is a research result, not a Phase C or live gate; FAIL keeps the baseline.
 
+## EMA long/flat (parallel research, daily)
+
+Daily EMA(12)/EMA(30) **long or cash** on BTC-USDT (never short). Not BreakoutV1. Not a PASS vs the breakout baseline. See [`phase1/19-ema-long-flat.md`](./phase1/19-ema-long-flat.md).
+
+```bash
+python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --windows 2020-09,2023-09
+python scripts/run_ema_long_flat_eval.py --asset DOGE-USDT --windows 2020-09,2023-09
+python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --samples q4
+```
+
+`not_a_forecast`. Named bull windows bias a long-only rule. Does not replace Phase A.
+
 ## Tests
 
 ```bash

@@ -34,7 +34,13 @@ OKX_HISTORY_CANDLES_PATH = "/api/v5/market/history-candles"
 OKX_HISTORY_LIMIT_MAX = 100
 OKX_CANDLES_LIMIT_MAX = 300
 
-BAR_MS = {"15m": 15 * 60 * 1000, "1H": 60 * 60 * 1000, "1h": 60 * 60 * 1000}
+BAR_MS = {
+    "15m": 15 * 60 * 1000,
+    "1H": 60 * 60 * 1000,
+    "1h": 60 * 60 * 1000,
+    "1D": 24 * 60 * 60 * 1000,
+    "1d": 24 * 60 * 60 * 1000,
+}
 
 SPOT_FALLBACK = {
     "BTC-USDT-SWAP": ("BTC-USDT", "BTC-USDC"),
@@ -55,7 +61,7 @@ class PaperDataError(RuntimeError):
 
 def bar_ms(bar: str) -> int:
     if bar not in BAR_MS:
-        raise PaperDataError(f"unsupported bar {bar!r}; use 15m or 1H")
+        raise PaperDataError(f"unsupported bar {bar!r}; use 15m, 1H, or 1D")
     return BAR_MS[bar]
 
 
@@ -64,6 +70,8 @@ def okx_bar(bar: str) -> str:
         return "1H"
     if bar == "15m":
         return "15m"
+    if bar.lower() in ("1d", "1D"):
+        return "1D"
     raise PaperDataError(f"unsupported bar {bar!r}")
 
 
