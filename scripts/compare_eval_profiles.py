@@ -117,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         "not_a_forecast": True,
         "baseline": base.name,
         "candidate": cand.name,
-        "candidate_overlay": cand.overlay(),
+        "candidate_overlay": cand.resolved_overlay(base_strategy),
         "verdict": rule["verdict"],
         "per_window": rule["per_window"],
         "samples_compared": [r["sample_id"] for r in cmp["samples"] if r.get("ok")],

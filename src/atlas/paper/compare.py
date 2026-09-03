@@ -501,6 +501,17 @@ def extract_heading(markdown: str) -> str | None:
     return None
 
 
+def _resolved_lines(overlay: Mapping[str, Any]) -> list[str]:
+    """One generated bullet per rule-type knob, stating the value resolved against THIS config."""
+    out: list[str] = []
+    if "atr_stop_mult" in overlay and "atr_stop_mult_baseline" in overlay:
+        out.append(
+            f"- Resolved against this config: `atr_stop_mult` baseline **{_f(overlay.get('atr_stop_mult_baseline'), 2)}** → "
+            f"candidate **{_f(overlay.get('atr_stop_mult'), 2)}** (factor {_f(overlay.get('atr_stop_mult_factor'), 1)})."
+        )
+    return out
+
+
 def render_candidate_markdown(
     cmp: Mapping[str, Any],
     *,
@@ -522,6 +533,7 @@ def render_candidate_markdown(
         f"- Baseline: `{base.get('name')}` — frozen BreakoutV1 + `config/default.yaml` (no overlay{cand.get('baseline_note') or ''}).",
         f"- Candidate: `{cand.get('name')}` — overlay `{json.dumps(cand.get('overlay') or {}, sort_keys=True)}`.",
         *[f"- {note}" for note in (cand.get("notes") or [])],
+        *_resolved_lines(cand.get("overlay") or {}),
         "",
         "## Pass / fail rule (decided up front)",
         "",

@@ -229,8 +229,10 @@ def evaluate_bars(
     profile_overlay: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     prof = profile if isinstance(profile, EvalProfile) else get_profile(profile)
-    # Reports carry the RESOLVED overlay (concrete values, e.g. atr_stop_mult 3.0), not the rule.
-    overlay = dict(profile_overlay) if profile_overlay is not None else prof.resolved_overlay(strategy)
+    # Reports carry the RESOLVED overlay (concrete values, e.g. atr_stop_mult 3.0) when the caller
+    # resolved it against the TRUE baseline (run_paper_eval does). Never resolve here against the
+    # strategy argument — it is usually already overlaid and would stamp a doubled value.
+    overlay = dict(profile_overlay) if profile_overlay is not None else prof.overlay()
     vmap = venue_by_symbol or {s: "spot" for s in bars_by_symbol}
     full = run_slice(
         bars_by_symbol=bars_by_symbol,

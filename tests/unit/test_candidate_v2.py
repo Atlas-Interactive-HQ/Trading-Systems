@@ -76,6 +76,8 @@ def pullback_then_recover() -> list[Bar]:
 
 def test_resolve_atr_stop_mult_rule():
     assert resolve_atr_stop_mult(1.5) == pytest.approx(3.0)
+    assert resolve_atr_stop_mult(1.1) == 2.2 and resolve_atr_stop_mult(0.75) == 1.5  # no coarse rounding
+    assert resolve_atr_stop_mult(1.05) == 2.1
     assert resolve_atr_stop_mult(1.0) == pytest.approx(2.0)
     assert resolve_atr_stop_mult(2.0) == pytest.approx(ATR_STOP_IF_BASELINE_IS_2) == 2.5
     assert resolve_atr_stop_mult(2.5) == pytest.approx(5.0)
@@ -156,19 +158,56 @@ def test_wider_stop_survives_pullback_baseline_does_not(tmp_path: Path, monkeypa
     assert set(load_profile_reports(rp)) == {BASELINE, CANDIDATE_V2}
 
 
-def test_evaluate_bars_default_stamps_resolved_overlay(tmp_path: Path):
+def test_evaluate_bars_overlay_stamp_never_double_resolves(tmp_path: Path):
     cfg = with_cfg_oneh_off(tmp_path)
     bars = pullback_then_recover()
     s0, st0 = shadow_settings(cfg), strategy_from_app_config(cfg)
     s2, st2 = apply_profile(CANDIDATE_V2, s0, st0)
-    # evaluate_bars called with the ALREADY-overlaid strategy: resolved_overlay(st2) would read 3.0 as
-    # the "baseline" — callers must pass the overlay resolved against the true baseline (run_paper_eval does).
-    row = evaluate_bars(
-        sample_id="fx", bars_by_symbol={SYM: bars}, bars_1h_by_symbol={SYM: resample_1h(bars)},
-        settings=s2, strategy=st2, venue_by_symbol={SYM: "spot"}, profile=CANDIDATE_V2,
-        profile_overlay=get_profile(CANDIDATE_V2).resolved_overlay(st0),
-    )
+    common = dict(sample_id="fx", bars_by_symbol={SYM: bars}, bars_1h_by_symbol={SYM: resample_1h(bars)},
+                  settings=s2, strategy=st2, venue_by_symbol={SYM: "spot"}, profile=CANDIDATE_V2)
+    # explicit overlay resolved against the TRUE baseline (what run_paper_eval passes)
+    row = evaluate_bars(**common, profile_overlay=get_profile(CANDIDATE_V2).resolved_overlay(st0))
     assert row["profile_overlay"]["atr_stop_mult_baseline"] == 1.5 and row["profile_overlay"]["atr_stop_mult"] == 3.0
+    # no overlay given + already-overlaid strategy: must fall back to the RULE, never stamp 3.0→6.0
+    row2 = evaluate_bars(**common)
+    assert row2["profile_overlay"] == {"atr_stop_mult_factor": 2.0}
+    assert "atr_stop_mult" not in row2["profile_overlay"]
+
+
+def test_apply_profile_chains_min_atr_then_stop_factor():
+    from atlas.paper.profiles import EvalProfile
+    both = EvalProfile(name="adhoc_both", description="test", min_atr_frac=0.004, atr_stop_mult_factor=2.0)
+    base = BreakoutV1(BreakoutParams(atr_stop_mult=1.5, min_atr_frac=0.001, oneh_filter="off"))
+    _, out = apply_profile(both, PaperSettings(), base)
+    assert out.params.min_atr_frac == 0.004 and out.params.atr_stop_mult == pytest.approx(3.0)
+    assert base.params.min_atr_frac == 0.001 and base.params.atr_stop_mult == 1.5
+
+
+def test_compare_script_end_to_end_writes_resolved_overlay_and_notes(tmp_path: Path):
+    """The CLI wiring (resolved overlay + notes into JSON/doc/stdout) has to be exercised, not assumed."""
+    import subprocess, sys
+    rp = tmp_path / "reports" / "profiles"
+    for prof, rows in ((BASELINE, [_row("2020-09", hold_exp=-0.30, hold_dd=100.0), _row("2023-09", hold_exp=-0.26, hold_dd=100.0)]),
+                       (CANDIDATE_V2, [_row("2020-09", hold_exp=-0.20, hold_dd=90.0), _row("2023-09", hold_exp=-0.10, hold_dd=95.0)])):
+        d = rp / prof; d.mkdir(parents=True)
+        for r in rows:
+            (d / f"eval_{r['sample_id']}.json").write_text(json.dumps({**r, "profile": prof}), encoding="utf-8")
+    md = tmp_path / "17-test.md"
+    res = subprocess.run(
+        [sys.executable, str(Path("scripts/compare_eval_profiles.py")), "--candidate", CANDIDATE_V2,
+         "--data-dir", str(tmp_path), "--write-md", str(md), "--md-heading", "17 — cli test"],
+        capture_output=True, text=True, cwd=str(Path.cwd()),
+    )
+    assert res.returncode == 0, res.stderr[-800:]
+    pub = json.loads(res.stdout[res.stdout.find("{"):res.stdout.rfind("}") + 1])
+    resolved = {"atr_stop_mult_factor": 2.0, "atr_stop_mult_baseline": 1.5, "atr_stop_mult": 3.0}
+    assert pub["candidate_overlay"] == resolved and pub["verdict"] == "PASS"
+    cmp = json.loads((tmp_path / "reports" / f"compare_{CANDIDATE_V2}_vs_{BASELINE}.json").read_text(encoding="utf-8"))
+    assert cmp["candidate"]["overlay"] == resolved
+    assert cmp["candidate"]["notes"] == list(get_profile(CANDIDATE_V2).notes)
+    text = md.read_text(encoding="utf-8")
+    assert "Resolved against this config: `atr_stop_mult` baseline **1.50** → candidate **3.00** (factor 2.0)." in text
+    assert "deliberately NOT included" in text and "**Still negative.**" in text
 
 
 # ----------------------------------------------------------------------------- doc + dashboard
@@ -216,9 +255,15 @@ def test_candidate_section_is_data_driven_from_profile_notes():
                             cand_notes=v1.notes, cand_baseline_note=v1.baseline_note)
     md1 = render_candidate_markdown(cmp1, heading="16 — test")
     assert "(no overlay; `min_atr_frac: 0.001`, no daily cap)." in md1
-    assert "- `max_would_place_per_utc_day: 1` → the first would-place decision of a UTC day is allowed;" in md1
-    assert "- Unchanged: `oneh_filter: stub`, lookback 16, ATR period 14, ATR stop 1.5×," in md1
     assert "- Not a candidate_v2 proposal." in md1 and "with or without these filters, has edge." in md1
+
+    def section(text: str, start: str, end: str) -> str:
+        return text[text.index(start): text.index(end)]
+
+    committed = Path("phase1/16-candidate-v1.md").read_text(encoding="utf-8")
+    # the whole "## Candidate" section and the "## What this is not" section must regenerate byte-identically
+    assert section(md1, "## Candidate\n", "## Pass / fail rule") == section(committed, "## Candidate\n", "## Pass / fail rule")
+    assert md1[md1.index("## What this is not"):] == committed[committed.index("## What this is not"):]
 
 
 def test_eval_page_renders_every_candidate_profile(tmp_path: Path):
@@ -239,3 +284,37 @@ def test_eval_page_renders_every_candidate_profile(tmp_path: Path):
     # v1 fails (2023-09 worse), v2 passes on this synthetic data → both verdict words appear, one each
     assert html.count("verdict <strong>FAIL</strong>") == 1 and html.count("verdict <strong>PASS</strong>") == 1
     assert "PnL hero" not in html and "would have made" not in html.lower()
+
+
+# ----------------------------------------------------------------------------- sizing regime
+
+
+def test_sizing_regime_measures_cap_vs_budget(tmp_path: Path):
+    from atlas.paper.sizing_regime import measure_sizing_regime
+
+    cfg = with_cfg_oneh_off(tmp_path)
+    # one breakout, then flat: exactly one trade per profile so per-trade sizing is comparable
+    bars = flat(20) + [b15(20, 100.0, 105.0, 100.0, 105.0)] + flat(20, px=105.0, half=0.3, i0=21)
+    h1 = resample_1h(bars)
+    s0, st0 = shadow_settings(cfg), strategy_from_app_config(cfg)
+    base = measure_sizing_regime(s0, st0, {SYM: bars}, {SYM: h1}, {SYM: "spot"})
+    s2, st2 = apply_profile(CANDIDATE_V2, s0, st0)
+    cand = measure_sizing_regime(s2, st2, {SYM: bars}, {SYM: h1}, {SYM: "spot"})
+    assert base["n_would_place"] == 1 and cand["n_would_place"] == 1
+    assert base["atr_stop_mult"] == 1.5 and cand["atr_stop_mult"] == 3.0
+    assert base["leverage_hard_cap"] == 2.0 and base["place_orders"] is False
+    # ATR/close ≈ 1% here: baseline stop frac ≈1.6% → risk-based notional ≈ €191 < €400 cap → budget binds
+    assert base["share_cap_bound"] == 0.0 and cand["share_cap_bound"] == 0.0
+    assert base["mean_eur_at_risk"] == pytest.approx(base["mean_risk_budget_eur"], rel=0.02)
+    assert cand["mean_eur_at_risk"] == pytest.approx(cand["mean_risk_budget_eur"], rel=0.02)
+    # budget-bound regime: 2× stop → ≈ half the notional at the same € at risk
+    assert cand["mean_notional_eur"] == pytest.approx(0.5 * base["mean_notional_eur"], rel=0.06)
+    # cap-bound regime: tiny ATR → risk-based notional exceeds the cap → € at risk below budget, doubles with the stop
+    tiny = [b15(i, 100.0, 100.05, 99.95, 100.0) for i in range(20)] + [b15(20, 100.0, 100.4, 100.0, 100.4)] + [b15(i, 100.4, 100.45, 100.35, 100.4) for i in range(21, 40)]
+    th1 = resample_1h(tiny)
+    tb = measure_sizing_regime(s0, st0, {SYM: tiny}, {SYM: th1}, {SYM: "spot"})
+    tc = measure_sizing_regime(s2, st2, {SYM: tiny}, {SYM: th1}, {SYM: "spot"})
+    assert tb["n_would_place"] >= 1 and tb["share_cap_bound"] == 1.0 and tc["share_cap_bound"] == 1.0
+    assert tb["mean_eur_at_risk"] < tb["mean_risk_budget_eur"]
+    assert tc["mean_notional_eur"] == pytest.approx(tb["mean_notional_eur"], rel=0.01)  # both at the cap
+    assert tc["mean_eur_at_risk"] == pytest.approx(2.0 * tb["mean_eur_at_risk"], rel=0.05)
