@@ -2,7 +2,7 @@
 {% block title %}Signalen{% endblock %}
 {% block heading %}Signalen{% endblock %}
 {% block body %}
-<p class="lede">DOGE breakout v1 uit <code>data/oms/*/decisions.jsonl</code> (kind <code>breakout_signal</code> / <code>breakout_current</code>). Spot = {{ overview.universe_spot }}. X-Perp-orders = {{ overview.universe_xperp }} (public MD mag 310404 zijn).</p>
+<p class="lede">{% if snap.using_ema %}EMA long/flat v1 uit <code>data/ema/*/decisions.jsonl</code> (kind <code>ema_state</code> / <code>ema_decision</code>). BTC-USDT 1D public OKX EEA. Observer only — geen orders. Phase A DOGE onaangeroerd.{% else %}DOGE breakout v1 uit <code>data/oms/*/decisions.jsonl</code> (kind <code>breakout_signal</code> / <code>breakout_current</code>). Spot = {{ overview.universe_spot }}. X-Perp-orders = {{ overview.universe_xperp }} (public MD mag 310404 zijn).{% endif %}</p>
 
 {% if not signals %}
 <article class="empty">

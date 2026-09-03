@@ -36,7 +36,11 @@
     </dl>
   </article>
   <article class="card">
-    {% if snap.using_shadow %}
+    {% if snap.using_ema %}
+    <h2>EMA staat (observer)</h2>
+    <p class="metric">{{ overview.ema_desired or "—" }}</p>
+    <p class="hint">BTC-USDT 1D · EMA12 {{ overview.ema_fast if overview.ema_fast is not none else "—" }} · EMA30 {{ overview.ema_slow if overview.ema_slow is not none else "—" }} · close {{ overview.ema_last_close if overview.ema_last_close is not none else "—" }} · as-of {{ overview.ema_as_of_utc or "—" }}. Geen PnL-hero. Geen orders.</p>
+    {% elif snap.using_shadow %}
     <h2>Would-place vs blocked</h2>
     <p class="metric">{{ overview.n_would_place }} would-place</p>
     <p class="hint">
@@ -56,14 +60,31 @@
 {% if overview.empty %}
 <article class="empty">
   <h2>Nog geen journals op deze Mac</h2>
+  {% if snap.using_ema %}
+  <p>Lege staat is in orde. Draai de EMA observer (geen orders):</p>
+  <pre>python scripts/run_ema_paper_session.py
+python scripts/run_dashboard.py --ema</pre>
+  {% else %}
   <p>Lege staat is in orde. Draai een signal-only sessie, of open de UI met sample-data:</p>
   <pre>python scripts/run_doge_demo_session.py --venue both --bars 96
 python scripts/run_dashboard.py --fixtures</pre>
+  {% endif %}
 </article>
 {% else %}
 <section>
-  <h2 class="section-title">Laatste signalen per venue</h2>
+  <h2 class="section-title">{% if snap.using_ema %}Laatste EMA-staat{% else %}Laatste signalen per venue{% endif %}</h2>
   <div class="grid-2">
+    {% if snap.using_ema %}
+    <article class="card">
+      <h2>BTC-USDT 1D</h2>
+      {% if signals %}
+      <p class="metric">{{ signals[0].side or overview.ema_desired or "—" }}</p>
+      <p class="hint">{{ signals[0].reason }} · {{ signals[0].ts_utc or "—" }} · observer only, geen orders</p>
+      {% else %}
+      <p class="hint">Geen EMA-staat in de journals.</p>
+      {% endif %}
+    </article>
+    {% else %}
     {% for venue in ["spot", "xperp"] %}
     {% set sig = latest[venue] %}
     <article class="card">
@@ -76,6 +97,7 @@ python scripts/run_dashboard.py --fixtures</pre>
       {% endif %}
     </article>
     {% endfor %}
+    {% endif %}
   </div>
 </section>
 {% endif %}

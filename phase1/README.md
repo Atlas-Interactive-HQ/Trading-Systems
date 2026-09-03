@@ -29,6 +29,7 @@
 | [18-candidate-v3-combo.md](./18-candidate-v3-combo.md) | Phase D trial #3: frozen baseline vs `candidate_v3_combo` (stop 3.0 + daily_cap 1; min_atr unchanged); same pass/fail rule; not a forecast |
 | [19-ema-long-flat.md](./19-ema-long-flat.md) | Parallel daily EMA long/flat research (BTC-USDT 1D); not a breakout PASS; not a forecast |
 | [20-ema-oos-stress.md](./20-ema-oos-stress.md) | EMA long/flat OOS stress on 2022-bear + 2023-chop; not a forecast |
+| [21-ema-paper-observer.md](./21-ema-paper-observer.md) | Forward EMA paper observer (BTC-USDT 1D journals under `data/ema/`); no orders; not live |
 
 ## Locked highlights (see 00 for full list)
 

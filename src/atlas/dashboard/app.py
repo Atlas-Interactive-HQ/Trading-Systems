@@ -12,11 +12,18 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from atlas.common.config import AppConfig, load_config
-from atlas.dashboard.reader import DashboardSnapshot, bundled_fixtures_dir, load_snapshot, redact
+from atlas.dashboard.reader import (
+    DashboardSnapshot,
+    bundled_fixtures_dir,
+    fmt_ts_ms,
+    load_snapshot,
+    redact,
+)
 from atlas.paper.compare import METRICS as CMP_METRICS
 from atlas.paper.compare import SLICES as CMP_SLICES
 from atlas.paper.compare import evaluate_pass_rule, index_samples
 from atlas.paper.ema_eval import load_ema_reports
+from atlas.paper.ema_observer import load_ema_observer_rows
 from atlas.paper.eval import load_eval_reports, load_profile_reports
 from atlas.paper.profiles import BASELINE, PROFILES
 
@@ -59,20 +66,25 @@ def _resolve_data_dir(
     use_fixtures: bool,
     use_replay: bool,
     use_shadow: bool = False,
-) -> tuple[Path, bool, bool, bool]:
+    use_ema: bool = False,
+) -> tuple[Path, bool, bool, bool, bool]:
     if use_fixtures:
-        return bundled_fixtures_dir(), True, False, False
+        return bundled_fixtures_dir(), True, False, False, False
     if use_shadow:
         if data_dir is not None:
-            return Path(data_dir), False, False, True
-        return Path(cfg.data_dir) / "shadow", False, False, True
+            return Path(data_dir), False, False, True, False
+        return Path(cfg.data_dir) / "shadow", False, False, True, False
     if use_replay:
         if data_dir is not None:
-            return Path(data_dir), False, True, False
-        return Path(cfg.data_dir) / "replay", False, True, False
+            return Path(data_dir), False, True, False, False
+        return Path(cfg.data_dir) / "replay", False, True, False, False
+    if use_ema:
+        if data_dir is not None:
+            return Path(data_dir), False, False, False, True
+        return Path(cfg.data_dir) / "ema", False, False, False, True
     if data_dir is not None:
-        return Path(data_dir), False, False, False
-    return Path(cfg.data_dir), False, False, False
+        return Path(data_dir), False, False, False, False
+    return Path(cfg.data_dir), False, False, False, False
 
 
 _CMP_TITLES = {
@@ -156,14 +168,16 @@ def create_app(
     use_fixtures: bool = False,
     use_replay: bool = False,
     use_shadow: bool = False,
+    use_ema: bool = False,
 ) -> FastAPI:
     cfg = load_config(config_path)
-    resolved, fixtures, replay, shadow = _resolve_data_dir(
+    resolved, fixtures, replay, shadow, ema = _resolve_data_dir(
         data_dir,
         cfg,
         use_fixtures=use_fixtures,
         use_replay=use_replay,
         use_shadow=use_shadow,
+        use_ema=use_ema,
     )
 
     app = FastAPI(
@@ -180,10 +194,12 @@ def create_app(
     app.state.use_fixtures = fixtures
     app.state.use_replay = replay
     app.state.use_shadow = shadow
+    app.state.use_ema = ema
     reports = Path(cfg.data_dir)
     if not reports.is_absolute():
         reports = Path.cwd() / reports
     app.state.reports_dir = reports / "reports"
+    app.state.ema_dir = resolved if ema else reports / "ema"
 
     def snapshot() -> DashboardSnapshot:
         return load_snapshot(
@@ -192,6 +208,7 @@ def create_app(
             using_fixtures=bool(app.state.use_fixtures),
             using_replay=bool(app.state.use_replay),
             using_shadow=bool(app.state.use_shadow),
+            using_ema=bool(app.state.use_ema),
         )
 
     def page(request: Request, template: str, extra: dict[str, Any] | None = None) -> HTMLResponse:
@@ -313,10 +330,31 @@ def create_app(
                     "time_in_market": hold.get("time_in_market"),
                 }
             )
+        observer_rows = load_ema_observer_rows(app.state.ema_dir)
+        latest_obs = next((r for r in observer_rows if r.get("kind") in ("ema_state", "ema_decision")), None)
+        ema_observer = None
+        if latest_obs or observer_rows:
+            ema_observer = {
+                "desired": (latest_obs or {}).get("desired"),
+                "symbol": (latest_obs or {}).get("symbol"),
+                "strategy": (latest_obs or {}).get("strategy"),
+                "ema_fast": (latest_obs or {}).get("ema_fast"),
+                "ema_slow": (latest_obs or {}).get("ema_slow"),
+                "last_close": (latest_obs or {}).get("last_close"),
+                "as_of_bar_ts_open_ms": (latest_obs or {}).get("as_of_bar_ts_open_ms"),
+                "as_of_utc": fmt_ts_ms((latest_obs or {}).get("as_of_bar_ts_open_ms")),
+                "paper_shadow": bool((latest_obs or {}).get("paper_shadow")),
+                "rows": observer_rows[:20],
+            }
         return page(
             request,
             "eval.html",
-            {"evals": evals, "comparison": comparison, "ema_evals": ema_evals},
+            {
+                "evals": evals,
+                "comparison": comparison,
+                "ema_evals": ema_evals,
+                "ema_observer": ema_observer,
+            },
         )
 
     @app.get("/api/snapshot")
