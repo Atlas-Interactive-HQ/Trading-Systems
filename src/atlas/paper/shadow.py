@@ -41,6 +41,8 @@ def _map_block_reason(raw: str) -> str:
         return "kill"
     if raw == "one_position":
         return "one_position"
+    if raw == "daily_cap":
+        return "daily_cap"
     if raw in ("sized", "ok"):
         return "ok"
     if raw in (
@@ -175,6 +177,13 @@ class ShadowEngine(PaperEngine):
             elif not allow_queue or queued or self._pending is not None:
                 block = "one_position"
                 gate_tag = "one_position"
+            elif self.daily_cap_reached(ledger):
+                # Candidate overlay: this UTC day already used its would-place budget.
+                # Checked after kill/one_position so "daily_cap" only labels a signal
+                # that would otherwise have been would-placed.
+                block = "daily_cap"
+                gate_tag = "daily_cap"
+                self._note_blocked_daily_cap()
             if block:
                 self.blocked[block] += 1
                 self._log_shadow_decision(
@@ -234,7 +243,8 @@ class ShadowEngine(PaperEngine):
                         stop=sig.stop,
                         decision_ts_ms=last.ts_close_ms,
                         cloid=self._cloid(),
-                    )
+                    ),
+                    ledger,
                 )
                 queued = True
 
@@ -545,6 +555,8 @@ def run_shadow(
         "n_would_place": engine.n_would_place,
         "n_blocked": int(sum(blocked.values())),
         "n_blocked_by_reason": blocked,
+        "n_blocked_daily_cap": int(blocked.get("daily_cap", 0)),
+        "max_would_place_per_utc_day": settings.max_would_place_per_utc_day,
         "n_open": paper.n_entries,
         "n_flatten": paper.n_trades,
         "n_kills": paper.n_kills,

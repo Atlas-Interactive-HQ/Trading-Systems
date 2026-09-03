@@ -19,6 +19,7 @@ if str(_SRC) not in sys.path:
 from atlas.common.config import load_config  # noqa: E402
 from atlas.common.logging import setup_logging  # noqa: E402
 from atlas.paper.eval import render_eval_markdown, run_paper_eval  # noqa: E402
+from atlas.paper.profiles import BASELINE, ProfileError, get_profile, profile_names  # noqa: E402
 from atlas.paper.replay import ReplayError  # noqa: E402
 
 
@@ -35,9 +36,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--pause-s", type=float, default=0.12)
     p.add_argument(
+        "--profile",
+        default=BASELINE,
+        choices=profile_names(),
+        help="Eval profile: baseline (frozen, no overlay) or a named candidate overlay. "
+        "Baseline defaults in config/default.yaml are never mutated.",
+    )
+    p.add_argument(
         "--write-md",
-        default=str(_ROOT / "phase1" / "13-paper-eval.md"),
-        help="Markdown tables path (committed). Empty to skip.",
+        default=None,
+        help="Markdown tables path (committed). Empty to skip. Default: phase1/13-paper-eval.md "
+        "for --profile baseline; SKIP for any candidate profile (candidate tables belong in "
+        "the candidate doc, never in 13/14).",
     )
     p.add_argument(
         "--md-heading",
@@ -51,6 +61,19 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = p.parse_args(argv)
 
+    try:
+        profile = get_profile(args.profile)
+    except ProfileError as exc:
+        print(json.dumps({"ok": False, "error": str(exc), "place_orders": False}, indent=2))
+        return 2
+    if args.write_md is None:
+        args.write_md = str(_ROOT / "phase1" / "13-paper-eval.md") if profile.is_baseline else ""
+        if not profile.is_baseline:
+            print(
+                f"--profile {profile.name}: not writing 13-paper-eval.md (pass --write-md explicitly)",
+                file=sys.stderr,
+            )
+
     cfg = load_config(args.config)
     data_dir = Path(args.data_dir) if args.data_dir else Path(cfg.data_dir)
     if not data_dir.is_absolute():
@@ -60,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         bundle = run_paper_eval(
-            cfg, samples=samples, data_dir=data_dir, pause_s=args.pause_s
+            cfg, samples=samples, data_dir=data_dir, pause_s=args.pause_s, profile=profile
         )
     except ReplayError as exc:
         print(json.dumps({"ok": False, "error": str(exc), "place_orders": False}, indent=2))
@@ -71,6 +94,8 @@ def main(argv: list[str] | None = None) -> int:
         "place_orders": False,
         "not_a_forecast": True,
         "source": bundle.get("source"),
+        "profile": bundle.get("profile"),
+        "profile_overlay": bundle.get("profile_overlay"),
         "errors": bundle.get("errors"),
         "disclaimer": bundle.get("disclaimer"),
         "samples": [],
@@ -92,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
                         "n_trades",
                         "n_would_place",
                         "n_kill_days",
+                        "n_blocked_daily_cap",
                         "expectancy_after_costs_eur",
                         "max_dd_eur",
                         "fee_drag_eur",
@@ -105,6 +131,7 @@ def main(argv: list[str] | None = None) -> int:
                         "n_trades",
                         "n_would_place",
                         "n_kill_days",
+                        "n_blocked_daily_cap",
                         "expectancy_after_costs_eur",
                         "max_dd_eur",
                         "fee_drag_eur",

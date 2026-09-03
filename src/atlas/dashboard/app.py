@@ -13,7 +13,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from atlas.common.config import AppConfig, load_config
 from atlas.dashboard.reader import DashboardSnapshot, bundled_fixtures_dir, load_snapshot, redact
-from atlas.paper.eval import load_eval_reports
+from atlas.paper.compare import METRICS as CMP_METRICS
+from atlas.paper.compare import SLICES as CMP_SLICES
+from atlas.paper.compare import evaluate_pass_rule, index_samples
+from atlas.paper.eval import load_eval_reports, load_profile_reports
+from atlas.paper.profiles import BASELINE
 
 PKG = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(PKG / "templates"))
@@ -68,6 +72,80 @@ def _resolve_data_dir(
     if data_dir is not None:
         return Path(data_dir), False, False, False
     return Path(cfg.data_dir), False, False, False
+
+
+_CMP_TITLES = {
+    "n_trades": "n_trades",
+    "n_would_place": "n_would_place",
+    "n_kill_days": "n_kill_days",
+    "n_blocked_daily_cap": "n_blocked_daily_cap",
+    "expectancy_after_costs_eur": "expectancy after costs (€/trade)",
+    "max_dd_eur": "max DD (€)",
+    "fee_drag_eur": "fee drag (€)",
+    "win_rate": "win rate",
+}
+
+
+def _fmt_metric(key: str, value: Any) -> str:
+    if value is None:
+        return "—"
+    if key == "expectancy_after_costs_eur":
+        return f"{float(value):.4f}"
+    if key in ("max_dd_eur", "fee_drag_eur"):
+        return f"{float(value):.2f}"
+    if key == "win_rate":
+        return f"{100.0 * float(value):.1f}%"
+    return str(int(value))
+
+
+def _profile_comparison(profiles: dict[str, list[dict[str, Any]]]) -> dict[str, Any] | None:
+    """Baseline vs each candidate profile, read-only. None when <2 profiles on disk."""
+    if len(profiles) < 2 or BASELINE not in profiles:
+        return None
+    base_idx = index_samples(profiles[BASELINE])
+    out_candidates: list[dict[str, Any]] = []
+    for name, rows in profiles.items():
+        if name == BASELINE:
+            continue
+        cand_idx = index_samples(rows)
+        rule = evaluate_pass_rule(base_idx, cand_idx)
+        samples: list[dict[str, Any]] = []
+        for sid in sorted(set(base_idx) & set(cand_idx), key=lambda s: (s != "similar", s)):
+            b, c = base_idx[sid], cand_idx[sid]
+            if not (b.get("ok") and c.get("ok")):
+                continue
+            metric_rows = []
+            for key in CMP_METRICS:
+                cells = []
+                for skey, _t in CMP_SLICES:
+                    cells.append(_fmt_metric(key, (b.get(skey) or {}).get(key)))
+                    cells.append(_fmt_metric(key, (c.get(skey) or {}).get(key)))
+                metric_rows.append({"metric": _CMP_TITLES.get(key, key), "cells": cells})
+            samples.append(
+                {
+                    "sample_id": sid,
+                    "md_label": c.get("md_label") or b.get("md_label"),
+                    "role": "primary" if sid in rule.get("windows", []) else "secondary",
+                    "rows": metric_rows,
+                }
+            )
+        out_candidates.append(
+            {
+                "name": name,
+                "overlay": (rows[0].get("profile_overlay") if rows else None) or {},
+                "verdict": rule.get("verdict"),
+                "windows": rule.get("windows"),
+                "per_window": rule.get("per_window"),
+                "samples": samples,
+            }
+        )
+    if not out_candidates:
+        return None
+    return {
+        "baseline": BASELINE,
+        "slice_titles": [t for _k, t in CMP_SLICES],
+        "candidates": out_candidates,
+    }
 
 
 def create_app(
@@ -200,11 +278,13 @@ def create_app(
                 {
                     "sample_id": sample.get("sample_id"),
                     "ok": True,
+                    "profile": sample.get("profile") or BASELINE,
                     "md_label": sample.get("md_label"),
                     "rows": rows,
                 }
             )
-        return page(request, "eval.html", {"evals": evals})
+        comparison = _profile_comparison(load_profile_reports(app.state.reports_dir))
+        return page(request, "eval.html", {"evals": evals, "comparison": comparison})
 
     @app.get("/api/snapshot")
     def api_snapshot() -> JSONResponse:
