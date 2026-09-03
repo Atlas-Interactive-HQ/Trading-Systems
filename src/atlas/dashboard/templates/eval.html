@@ -47,6 +47,45 @@
 </section>
 {% endif %}
 
+{% if ema_1h_evals %}
+<section class="card" style="margin-bottom:16px">
+  <h2>EMA 1H + funding (research)</h2>
+  <p class="hint">Same 12/30 long/flat on BTC-USDT-SWAP 1H. Funding in after-costs when complete; <code>funding_incomplete</code> → fee-only. Daily observer unchanged. <code>not_a_forecast</code>. Geen PnL-hero. Geen Phase C.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>sample</th>
+        <th>asset / strategy</th>
+        <th>full n_trades</th>
+        <th>after-costs €</th>
+        <th>fee-only €</th>
+        <th>incomplete?</th>
+        <th>max DD €</th>
+        <th>BH max DD €</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in ema_1h_evals %}
+      <tr>
+        <td>{{ row.sample_id }}</td>
+        {% if not row.ok %}
+        <td colspan="7">skipped: {{ row.error }}</td>
+        {% else %}
+        <td>{{ row.symbol }} · {{ row.strategy }} · {{ row.bar }}</td>
+        <td>{{ row.n_trades }}</td>
+        <td>{% if row.net_return_eur is not none %}{{ "%.2f"|format(row.net_return_eur) }}{% else %}—{% endif %}</td>
+        <td>{% if row.net_return_fee_only_eur is not none %}{{ "%.2f"|format(row.net_return_fee_only_eur) }}{% else %}—{% endif %}</td>
+        <td>{{ "yes" if row.funding_incomplete else "no" }}</td>
+        <td>{% if row.max_dd_eur is not none %}{{ "%.2f"|format(row.max_dd_eur) }}{% else %}—{% endif %}</td>
+        <td>{% if row.bh_max_dd_eur is not none %}{{ "%.2f"|format(row.bh_max_dd_eur) }}{% else %}—{% endif %}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
 {% if ema_evals %}
 <section class="card" style="margin-bottom:16px">
   <h2>EMA long/flat (daily, research)</h2>

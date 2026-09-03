@@ -30,9 +30,13 @@ OKX_REST = "https://eea.okx.com"
 KRAKEN_CHARTS = "https://futures.kraken.com/api/charts/v1"
 OKX_CANDLES_PATH = "/api/v5/market/candles"
 OKX_HISTORY_CANDLES_PATH = "/api/v5/market/history-candles"
+OKX_FUNDING_HISTORY_PATH = "/api/v5/public/funding-rate-history"
 # OKX docs: history-candles max 100 per request; /market/candles allows up to 300.
 OKX_HISTORY_LIMIT_MAX = 100
 OKX_CANDLES_LIMIT_MAX = 300
+# EEA public funding-rate-history: docs say max 400; ~3 months of 8h prints.
+OKX_FUNDING_LIMIT_MAX = 100
+FUNDING_INTERVAL_MS = 8 * 60 * 60 * 1000  # OKX BTC-USDT-SWAP cadence (00/08/16 UTC)
 
 BAR_MS = {
     "15m": 15 * 60 * 1000,
@@ -399,6 +403,129 @@ def fetch_okx_history_candles(
             f"(start_ms={start_ms} end_ms={end_ms} pages={pages})"
         )
     return bars
+
+
+def parse_okx_funding_row(row: Any, *, symbol: str) -> dict[str, Any] | None:
+    """Parse one public funding-rate-history row. No invented rates."""
+    if not isinstance(row, dict):
+        return None
+    ts = parse_exchange_ts_ms(row.get("fundingTime"))
+    if ts is None:
+        return None
+    raw = row.get("realizedRate")
+    if raw in (None, ""):
+        raw = row.get("fundingRate")
+    if raw in (None, ""):
+        return None
+    try:
+        rate = float(raw)
+    except (TypeError, ValueError):
+        return None
+    inst = str(row.get("instId") or symbol)
+    return {
+        "fundingTime": int(ts),
+        "realizedRate": rate,
+        "fundingRate": row.get("fundingRate"),
+        "instId": inst,
+        "source": "okx_eea_public_funding_rate_history",
+    }
+
+
+def fetch_okx_funding_rate_history(
+    client: httpx.Client,
+    symbol: str,
+    *,
+    rest_base: str = OKX_REST,
+    start_ms: int | None = None,
+    end_ms: int | None = None,
+    limit: int = OKX_FUNDING_LIMIT_MAX,
+    max_pages: int = 20,
+    pause_s: float = 0.15,
+) -> list[dict[str, Any]]:
+    """Paginate GET /api/v5/public/funding-rate-history. Public, unsigned.
+
+    OKX documents ~3 months of history. Empty/short history is returned as-is
+    (caller flags `funding_incomplete`). Never invents missing rates.
+    `after` = records earlier than fundingTime (same convention as candles).
+    """
+    path = OKX_FUNDING_HISTORY_PATH
+    assert_public_only_path(path)
+    page_limit = min(OKX_FUNDING_LIMIT_MAX, max(1, int(limit)))
+    after: int | None = int(end_ms) if end_ms is not None else None
+    collected: list[dict[str, Any]] = []
+    pages = 0
+    while pages < max_pages:
+        params: dict[str, str] = {
+            "instId": symbol,
+            "limit": str(page_limit),
+        }
+        if after is not None:
+            params["after"] = str(int(after))
+        url = rest_base.rstrip("/") + path + "?" + urlencode(params)
+        payload = _http_get_json(client, url)
+        pages += 1
+        if not isinstance(payload, dict):
+            raise PaperDataError(f"OKX funding-rate-history non-object for {symbol}")
+        code = str(payload.get("code", ""))
+        if code not in ("0", "0.0", ""):
+            raise PaperDataError(
+                f"OKX funding-rate-history {symbol} code={code} msg={payload.get('msg')}"
+            )
+        raw = payload.get("data")
+        if not isinstance(raw, list) or not raw:
+            break
+        rows = [parse_okx_funding_row(r, symbol=symbol) for r in raw]
+        rows = [r for r in rows if r is not None]
+        collected.extend(rows)
+        times = [int(r["fundingTime"]) for r in rows]
+        if not times:
+            break
+        oldest = min(times)
+        if start_ms is not None and oldest <= int(start_ms):
+            break
+        if len(raw) < page_limit:
+            break
+        if after is not None and oldest >= after:
+            break
+        after = oldest
+        if pause_s > 0:
+            time.sleep(pause_s)
+    by_ts: dict[int, dict[str, Any]] = {}
+    for row in collected:
+        by_ts[int(row["fundingTime"])] = row
+    out = [by_ts[k] for k in sorted(by_ts)]
+    if start_ms is not None:
+        out = [r for r in out if int(r["fundingTime"]) >= int(start_ms)]
+    if end_ms is not None:
+        out = [r for r in out if int(r["fundingTime"]) < int(end_ms)]
+    return out
+
+
+def persist_funding(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, separators=(",", ":"), ensure_ascii=False) + "\n")
+
+
+def load_funding_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        return []
+    out: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            parsed = parse_okx_funding_row(obj, symbol=str(obj.get("instId") or ""))
+            if parsed is not None:
+                out.append(parsed)
+    by_ts = {int(r["fundingTime"]): r for r in out}
+    return [by_ts[k] for k in sorted(by_ts)]
 
 
 def fetch_kraken_candles(

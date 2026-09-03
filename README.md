@@ -110,6 +110,14 @@ python scripts/run_ema_paper_session.py --paper-shadow  # optional 1× next-open
 python scripts/run_dashboard.py --ema
 ```
 
+## EMA 1H + funding (research)
+
+Same 12/30 long/flat on public **BTC-USDT-SWAP 1H**, plus OKX public funding-rate history when complete. Incomplete history is flagged (`funding_incomplete`) and scored **fee-only** — rates are never invented. Daily observer stays as-is. See [`phase1/22-ema-1h-funding.md`](./phase1/22-ema-1h-funding.md).
+
+```bash
+python scripts/run_ema_1h_funding_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
+```
+
 ## Config
 
 [`config/default.yaml`](./config/default.yaml) — venues, symbols, OKX EEA bases/modes/universe, **local paper + breakout v1**, secrets **path placeholders**.

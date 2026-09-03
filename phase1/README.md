@@ -30,6 +30,7 @@
 | [19-ema-long-flat.md](./19-ema-long-flat.md) | Parallel daily EMA long/flat research (BTC-USDT 1D); not a breakout PASS; not a forecast |
 | [20-ema-oos-stress.md](./20-ema-oos-stress.md) | EMA long/flat OOS stress on 2022-bear + 2023-chop; not a forecast |
 | [21-ema-paper-observer.md](./21-ema-paper-observer.md) | Forward EMA paper observer (BTC-USDT 1D journals under `data/ema/`); no orders; not live |
+| [22-ema-1h-funding.md](./22-ema-1h-funding.md) | EMA 12/30 on BTC-USDT-SWAP 1H + public funding; incomplete → fee-only; not live |
 
 ## Locked highlights (see 00 for full list)
 
