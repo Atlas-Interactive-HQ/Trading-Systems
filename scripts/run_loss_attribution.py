@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Loss attribution + bull-gate counterfactual. Research only. Never places orders."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parents[1]
+_SRC = _ROOT / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from atlas.common.config import load_config  # noqa: E402
+from atlas.common.logging import setup_logging  # noqa: E402
+from atlas.paper.attribution import render_attribution_markdown, run_loss_attribution  # noqa: E402
+from atlas.paper.replay import ReplayError  # noqa: E402
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(
+        description="Attribute paper fills (fee/stop/time/kill) + one bull gate. Never places orders."
+    )
+    p.add_argument("--config", default=None)
+    p.add_argument("--data-dir", default=None)
+    p.add_argument(
+        "--samples",
+        default="similar,2020-09,2023-09,q4",
+        help="Comma list: similar,2020-09,2023-09,q4",
+    )
+    p.add_argument("--pause-s", type=float, default=0.12)
+    p.add_argument(
+        "--write-md",
+        default=str(_ROOT / "phase1" / "15-loss-attribution-bull-gate.md"),
+        help="Markdown tables path (committed). Empty to skip.",
+    )
+    args = p.parse_args(argv)
+
+    cfg = load_config(args.config)
+    data_dir = Path(args.data_dir) if args.data_dir else Path(cfg.data_dir)
+    if not data_dir.is_absolute():
+        data_dir = _ROOT / data_dir
+    setup_logging(cfg.log_level)
+    samples = [s.strip() for s in str(args.samples).split(",") if s.strip()]
+
+    try:
+        bundle = run_loss_attribution(
+            cfg, samples=samples, data_dir=data_dir, pause_s=args.pause_s
+        )
+    except ReplayError as exc:
+        print(json.dumps({"ok": False, "error": str(exc), "place_orders": False}, indent=2))
+        return 2
+
+    public = {
+        "ok": bundle.get("ok"),
+        "place_orders": False,
+        "not_a_forecast": True,
+        "source": bundle.get("source"),
+        "bull_gate": bundle.get("bull_gate"),
+        "errors": bundle.get("errors"),
+        "disclaimer": bundle.get("disclaimer"),
+        "samples": [],
+    }
+    for s in bundle.get("samples") or []:
+        if not s.get("ok"):
+            public["samples"].append(
+                {"sample_id": s.get("sample_id"), "ok": False, "error": s.get("error")}
+            )
+            continue
+        public["samples"].append(
+            {
+                "sample_id": s.get("sample_id"),
+                "full": {
+                    k: (s.get("full") or {}).get(k)
+                    for k in (
+                        "n_trades",
+                        "expectancy_after_costs_eur",
+                        "fee_drag_eur",
+                        "net_pnl_eur",
+                    )
+                },
+                "holdout": {
+                    k: (s.get("holdout") or {}).get(k)
+                    for k in ("n_trades", "expectancy_after_costs_eur")
+                },
+                "top_loss_drivers": s.get("top_loss_drivers"),
+                "bull_gate_counterfactual": {
+                    "allow": (s.get("bull_gate_counterfactual") or {}).get("allow"),
+                    "block": (s.get("bull_gate_counterfactual") or {}).get("block"),
+                    "allow_holdout": (s.get("bull_gate_counterfactual") or {}).get(
+                        "allow_holdout"
+                    ),
+                    "block_holdout": (s.get("bull_gate_counterfactual") or {}).get(
+                        "block_holdout"
+                    ),
+                },
+                "not_a_forecast": True,
+            }
+        )
+    print(json.dumps(public, indent=2, default=str))
+
+    if args.write_md:
+        md_path = Path(args.write_md)
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(render_attribution_markdown(bundle), encoding="utf-8")
+        print(f"wrote {md_path}", file=sys.stderr)
+    return 0 if bundle.get("ok") else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

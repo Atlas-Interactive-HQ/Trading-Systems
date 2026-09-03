@@ -319,6 +319,16 @@ python scripts/run_dashboard.py   # then open /eval
 
 `not_a_forecast`. Do not headline PnL. Do not treat this as a Phase C or live gate.
 
+## Loss attribution (research)
+
+Fee drag vs stop / time-stop / kill-flatten on the same paper fills, plus one bull-gate counterfactual (`1h SMA20` rising → long only). See [`phase1/15-loss-attribution-bull-gate.md`](./phase1/15-loss-attribution-bull-gate.md).
+
+```bash
+python scripts/run_loss_attribution.py --samples similar,2020-09,2023-09,q4
+```
+
+Same journal path (no re-sequence). `not_a_forecast`. Not a candidate_v1 PR.
+
 ## Candidate profiles (Phase D trial #1)
 
 `--profile` runs the same eval under a **named overlay** without touching the frozen baseline. `baseline` is the identity (exactly `config/default.yaml`); `candidate_v1_filters` = at most **1 would-place per UTC day** (further same-day signals → `blocked_reason: daily_cap`) + `min_atr_frac: 0.005` (baseline 0.001). Everything else — 1h stub, lookback, ATR stop, time-stop, €200, 5% kill, 1–2% risk — is inherited unchanged. No grid search. See [`phase1/16-candidate-v1.md`](./phase1/16-candidate-v1.md).
@@ -340,7 +350,7 @@ Per-profile JSON lands in gitignored `data/reports/profiles/<profile>/`; the com
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, paper eval (70/30 split, 2× fee drag, no trade client), **and candidate profiles (daily_cap in engine+shadow, min_atr 0.005 vs 0.001, baseline identity, pass rule + kill-truncation flag, no trade client)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, paper eval (70/30 split, 2× fee drag, no trade client), loss attribution (drivers, bull-gate fail-closed), **and candidate profiles (daily_cap in engine+shadow, min_atr 0.005 vs 0.001, baseline identity, pass rule + kill-truncation flag, no trade client)**.
 
 ## Docker (optional stub)
 
