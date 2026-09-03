@@ -62,9 +62,10 @@ def _map_block_reason(raw: str) -> str:
 class ShadowJournal:
     """Append-only JSONL under data/shadow/{UTC-date}/. Duck-types PaperJournal."""
 
-    def __init__(self, data_dir: str | Path, run_id: str) -> None:
+    def __init__(self, data_dir: str | Path, run_id: str, *, source: str | None = None) -> None:
         self.data_dir = Path(data_dir)
         self.run_id = run_id
+        self.source = source or SOURCE
         self._lock = threading.Lock()
         self._seq = 0
         self.root = self.data_dir / "shadow"
@@ -83,7 +84,7 @@ class ShadowJournal:
             {
                 "run_id": self.run_id,
                 "seq": seq,
-                "source": SOURCE,
+                "source": self.source,
                 "place_orders": False,
                 **record,
                 "ts_ms": ts,
@@ -100,7 +101,7 @@ class ShadowJournal:
         directory = self.root / utc_date_str(ts_ms)
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"summary_{self.run_id}.json"
-        payload = redact_record({"source": SOURCE, "place_orders": False, **summary})
+        payload = redact_record({"source": self.source, "place_orders": False, **summary})
         path.write_text(
             json.dumps(payload, indent=2, ensure_ascii=False, default=str) + "\n",
             encoding="utf-8",
@@ -369,11 +370,13 @@ def run_shadow(
     now_ms: int | None = None,
     lookback_days: int = 90,
     window_days: int = 7,
+    journal_source: str | None = None,
+    extra_event: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Signal → paper risk → would-place or blocked. Never places orders."""
     keys = parse_venue_arg(venue)
     rid = run_id or new_run_id("shadow")
-    journal = ShadowJournal(data_dir, rid)
+    journal = ShadowJournal(data_dir, rid, source=journal_source)
     ts = int(now_ms if now_ms is not None else utc_ms())
     settings = shadow_settings(cfg)
     strategy = strategy_from_app_config(cfg)
@@ -407,24 +410,23 @@ def run_shadow(
             raise ReplayError("replay produced no candidate windows (do not invent bars)")
         used_replay = True
 
-    journal.append(
-        "events",
-        {
-            "kind": "shadow_replay_start",
-            "place_orders": False,
-            "venue": venue,
-            "venues": list(keys),
-            "paper_equity_eur": settings.equity_eur,
-            "daily_kill_frac": settings.daily_kill_frac,
-            "per_trade_risk_frac": settings.per_trade_risk_frac,
-            "leverage_hard_cap": settings.leverage_hard_cap,
-            "one_position": True,
-            "used_replay_summary": used_replay,
-            "windows": {k: windows.get(k) for k in keys if k in windows},
-            "hypothetical": True,
-        },
-        ts_ms=ts,
-    )
+    start_rec: dict[str, Any] = {
+        "kind": "shadow_replay_start",
+        "place_orders": False,
+        "venue": venue,
+        "venues": list(keys),
+        "paper_equity_eur": settings.equity_eur,
+        "daily_kill_frac": settings.daily_kill_frac,
+        "per_trade_risk_frac": settings.per_trade_risk_frac,
+        "leverage_hard_cap": settings.leverage_hard_cap,
+        "one_position": True,
+        "used_replay_summary": used_replay,
+        "windows": {k: windows.get(k) for k in keys if k in windows},
+        "hypothetical": True,
+    }
+    if extra_event:
+        start_rec.update(extra_event)
+    journal.append("events", start_rec, ts_ms=ts)
 
     own_client = False
     http = client
@@ -528,8 +530,8 @@ def run_shadow(
         "ok": True,
         "dry_run": True,
         "place_orders": False,
-        "mode": "shadow-replay",
-        "source": SOURCE,
+        "mode": (extra_event or {}).get("mode") or "shadow-replay",
+        "source": journal_source or SOURCE,
         "run_id": rid,
         "venue": venue,
         "paper_equity_eur": settings.equity_eur,
@@ -546,6 +548,7 @@ def run_shadow(
         "n_kills": paper.n_kills,
         "windows": window_meta,
         "errors": errors,
+        "window_id": (extra_event or {}).get("window_id"),
         "research": research,
         "disclaimer": (
             "paper/research only. shadow is not Phase C auto-demo. "

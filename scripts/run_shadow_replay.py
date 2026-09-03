@@ -19,6 +19,7 @@ if str(_SRC) not in sys.path:
 
 from atlas.common.config import load_config  # noqa: E402
 from atlas.common.logging import setup_logging  # noqa: E402
+from atlas.paper.named_windows import run_named_shadow  # noqa: E402
 from atlas.paper.replay import ReplayError  # noqa: E402
 from atlas.paper.shadow import run_shadow  # noqa: E402
 
@@ -41,6 +42,9 @@ def _public_summary(summary: dict) -> dict:
         "n_flatten",
         "n_kills",
         "windows",
+        "window_ids",
+        "n_long",
+        "n_short",
         "errors",
         "disclaimer",
         "log_dir",
@@ -61,6 +65,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--lookback-days", type=int, default=90)
     p.add_argument("--window-days", type=int, default=7)
     p.add_argument("--pause-s", type=float, default=0.12)
+    p.add_argument(
+        "--windows",
+        default=None,
+        help="Named calendar windows, e.g. 2020-09,2023-09. Default: last similar-regime replay.",
+    )
     args = p.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -70,14 +79,23 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging(cfg.log_level)
 
     try:
-        summary = run_shadow(
-            cfg,
-            venue=args.venue,
-            data_dir=data_dir,
-            lookback_days=args.lookback_days,
-            window_days=args.window_days,
-            pause_s=args.pause_s,
-        )
+        if args.windows:
+            summary = run_named_shadow(
+                cfg,
+                windows=args.windows,
+                venue=args.venue,
+                data_dir=data_dir,
+                pause_s=args.pause_s,
+            )
+        else:
+            summary = run_shadow(
+                cfg,
+                venue=args.venue,
+                data_dir=data_dir,
+                lookback_days=args.lookback_days,
+                window_days=args.window_days,
+                pause_s=args.pause_s,
+            )
     except ReplayError as exc:
         print(json.dumps({"ok": False, "error": str(exc), "place_orders": False}, indent=2))
         return 2

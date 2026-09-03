@@ -19,6 +19,7 @@ if str(_SRC) not in sys.path:
 
 from atlas.common.config import load_config  # noqa: E402
 from atlas.common.logging import setup_logging  # noqa: E402
+from atlas.paper.named_windows import run_named_replay  # noqa: E402
 from atlas.paper.replay import ReplayError, run_replay  # noqa: E402
 
 
@@ -40,6 +41,11 @@ def main(argv: list[str] | None = None) -> int:
         default=0.12,
         help="Delay between history-candles pages (OKX 20 req / 2s)",
     )
+    p.add_argument(
+        "--windows",
+        default=None,
+        help="Named calendar windows, e.g. 2020-09,2023-09. Default: similar-regime match.",
+    )
     args = p.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -49,14 +55,23 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging(cfg.log_level)
 
     try:
-        summary = run_replay(
-            cfg,
-            venue=args.venue,
-            lookback_days=args.lookback_days,
-            window_days=args.window_days,
-            data_dir=data_dir,
-            pause_s=args.pause_s,
-        )
+        if args.windows:
+            summary = run_named_replay(
+                cfg,
+                windows=args.windows,
+                venue=args.venue,
+                data_dir=data_dir,
+                pause_s=args.pause_s,
+            )
+        else:
+            summary = run_replay(
+                cfg,
+                venue=args.venue,
+                lookback_days=args.lookback_days,
+                window_days=args.window_days,
+                data_dir=data_dir,
+                pause_s=args.pause_s,
+            )
     except ReplayError as exc:
         print(json.dumps({"ok": False, "error": str(exc), "place_orders": False}, indent=2))
         return 2

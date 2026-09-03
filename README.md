@@ -295,13 +295,24 @@ python scripts/run_dashboard.py --shadow
 
 Shadow ≠ Phase C gated micro-demo. Live Phase A stays signal-only.
 
+## Named windows (calendar, not similar-regime)
+
+Research MD is **DOGE-USDT** (not OMS `DOGE-USD`, which has no 2020/2023 history). X-Perp is skipped (`unavailable`). See [`phase1/12-named-windows.md`](./phase1/12-named-windows.md).
+
+```bash
+python scripts/replay_phase_a_history.py --windows 2020-09,2023-09 --venue spot
+python scripts/run_shadow_replay.py --windows 2020-09,2023-09 --venue spot
+```
+
+Named-window ≠ forecast. Omit `--windows` to keep the similar-regime default.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` / `place_spot_*` / `place_xperp_*` / `cancel_order` blocked without HTTP, demo OMS risk gating (zero equity, 5% kill, 1–2% size, one position, clear-on-cancel), DOGE venue routing, paper sizing / fill math, dashboard v0, historical replay, **and Phase B shadow (one_position, kill, €200 size, no orders)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, DOGE venue routing, paper sizing / fill math, dashboard v0, historical replay, Phase B shadow, **and named windows (2020 fixture parse, xperp skip, DOGE-USDT research MD label)**.
 
 ## Docker (optional stub)
 

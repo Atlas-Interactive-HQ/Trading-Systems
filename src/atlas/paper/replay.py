@@ -123,9 +123,10 @@ class ReplayLeg:
 class ReplayJournal:
     """Append-only JSONL under data/replay/{UTC-date}/. Distinct from data/oms/."""
 
-    def __init__(self, data_dir: str | Path, run_id: str) -> None:
+    def __init__(self, data_dir: str | Path, run_id: str, *, source: str | None = None) -> None:
         self.data_dir = Path(data_dir)
         self.run_id = run_id
+        self.source = source or SOURCE
         self._lock = threading.Lock()
         self._seq = 0
         self.root = self.data_dir / "replay"
@@ -144,7 +145,7 @@ class ReplayJournal:
             {
                 "run_id": self.run_id,
                 "seq": seq,
-                "source": SOURCE,
+                "source": self.source,
                 **record,
                 "ts_ms": ts,
             }
@@ -160,7 +161,7 @@ class ReplayJournal:
         directory = self.root / utc_date_str(ts_ms)
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"summary_{self.run_id}.json"
-        payload = redact_record({"source": SOURCE, **summary})
+        payload = redact_record({"source": self.source, **summary})
         path.write_text(
             json.dumps(payload, indent=2, ensure_ascii=False, default=str) + "\n",
             encoding="utf-8",
