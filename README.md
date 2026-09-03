@@ -302,9 +302,11 @@ Research MD is **DOGE-USDT** (not OMS `DOGE-USD`, which has no 2020/2023 history
 ```bash
 python scripts/replay_phase_a_history.py --windows 2020-09,2023-09 --venue spot
 python scripts/run_shadow_replay.py --windows 2020-09,2023-09 --venue spot
+python scripts/replay_phase_a_history.py --windows q4 --venue spot
+python scripts/run_paper_eval.py --samples q4 --write-md phase1/14-q4-months.md
 ```
 
-Named-window ≠ forecast. Omit `--windows` to keep the similar-regime default.
+Named-window ≠ forecast. Omit `--windows` to keep the similar-regime default. `q4` expands to Oct/Nov/Dec 2020/2023/2024 (true calendar months). See [`phase1/14-q4-months.md`](./phase1/14-q4-months.md).
 
 ## Paper eval (Phase D-lite)
 

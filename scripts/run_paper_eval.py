@@ -31,13 +31,23 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--samples",
         default="similar,2020-09,2023-09",
-        help="Comma list: similar,2020-09,2023-09",
+        help="Comma list: similar,2020-09,2023-09,q4 (q4 = Oct/Nov/Dec 2020/2023/2024)",
     )
     p.add_argument("--pause-s", type=float, default=0.12)
     p.add_argument(
         "--write-md",
         default=str(_ROOT / "phase1" / "13-paper-eval.md"),
         help="Markdown tables path (committed). Empty to skip.",
+    )
+    p.add_argument(
+        "--md-heading",
+        default=None,
+        help="Markdown H1 (default: 13 — Paper eval). Use 14 heading for Q4 months.",
+    )
+    p.add_argument(
+        "--md-intro",
+        default=None,
+        help="Optional extra intro paragraph for the markdown tables.",
     )
     args = p.parse_args(argv)
 
@@ -108,7 +118,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_md:
         md_path = Path(args.write_md)
         md_path.parent.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(render_eval_markdown(bundle), encoding="utf-8")
+        heading = args.md_heading or "13 — Paper eval (Phase D-lite)"
+        md_path.write_text(
+            render_eval_markdown(
+                bundle, heading=heading, extra_intro=args.md_intro
+            ),
+            encoding="utf-8",
+        )
         print(f"wrote {md_path}", file=sys.stderr)
     return 0 if bundle.get("ok") else 1
 

@@ -136,3 +136,29 @@ def test_eval_no_okx_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert bundle["not_a_forecast"] is True
     assert (tmp_path / "reports" / "eval_similar.json").is_file()
     assert "pnl" not in bundle or bundle.get("not_a_forecast") is True
+
+
+def test_eval_unknown_month_fails_closed(tmp_path: Path):
+    cfg = with_cfg_oneh_off(tmp_path)
+    bundle = run_paper_eval(cfg, samples=["2020-13"], data_dir=tmp_path)
+    assert bundle["samples"][0]["ok"] is False
+    assert "unknown" in str(bundle["samples"][0].get("error") or "").lower()
+    assert bundle["place_orders"] is False
+
+
+def test_eval_q4_token_accepts_injected_month(tmp_path: Path):
+    cfg = with_cfg_oneh_off(tmp_path)
+    bars = _series()
+    h1 = resample_1h(bars)
+    bundle = run_paper_eval(
+        cfg,
+        samples=["2024-11"],
+        data_dir=tmp_path,
+        bars_by_sample={
+            "2024-11": ({"DOGE-USDT": bars}, {"DOGE-USDT": h1}, {"DOGE-USDT": "spot"}, "fixture")
+        },
+    )
+    assert bundle["samples"][0]["ok"] is True
+    assert bundle["samples"][0]["sample_id"] == "2024-11"
+    assert bundle["samples"][0]["holdout"]["not_a_forecast"] is True
+    assert (tmp_path / "reports" / "eval_2024-11.json").is_file()

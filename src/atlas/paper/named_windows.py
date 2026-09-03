@@ -9,6 +9,7 @@ Named-window ≠ forecast. Replay ≠ live Phase A week. No orders.
 
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -43,20 +44,53 @@ XPERP_MD = PUBLIC_XPERP_MD_INST
 NAMED_HISTORY_MAX_PAGES = 400  # ~7 months of 15m ≈ 200 pages; leave headroom
 
 # Inclusive UTC calendar dates. end_ms is exclusive (day after last inclusive day).
-NAMED_WINDOWS: dict[str, dict[str, str]] = {
-    "2020-09": {
-        "id": "2020-09",
-        "start": "2020-09-01",
-        "end": "2021-03-31",
-        "label": "2020-09-01 → 2021-03-31 UTC",
-    },
-    "2023-09": {
-        "id": "2023-09",
-        "start": "2023-09-01",
-        "end": "2024-03-31",
-        "label": "2023-09-01 → 2024-03-31 UTC",
-    },
-}
+# 2020-09 / 2023-09 remain the original multi-month research spans (not calendar September).
+# YYYY-10/11/12 are true calendar months (Q4 seasonal definition for coming months).
+Q4_YEARS = (2020, 2023, 2024)
+Q4_MONTHS = (10, 11, 12)
+Q4_TOKENS = frozenset({"q4", "q4-months"})
+
+
+def calendar_month_spec(year: int, month: int) -> dict[str, str]:
+    """UTC calendar month: 1st → last day (Oct 31 / Nov 30 / Dec 31)."""
+    last = calendar.monthrange(year, month)[1]
+    start = f"{year:04d}-{month:02d}-01"
+    end = f"{year:04d}-{month:02d}-{last:02d}"
+    wid = f"{year:04d}-{month:02d}"
+    return {
+        "id": wid,
+        "start": start,
+        "end": end,
+        "label": f"{start} → {end} UTC",
+    }
+
+
+def _build_named_windows() -> dict[str, dict[str, str]]:
+    out: dict[str, dict[str, str]] = {
+        "2020-09": {
+            "id": "2020-09",
+            "start": "2020-09-01",
+            "end": "2021-03-31",
+            "label": "2020-09-01 → 2021-03-31 UTC",
+        },
+        "2023-09": {
+            "id": "2023-09",
+            "start": "2023-09-01",
+            "end": "2024-03-31",
+            "label": "2023-09-01 → 2024-03-31 UTC",
+        },
+    }
+    for year in Q4_YEARS:
+        for month in Q4_MONTHS:
+            spec = calendar_month_spec(year, month)
+            out[spec["id"]] = spec
+    return out
+
+
+NAMED_WINDOWS: dict[str, dict[str, str]] = _build_named_windows()
+Q4_WINDOW_IDS: tuple[str, ...] = tuple(
+    f"{year}-{month:02d}" for year in Q4_YEARS for month in Q4_MONTHS
+)
 
 
 @dataclass(frozen=True)
@@ -82,23 +116,34 @@ def _utc_day_ms(yyyy_mm_dd: str) -> int:
     return int(dt.timestamp() * 1000)
 
 
+def expand_window_ids(raw: str | list[str]) -> list[str]:
+    """Expand comma lists and the `q4` token. Unknown ids are left as-is."""
+    parts = str(raw).split(",") if isinstance(raw, str) else list(raw)
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        key = str(part).strip()
+        if not key:
+            continue
+        chunk = list(Q4_WINDOW_IDS) if key in Q4_TOKENS else [key]
+        for item in chunk:
+            if item in seen:
+                continue
+            seen.add(item)
+            out.append(item)
+    return out
+
+
 def parse_windows_arg(raw: str) -> list[NamedWindow]:
-    """Parse '2020-09,2023-09'. Unknown ids fail closed."""
+    """Parse '2020-09,2023-09' or 'q4'. Unknown ids fail closed."""
     if not str(raw or "").strip():
         raise ReplayError("--windows is empty")
     out: list[NamedWindow] = []
-    seen: set[str] = set()
-    for part in str(raw).split(","):
-        key = part.strip()
-        if not key:
-            continue
+    for key in expand_window_ids(raw):
         spec = NAMED_WINDOWS.get(key)
         if spec is None:
             known = ", ".join(sorted(NAMED_WINDOWS))
             raise ReplayError(f"unknown named window {key!r}; known: {known}")
-        if key in seen:
-            continue
-        seen.add(key)
         out.append(NamedWindow(**spec))
     if not out:
         raise ReplayError("no named windows parsed")
@@ -127,7 +172,7 @@ def xperp_named_status() -> dict[str, Any]:
         "research_md": False,
         "orderable": False,
         "label": (
-            f"{XPERP_MD} has no public history on 2020/2023 named windows; "
+            f"{XPERP_MD} has no public history on named windows; "
             "skipped (fail closed, no invented bars)"
         ),
     }
