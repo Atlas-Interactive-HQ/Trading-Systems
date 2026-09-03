@@ -12,6 +12,7 @@ Same bars + same config → same decisions, sizes, and fill prices.
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
@@ -39,6 +40,9 @@ class PaperSettings:
     time_stop_bars: int = 16
     liquidity_cap_eur: float | None = None
     ranging_enabled: bool = False
+    entry_delay_bars: int = 0  # stress: fill entry N bars later than usual
+    miss_entry_frac: float = 0.0  # stress: drop this fraction of entries
+    miss_seed: int = 20260903
 
     @classmethod
     def from_app_config(cls, cfg: Any) -> "PaperSettings":
@@ -167,6 +171,12 @@ class PaperEngine:
         self._losses = 0
         self._fills: list[Fill] = []
         self._ord_seq = 0
+        self._entry_delay_left = 0
+        self._miss_rng = random.Random(int(settings.miss_seed))
+        self._peak_eq = float(settings.equity_eur)
+        self._max_dd = 0.0
+        self._kill_days: set[str] = set()
+        self._turnover = 0.0
 
     def _cloid(self) -> str:
         self._ord_seq += 1
@@ -295,6 +305,14 @@ class PaperEngine:
             snap["bar_i"] = i
             snap["mark"] = mark_px
             self._log("equity", snap, mark_ts)
+            eq = ledger.equity
+            if eq > self._peak_eq:
+                self._peak_eq = eq
+            dd = self._peak_eq - eq
+            if dd > self._max_dd:
+                self._max_dd = dd
+            if killed_now:
+                self._kill_days.add(ledger.utc_day)
 
             # append history then maybe signal
             for s in symbols:
@@ -342,7 +360,13 @@ class PaperEngine:
             symbols=list(symbols),
             log_dir=str(self.journal.dir_for(last_ts)),
             fills=list(self._fills),
-            extra={"utc_day": ledger.utc_day, "cash": ledger.cash},
+            extra={
+                "utc_day": ledger.utc_day,
+                "cash": ledger.cash,
+                "max_dd": q(self._max_dd),
+                "n_kill_days": len(self._kill_days),
+                "turnover_notional": q(self._turnover),
+            },
         )
         self.journal.write_summary(summary.as_dict(), ts_ms=last_ts)
         return summary
@@ -410,23 +434,47 @@ class PaperEngine:
                 self._rejects += 1
                 self._log("events", {"type": "reject", **rec}, last.ts_close_ms)
                 continue
-            self._pending = Order(
-                symbol=symbol,
-                side=sig.side,
-                qty=sized.qty,
-                kind="entry",
-                reason=sig.reason,
-                stop=sig.stop,
-                decision_ts_ms=last.ts_close_ms,
-                cloid=self._cloid(),
+            self._queue_entry(
+                Order(
+                    symbol=symbol,
+                    side=sig.side,
+                    qty=sized.qty,
+                    kind="entry",
+                    reason=sig.reason,
+                    stop=sig.stop,
+                    decision_ts_ms=last.ts_close_ms,
+                    cloid=self._cloid(),
+                )
             )
             return  # first valid symbol in universe order
+
+    def _queue_entry(self, order: Order) -> None:
+        self._pending = order
+        self._entry_delay_left = max(0, int(self.settings.entry_delay_bars or 0))
 
     def _execute_pending(self, ledger: Ledger, bar: Bar, *, bar_i: int) -> None:
         order = self._pending
         self._pending = None
         assert order is not None
         if order.kind == "entry":
+            if self._entry_delay_left > 0:
+                self._entry_delay_left -= 1
+                self._pending = order
+                return
+            if float(self.settings.miss_entry_frac or 0.0) > 0 and (
+                self._miss_rng.random() < float(self.settings.miss_entry_frac)
+            ):
+                self._log(
+                    "events",
+                    {
+                        "type": "missed_entry",
+                        "stress": True,
+                        "cloid": order.cloid,
+                        "symbol": order.symbol,
+                    },
+                    bar.ts_open_ms,
+                )
+                return
             gate = gate_new_entry(ledger, one_position=self.settings.one_position)
             if not gate.allowed:
                 self._rejects += 1
@@ -456,6 +504,7 @@ class PaperEngine:
             ledger.apply_fill(fill, stop=order.stop, opened_i=bar_i)
             self._entries += 1
             self._fills.append(fill)
+            self._turnover = q(self._turnover + abs(fill.qty * fill.price))
             self._log("fills", {**fill.__dict__, "stop": order.stop, "equity": ledger.equity}, fill.ts_ms)
         elif order.kind == "exit":
             self._exit(
@@ -548,6 +597,7 @@ class PaperEngine:
         pnl = ledger.apply_fill(fill)
         fill = Fill(**{**fill.__dict__, "pnl": pnl})
         self._fills.append(fill)
+        self._turnover = q(self._turnover + abs(fill.qty * fill.price))
         if pnl >= 0:
             self._wins += 1
         else:

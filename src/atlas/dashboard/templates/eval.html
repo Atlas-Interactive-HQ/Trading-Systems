@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Eval{% endblock %}
+{% block heading %}Paper eval (research){% endblock %}
+{% block body %}
+<p class="lede">Phase D-lite. Primary score is <strong>expectancy after costs</strong> on the €200 book. <code>not_a_forecast</code>. Geen PnL-hero. Geen Phase C / live-advies.</p>
+
+{% if not evals %}
+<article class="empty">
+  <h2>Geen eval-rapporten</h2>
+  <p>Draai lokaal:</p>
+  <pre>python scripts/run_paper_eval.py --samples similar,2020-09,2023-09</pre>
+  <p class="hint">JSON landt in <code>data/reports/</code> (gitignored). Deze pagina is alleen-lezen.</p>
+</article>
+{% else %}
+{% for sample in evals %}
+<section class="card" style="margin-bottom:16px">
+  <h2>{{ sample.sample_id }}</h2>
+  {% if not sample.ok %}
+  <p class="hint">Skipped: {{ sample.error }}</p>
+  {% else %}
+  <p class="hint">{{ sample.md_label }} · split 70/30 chronologisch · not_a_forecast</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Slice</th>
+        <th>n_trades</th>
+        <th>n_would_place</th>
+        <th>n_kill_days</th>
+        <th>expectancy after costs</th>
+        <th>max DD</th>
+        <th>fee drag</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in sample.rows %}
+      <tr>
+        <td>{{ row.label }}</td>
+        <td>{{ row.n_trades }}</td>
+        <td>{{ row.n_would_place }}</td>
+        <td>{{ row.n_kill_days }}</td>
+        <td>{% if row.expectancy_after_costs_eur is not none %}{{ "%.4f"|format(row.expectancy_after_costs_eur) }}{% else %}—{% endif %}</td>
+        <td>{{ row.max_dd_eur }}</td>
+        <td>{{ row.fee_drag_eur }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{% endfor %}
+{% endif %}
+{% endblock %}
