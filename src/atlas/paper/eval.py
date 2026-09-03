@@ -24,11 +24,13 @@ from atlas.paper.named_windows import (
     fetch_closed_history,
     parse_windows_arg,
 )
+from atlas.paper.profiles import BASELINE, EvalProfile, apply_profile, get_profile
 from atlas.paper.replay import ReplayError, fetch_venue_history, md_inst_for_venue
 from atlas.paper.shadow import ShadowEngine, latest_replay_summary, shadow_settings, windows_from_replay_summary
 from atlas.paper.types import Bar, q
 
 EVAL_SOURCE = "paper-eval"
+PROFILES_SUBDIR = "profiles"  # data/reports/profiles/<profile>/eval_<sample>.json
 SPLIT_FRAC = 0.70  # first 70% in-sample; last 30% holdout. Never tuned after seeing scores.
 MISS_SEED = 20260903
 STRESS_MISS_FRAC = 0.10
@@ -66,6 +68,7 @@ class SliceMetrics:
     start_equity_eur: float
     end_equity_eur: float
     realized_pnl_eur: float
+    n_blocked_daily_cap: int = 0  # candidate overlay; 0 for baseline (no cap)
     not_a_forecast: bool = True
 
     def as_dict(self) -> dict[str, Any]:
@@ -106,6 +109,7 @@ def metrics_from_run(
     max_dd = float(extra.get("max_dd") or 0.0)
     n_kill_days = int(extra.get("n_kill_days") or 0)
     turnover = float(extra.get("turnover_notional") or 0.0)
+    n_blocked_daily_cap = int(extra.get("n_blocked_daily_cap") or 0)
     fees = float(paper.fees_paid)
     return SliceMetrics(
         label=label,
@@ -125,6 +129,7 @@ def metrics_from_run(
         start_equity_eur=start,
         end_equity_eur=float(paper.end_equity),
         realized_pnl_eur=float(paper.realized_pnl),
+        n_blocked_daily_cap=n_blocked_daily_cap,
         not_a_forecast=True,
     )
 
@@ -220,7 +225,9 @@ def evaluate_bars(
     strategy: Any,
     venue_by_symbol: dict[str, str] | None = None,
     md_label: str = "",
+    profile: EvalProfile | str | None = None,
 ) -> dict[str, Any]:
+    prof = profile if isinstance(profile, EvalProfile) else get_profile(profile)
     vmap = venue_by_symbol or {s: "spot" for s in bars_by_symbol}
     full = run_slice(
         bars_by_symbol=bars_by_symbol,
@@ -287,6 +294,8 @@ def evaluate_bars(
         "source": EVAL_SOURCE,
         "sample_id": sample_id,
         "md_label": md_label,
+        "profile": prof.name,
+        "profile_overlay": prof.overlay(),
         "not_a_forecast": True,
         "split": {
             "frac_in_sample": SPLIT_FRAC,
@@ -453,12 +462,16 @@ def run_paper_eval(
     client: Any | None = None,
     bars_by_sample: dict[str, tuple[dict[str, list[Bar]], dict[str, list[Bar]], dict[str, str], str]]
     | None = None,
+    profile: str | EvalProfile | None = None,
 ) -> dict[str, Any]:
-    settings = shadow_settings(cfg)
-    strategy = strategy_from_app_config(cfg)
+    prof = profile if isinstance(profile, EvalProfile) else get_profile(profile)
+    # Baseline is the identity overlay: same objects as config/default.yaml produces.
+    settings, strategy = apply_profile(prof, shadow_settings(cfg), strategy_from_app_config(cfg))
     root = Path(data_dir)
     reports_dir = root / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
+    profile_dir = reports_dir / PROFILES_SUBDIR / prof.name
+    profile_dir.mkdir(parents=True, exist_ok=True)
     results: list[dict[str, Any]] = []
     errors: list[str] = []
     samples = expand_window_ids(list(samples))
@@ -485,6 +498,7 @@ def run_paper_eval(
                 strategy=strategy,
                 venue_by_symbol=vmap,
                 md_label=label,
+                profile=prof,
             )
         except ReplayError as exc:
             errors.append(f"{key}:{exc}")
@@ -492,31 +506,83 @@ def run_paper_eval(
                 "ok": False,
                 "sample_id": key,
                 "place_orders": False,
+                "profile": prof.name,
                 "error": str(exc),
                 "not_a_forecast": True,
             }
         results.append(row)
-        out = reports_dir / f"eval_{key}.json"
-        out.write_text(
-            json.dumps(redact_record(row), indent=2, ensure_ascii=False, default=str) + "\n",
-            encoding="utf-8",
-        )
+        payload = json.dumps(redact_record(row), indent=2, ensure_ascii=False, default=str) + "\n"
+        # Legacy location data/reports/eval_<sample>.json is RESERVED for the frozen baseline
+        # (13/14 docs and dashboard v0 read it). Candidate profiles write only to their own
+        # profile dir, so a candidate run can never overwrite the baseline artifacts.
+        if prof.is_baseline:
+            (reports_dir / f"eval_{key}.json").write_text(payload, encoding="utf-8")
+        (profile_dir / f"eval_{key}.json").write_text(payload, encoding="utf-8")
     bundle = {
         "ok": any(r.get("ok") for r in results),
         "place_orders": False,
         "source": EVAL_SOURCE,
         "not_a_forecast": True,
+        "profile": prof.name,
+        "profile_overlay": prof.overlay(),
         "samples": results,
         "errors": errors,
         "disclaimer": (
             "research only. expectancy after costs is not a forecast and not a Phase C/live gate."
         ),
     }
-    (reports_dir / "eval_bundle.json").write_text(
-        json.dumps(redact_record(bundle), indent=2, ensure_ascii=False, default=str) + "\n",
+    if prof.is_baseline:
+        (reports_dir / "eval_bundle.json").write_text(
+            json.dumps(redact_record(bundle), indent=2, ensure_ascii=False, default=str) + "\n",
+            encoding="utf-8",
+        )
+    # Per-profile bundle = every sample ever evaluated under this profile (rebuilt from
+    # the per-sample files, so re-running a subset never drops the others).
+    profile_bundle = {
+        **bundle,
+        "samples": _load_profile_samples(profile_dir),
+        "errors": errors,
+    }
+    (profile_dir / "eval_bundle.json").write_text(
+        json.dumps(redact_record(profile_bundle), indent=2, ensure_ascii=False, default=str) + "\n",
         encoding="utf-8",
     )
     return bundle
+
+
+def _sample_sort_key(sample_id: str) -> tuple[int, str]:
+    # similar-regime first, then calendar ids chronologically.
+    return (0, "") if sample_id in ("similar", "similar-regime") else (1, sample_id)
+
+
+def _load_profile_samples(profile_dir: Path) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for p in profile_dir.glob("eval_*.json"):
+        if p.name == "eval_bundle.json":
+            continue
+        try:
+            row = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(row, dict) and row.get("sample_id"):
+            out.append(row)
+    out.sort(key=lambda r: _sample_sort_key(str(r.get("sample_id"))))
+    return out
+
+
+def load_profile_reports(reports_dir: str | Path) -> dict[str, list[dict[str, Any]]]:
+    """{profile_name: [sample rows]} from data/reports/profiles/<name>/. Read-only."""
+    root = Path(reports_dir) / PROFILES_SUBDIR
+    if not root.is_dir():
+        return {}
+    out: dict[str, list[dict[str, Any]]] = {}
+    for d in sorted(root.iterdir()):
+        if not d.is_dir():
+            continue
+        rows = _load_profile_samples(d)
+        if rows:
+            out[d.name] = rows
+    return out
 
 
 def render_eval_markdown(
@@ -534,6 +600,8 @@ def render_eval_markdown(
     if extra_intro:
         lines.append(extra_intro.rstrip())
         lines.append("")
+    prof_name = str(bundle.get("profile") or BASELINE)
+    overlay = bundle.get("profile_overlay") or {}
     lines.extend(
         [
             "Primary score: **expectancy after costs** on the €200 paper book. Split is chronological 70/30 (cut never searched). Stress uses the same engine path (2× fees, 1-bar entry delay, 10% missed entries seed 20260903).",
@@ -542,6 +610,10 @@ def render_eval_markdown(
             "",
         ]
     )
+    if overlay or prof_name != BASELINE:
+        # Candidate tables are stamped so they can never be mistaken for the frozen baseline.
+        # The baseline renders exactly as before (13/14 regeneration does not drift).
+        lines.extend([f"Profile: `{prof_name}` (overlay: `{json.dumps(overlay, sort_keys=True)}`).", ""])
     for sample in bundle.get("samples") or []:
         sid = sample.get("sample_id")
         lines.append(f"## {sid}")

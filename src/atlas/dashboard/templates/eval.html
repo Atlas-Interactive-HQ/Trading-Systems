@@ -4,11 +4,64 @@
 {% block body %}
 <p class="lede">Phase D-lite. Primary score is <strong>expectancy after costs</strong> on the €200 book. <code>not_a_forecast</code>. Geen PnL-hero. Geen Phase C / live-advies.</p>
 
+{% if comparison %}
+<section class="card" style="margin-bottom:16px">
+  <h2>Profielvergelijking: <code>{{ comparison.baseline }}</code> vs kandidaat (research)</h2>
+  <p class="hint">Pass-regel staat vooraf vast in code (<code>atlas.paper.compare</code>): holdout-30% expectancy strikt beter op 2020-09 én 2023-09, holdout max DD niet meer dan +10% slechter. Stress wordt gedocumenteerd, niet gescoord. Geen PnL-hero. Geen Phase C / live-advies.</p>
+  {% for cand in comparison.candidates %}
+  <h3><code>{{ cand.name }}</code> — verdict <strong>{{ cand.verdict }}</strong> <span class="hint">(research only, not_a_forecast)</span></h3>
+  <p class="hint">overlay: <code>{{ cand.overlay }}</code></p>
+  <table>
+    <thead>
+      <tr><th>venster</th><th>baseline holdout exp.</th><th>kandidaat holdout exp.</th><th>strikt beter?</th><th>baseline holdout DD</th><th>kandidaat holdout DD</th><th>DD binnen +10%?</th><th>kandidaat daily_cap blocked</th><th>oordeel</th></tr>
+    </thead>
+    <tbody>
+      {% for w in cand.windows %}
+      {% set pw = cand.per_window[w] %}
+      <tr>
+        <td>{{ w }}</td>
+        {% if pw.available %}
+        <td>{{ "%.4f"|format(pw.baseline_holdout_expectancy) if pw.baseline_holdout_expectancy is not none else "—" }}</td>
+        <td>{{ "%.4f"|format(pw.candidate_holdout_expectancy) if pw.candidate_holdout_expectancy is not none else "—" }}</td>
+        <td>{{ "ja" if pw.expectancy_strictly_greater else "nee" }}</td>
+        <td>{{ "%.2f"|format(pw.baseline_holdout_max_dd) }}</td>
+        <td>{{ "%.2f"|format(pw.candidate_holdout_max_dd) }}</td>
+        <td>{{ "ja" if pw.max_dd_within_tolerance else "nee" }}</td>
+        <td>{{ pw.candidate_holdout_n_blocked_daily_cap }}</td>
+        <td><strong>{{ "PASS" if pw.pass else "FAIL" }}</strong></td>
+        {% else %}
+        <td colspan="8">geen eval voor dit venster (fail closed)</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% for sample in cand.samples %}
+  <h4>{{ sample.sample_id }} <span class="hint">({{ sample.role }}) · {{ sample.md_label }}</span></h4>
+  <table>
+    <thead>
+      <tr>
+        <th>metric</th>
+        {% for t in comparison.slice_titles %}<th>baseline {{ t }}</th><th>kandidaat {{ t }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in sample.rows %}
+      <tr><td>{{ row.metric }}</td>{% for c in row.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+  {% endfor %}
+</section>
+{% endif %}
+
 {% if not evals %}
 <article class="empty">
   <h2>Geen eval-rapporten</h2>
   <p>Draai lokaal:</p>
-  <pre>python scripts/run_paper_eval.py --samples similar,2020-09,2023-09
+  <pre>python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile baseline
+python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile candidate_v1_filters
 python scripts/run_paper_eval.py --samples q4 --write-md phase1/14-q4-months.md</pre>
   <p class="hint">JSON landt in <code>data/reports/</code> (gitignored). Deze pagina is alleen-lezen.</p>
 </article>
@@ -19,7 +72,7 @@ python scripts/run_paper_eval.py --samples q4 --write-md phase1/14-q4-months.md<
   {% if not sample.ok %}
   <p class="hint">Skipped: {{ sample.error }}</p>
   {% else %}
-  <p class="hint">{{ sample.md_label }} · split 70/30 chronologisch · not_a_forecast</p>
+  <p class="hint">profiel <code>{{ sample.profile }}</code> · {{ sample.md_label }} · split 70/30 chronologisch · not_a_forecast</p>
   <table>
     <thead>
       <tr>

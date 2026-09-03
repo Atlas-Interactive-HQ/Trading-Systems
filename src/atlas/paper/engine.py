@@ -43,6 +43,10 @@ class PaperSettings:
     entry_delay_bars: int = 0  # stress: fill entry N bars later than usual
     miss_entry_frac: float = 0.0  # stress: drop this fraction of entries
     miss_seed: int = 20260903
+    # Candidate overlay only (Phase D). None = no cap (frozen baseline). When set,
+    # at most N would-place decisions per UTC day; further same-day signals are
+    # blocked with reason "daily_cap". Counted at decision time, not at fill.
+    max_would_place_per_utc_day: int | None = None
 
     @classmethod
     def from_app_config(cls, cfg: Any) -> "PaperSettings":
@@ -158,6 +162,11 @@ class PaperEngine:
             raise ValueError("ranging is locked OFF in v1 (L5)")
         if settings.fee_rate < 0 or settings.slippage_bps < 0:
             raise ValueError("fee_rate and slippage_bps must be >= 0")
+        cap = settings.max_would_place_per_utc_day
+        if cap is not None and (isinstance(cap, bool) or int(cap) != cap or int(cap) < 1):
+            raise ValueError(
+                f"max_would_place_per_utc_day must be None or an int >= 1, got {cap!r} (fail closed)"
+            )
         self.settings = settings
         self.strategy = strategy or BreakoutV1()
         self.run_id = run_id or new_run_id("paper")
@@ -177,6 +186,11 @@ class PaperEngine:
         self._max_dd = 0.0
         self._kill_days: set[str] = set()
         self._turnover = 0.0
+        # Daily would-place cap (candidate overlay). Keyed on the ledger's UTC day —
+        # the same clock the daily kill uses.
+        self._cap_day: str | None = None
+        self._cap_count = 0
+        self._blocked_daily_cap = 0
 
     def _cloid(self) -> str:
         self._ord_seq += 1
@@ -184,6 +198,26 @@ class PaperEngine:
 
     def _log(self, channel: str, record: dict[str, Any], ts_ms: int) -> None:
         self.journal.append(channel, record, ts_ms=ts_ms)
+
+    def _sync_cap_day(self, ledger: Ledger) -> None:
+        if self._cap_day != ledger.utc_day:
+            self._cap_day = ledger.utc_day
+            self._cap_count = 0
+
+    def daily_cap_reached(self, ledger: Ledger) -> bool:
+        """True when this UTC day already used its would-place budget (cap set)."""
+        cap = self.settings.max_would_place_per_utc_day
+        if cap is None:
+            return False
+        self._sync_cap_day(ledger)
+        return self._cap_count >= int(cap)
+
+    def _note_would_place(self, ledger: Ledger) -> None:
+        self._sync_cap_day(ledger)
+        self._cap_count += 1
+
+    def _note_blocked_daily_cap(self) -> None:
+        self._blocked_daily_cap += 1
 
     def run(
         self,
@@ -366,6 +400,8 @@ class PaperEngine:
                 "max_dd": q(self._max_dd),
                 "n_kill_days": len(self._kill_days),
                 "turnover_notional": q(self._turnover),
+                "n_blocked_daily_cap": int(self._blocked_daily_cap),
+                "max_would_place_per_utc_day": self.settings.max_would_place_per_utc_day,
             },
         )
         self.journal.write_summary(summary.as_dict(), ts_ms=last_ts)
@@ -402,6 +438,25 @@ class PaperEngine:
             h1 = bars_1h_at_or_before(native_1h, last.ts_close_ms) if native_1h else []
             sig = self.strategy.on_closed_bar(h, h1 or None)
             if sig is None:
+                continue
+            if self.daily_cap_reached(ledger):
+                self._note_blocked_daily_cap()
+                rec_cap = {
+                    "type": "decision",
+                    "action": f"enter_{sig.side.value}",
+                    "symbol": symbol,
+                    "reason": sig.reason,
+                    "stop": sig.stop,
+                    "ref_close": last.close,
+                    "allowed": False,
+                    "blocked_reason": "daily_cap",
+                    "max_would_place_per_utc_day": self.settings.max_would_place_per_utc_day,
+                    "utc_day": ledger.utc_day,
+                    "equity": ledger.equity,
+                    "extras": sig.extras,
+                }
+                self._log("decisions", rec_cap, last.ts_close_ms)
+                self._log("events", {**rec_cap, "type": "reject"}, last.ts_close_ms)
                 continue
             # Size at next-open estimate = this close (fill will use next open).
             sized = size_order(
@@ -444,13 +499,19 @@ class PaperEngine:
                     stop=sig.stop,
                     decision_ts_ms=last.ts_close_ms,
                     cloid=self._cloid(),
-                )
+                ),
+                ledger,
             )
             return  # first valid symbol in universe order
 
-    def _queue_entry(self, order: Order) -> None:
+    def _queue_entry(self, order: Order, ledger: Ledger) -> None:
         self._pending = order
         self._entry_delay_left = max(0, int(self.settings.entry_delay_bars or 0))
+        if order.kind == "entry":
+            # A queued entry IS the would-place decision (counts toward the daily cap
+            # even if the fill is later missed/dropped — the decision was made).
+            # `ledger` is required so a caller can never bypass the cap silently.
+            self._note_would_place(ledger)
 
     def _execute_pending(self, ledger: Ledger, bar: Bar, *, bar_i: int) -> None:
         order = self._pending

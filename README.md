@@ -329,13 +329,28 @@ python scripts/run_loss_attribution.py --samples similar,2020-09,2023-09,q4
 
 Same journal path (no re-sequence). `not_a_forecast`. Not a candidate_v1 PR.
 
+## Candidate profiles (Phase D trial #1)
+
+`--profile` runs the same eval under a **named overlay** without touching the frozen baseline. `baseline` is the identity (exactly `config/default.yaml`); `candidate_v1_filters` = at most **1 would-place per UTC day** (further same-day signals → `blocked_reason: daily_cap`) + `min_atr_frac: 0.005` (baseline 0.001). Everything else — 1h stub, lookback, ATR stop, time-stop, €200, 5% kill, 1–2% risk — is inherited unchanged. No grid search. See [`phase1/16-candidate-v1.md`](./phase1/16-candidate-v1.md).
+
+```bash
+python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile baseline --write-md ''
+python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile candidate_v1_filters
+python scripts/run_paper_eval.py --samples q4 --profile baseline --write-md ''            # secondary season check
+python scripts/run_paper_eval.py --samples q4 --profile candidate_v1_filters
+python scripts/compare_eval_profiles.py --candidate candidate_v1_filters --write-md phase1/16-candidate-v1.md
+python scripts/run_dashboard.py   # /eval shows baseline vs candidate when both exist
+```
+
+Per-profile JSON lands in gitignored `data/reports/profiles/<profile>/`; the comparison in `data/reports/compare_<candidate>_vs_baseline.json`. The pass rule (holdout expectancy strictly better on **both** 2020-09 and 2023-09, holdout max DD not worse than +10%) is asserted in `atlas.paper.compare`, decided up front. Stress is documented, not scored: a less-negative expectancy under 2× fees with fewer trades is kill truncation, **not** a win. A candidate profile never writes `13-paper-eval.md` / `14-q4-months.md`. PASS is a research result, not a Phase C or live gate; FAIL keeps the baseline.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, paper eval (70/30 split, 2× fee drag, no trade client), **and loss attribution (drivers, bull-gate fail-closed)**.
+Unit coverage includes OKX v5 signing vectors, live `place_order` blocked without HTTP, demo OMS risk gating, paper sizing, dashboard, replay, shadow, named windows, paper eval (70/30 split, 2× fee drag, no trade client), loss attribution (drivers, bull-gate fail-closed), **and candidate profiles (daily_cap in engine+shadow, min_atr 0.005 vs 0.001, baseline identity, pass rule + kill-truncation flag, no trade client)**.
 
 ## Docker (optional stub)
 
