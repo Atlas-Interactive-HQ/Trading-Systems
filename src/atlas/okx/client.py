@@ -1,9 +1,14 @@
 """Signed OKX EEA REST client with hard paper / live gates.
 
 HARD RULES
-- live: never send trade/order/cancel/amend. Read-only account/config/positions OK.
+- live default: never send trade/order/cancel/amend. Read-only account/config/positions OK.
+  `mode=live` + `allow_trade=True` without `tiny_live` still raises LiveTradingBlocked at init.
+- live tiny opt-in: `tiny_live=True` AND `allow_trade=True` AND `mode=live` is the only way
+  to send a live trade POST. Hard cap estimated notional USDT/EUR <= 20. Missing
+  instId/sz/px fail closed (no HTTP). Market orders and asset transfers stay blocked.
 - demo: always send x-simulated-trading:1. Trade methods require allow_trade=True.
-- Trading endpoints are allowed ONLY when mode=demo AND simulated header AND allow_trade.
+- Trading endpoints are allowed when (demo + simulated header + allow_trade) OR
+  the live tiny_live gate above.
 """
 
 from __future__ import annotations
@@ -36,7 +41,7 @@ EEA_REST_BASE = "https://eea.okx.com"
 USER_AGENT = "atlas-trading/0.1 (OKX-EEA; paper-first; +read-or-demo-only)"
 SIMULATED_HEADER = "x-simulated-trading"
 
-# Mutating trade paths — blocked in live; demo requires allow_trade.
+# Mutating trade paths — blocked in live unless tiny_live; demo requires allow_trade.
 _TRADE_PATH_MARKERS = (
     "/api/v5/trade/order",
     "/api/v5/trade/cancel-order",
@@ -54,6 +59,11 @@ _TRADE_PATH_MARKERS = (
     "/api/v5/account/set-leverage",
 )
 
+# Live tiny-live: only these POSTs, and place requires sz*px <= cap (EUR≈USDT).
+TINY_LIVE_NOTIONAL_CAP = 20.0
+_TINY_LIVE_PLACE_PATH = "/api/v5/trade/order"
+_TINY_LIVE_CANCEL_PATH = "/api/v5/trade/cancel-order"
+
 
 class LiveTradingBlocked(RuntimeError):
     """Raised when live mode would send a trading request. Never place live orders."""
@@ -65,6 +75,20 @@ class PaperTradeDisabled(RuntimeError):
 
 def _path_only(path: str) -> str:
     return path.split("?", 1)[0].lower()
+
+
+def estimate_spot_limit_notional(sz: Any, px: Any) -> float | None:
+    """SPOT limit notional ≈ float(sz)*float(px). None if missing/unparseable/non-positive."""
+    if sz in (None, "") or px in (None, ""):
+        return None
+    try:
+        size = float(sz)
+        price = float(px)
+    except (TypeError, ValueError):
+        return None
+    if size <= 0 or price <= 0:
+        return None
+    return size * price
 
 
 def is_trading_endpoint(method: str, path: str) -> bool:
@@ -85,13 +109,14 @@ def is_trading_endpoint(method: str, path: str) -> bool:
 
 
 class OkxEeaClient:
-    """EEA REST client. Live is read-only. Paper trades need demo + header + allow_trade."""
+    """EEA REST client. Live is read-only unless tiny_live+allow_trade+cap. Demo needs allow_trade."""
 
     def __init__(
         self,
         mode: Mode,
         allow_trade: bool = False,
         *,
+        tiny_live: bool = False,
         credentials: OkxCredentials | None = None,
         secrets_path: str | None = None,
         rest_base: str = EEA_REST_BASE,
@@ -101,12 +126,17 @@ class OkxEeaClient:
     ) -> None:
         if mode not in ("demo", "live"):
             raise ValueError(f"mode must be 'demo' or 'live', got {mode!r}")
-        if mode == "live" and allow_trade:
+        if tiny_live and mode != "live":
+            raise ValueError("tiny_live is only valid with mode='live'")
+        if mode == "live" and allow_trade and not tiny_live:
             raise LiveTradingBlocked(
                 "allow_trade is forbidden in live mode — never place live orders"
             )
+        if mode == "live" and tiny_live and not allow_trade:
+            raise LiveTradingBlocked("tiny_live requires allow_trade=True")
         self.mode: Mode = mode
-        self.allow_trade = bool(allow_trade) and mode == "demo"
+        self.tiny_live = bool(tiny_live) and mode == "live" and bool(allow_trade)
+        self.allow_trade = (bool(allow_trade) and mode == "demo") or self.tiny_live
         self.rest_base = rest_base.rstrip("/")
         self.credentials = credentials or load_okx_credentials(mode, secrets_path)
         self._owns_http = http is None
@@ -132,13 +162,67 @@ class OkxEeaClient:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    def _assert_request_allowed(self, method: str, path: str) -> None:
+    def _assert_tiny_live_trade(
+        self, method: str, path: str, body: Mapping[str, Any] | None
+    ) -> None:
+        """Live trade POST: place limit with instId/sz/px and notional<=20, or cancel."""
+        p = _path_only(path)
+        if method.upper() != "POST":
+            raise LiveTradingBlocked(
+                f"tiny live refuses {method.upper()} {p} (POST only)"
+            )
+        if p == _TINY_LIVE_CANCEL_PATH or p.startswith(_TINY_LIVE_CANCEL_PATH + "/"):
+            if not body or not str(body.get("instId") or "").strip():
+                raise LiveTradingBlocked("tiny live cancel requires instId (fail closed, no HTTP)")
+            if not (str(body.get("ordId") or "").strip() or str(body.get("clOrdId") or "").strip()):
+                raise LiveTradingBlocked(
+                    "tiny live cancel requires ordId or clOrdId (fail closed, no HTTP)"
+                )
+            return
+        if p != _TINY_LIVE_PLACE_PATH and not p.startswith(_TINY_LIVE_PLACE_PATH + "/"):
+            raise LiveTradingBlocked(
+                f"tiny live refuses {p}; only limit place + cancel (no market, no transfer)"
+            )
+        if not body:
+            raise LiveTradingBlocked("tiny live requires instId, sz, and px (fail closed, no HTTP)")
+        ord_type = str(body.get("ordType") or "").lower()
+        if ord_type == "market":
+            raise LiveTradingBlocked("tiny live refuses market orders (fail closed, no HTTP)")
+        inst = body.get("instId")
+        sz = body.get("sz")
+        px = body.get("px")
+        if inst in (None, "") or sz in (None, "") or px in (None, ""):
+            raise LiveTradingBlocked("tiny live requires instId, sz, and px (fail closed, no HTTP)")
+        notional = estimate_spot_limit_notional(sz, px)
+        if notional is None:
+            raise LiveTradingBlocked(
+                "tiny live could not estimate notional from sz*px (fail closed, no HTTP)"
+            )
+        if notional > TINY_LIVE_NOTIONAL_CAP:
+            raise LiveTradingBlocked(
+                f"tiny live notional {notional:.4f} exceeds cap {TINY_LIVE_NOTIONAL_CAP:g} "
+                "(EUR≈USDT; fail closed, no HTTP)"
+            )
+
+    def _assert_request_allowed(
+        self,
+        method: str,
+        path: str,
+        body: Mapping[str, Any] | None = None,
+    ) -> None:
         trading = is_trading_endpoint(method, path)
         if self.mode == "live":
-            if trading or method.upper() not in {"GET", "HEAD"}:
+            if not trading and method.upper() in {"GET", "HEAD"}:
+                return
+            if not trading:
                 raise LiveTradingBlocked(
                     f"live mode is read-only; refused {method.upper()} {path.split('?', 1)[0]}"
                 )
+            if not self.tiny_live or not self.allow_trade:
+                raise LiveTradingBlocked(
+                    f"live mode is read-only; refused {method.upper()} {path.split('?', 1)[0]}"
+                )
+            self._assert_tiny_live_trade(method, path, body)
             return
         # demo
         if trading and not self.allow_trade:
@@ -190,13 +274,14 @@ class OkxEeaClient:
         body_str = ""
         if body is not None and method_u not in {"GET", "HEAD"}:
             body_str = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
-        self._assert_request_allowed(method_u, path_with_q)
+        self._assert_request_allowed(method_u, path_with_q, body=body)
         headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
         if signed:
             headers = self._auth_headers(method_u, path_with_q, body_str)
         log.info(
-            "okx request mode=%s signed=%s simulated=%s method=%s path=%s",
+            "okx request mode=%s tiny_live=%s signed=%s simulated=%s method=%s path=%s",
             self.mode,
+            self.tiny_live,
             signed,
             headers.get(SIMULATED_HEADER) == "1",
             method_u,
@@ -327,7 +412,12 @@ class OkxEeaClient:
             params["instId"] = inst_id
         return self._request("GET", "/api/v5/trade/orders-pending", params=params)
 
-    # --- trading (demo + allow_trade only; live always raises) ---
+    def get_asset_balances(self, ccy: str | None = None) -> dict[str, Any]:
+        """Funding-account balances. Live GET, no tiny_live required. Never transfers."""
+        params = {"ccy": ccy} if ccy else None
+        return self._request("GET", "/api/v5/asset/balances", params=params)
+
+    # --- trading (demo + allow_trade, or live tiny_live + allow_trade + cap) ---
 
     def place_order(self, **body: Any) -> dict[str, Any]:
         return self._request("POST", "/api/v5/trade/order", body=body)
@@ -348,7 +438,7 @@ class OkxEeaClient:
         cl_ord_id: str | None = None,
         **extra: Any,
     ) -> dict[str, Any]:
-        """SPOT market order. Demo + allow_trade only; always tdMode=cash."""
+        """SPOT market order. Demo + allow_trade only. Live tiny_live refuses market."""
         inst = assert_spot_inst_id(inst_id)
         extra.pop("tdMode", None)
         extra.pop("td_mode", None)
@@ -377,7 +467,7 @@ class OkxEeaClient:
         cl_ord_id: str | None = None,
         **extra: Any,
     ) -> dict[str, Any]:
-        """SPOT limit order. Demo + allow_trade only; always tdMode=cash."""
+        """SPOT limit order. Demo + allow_trade, or live tiny_live with notional cap."""
         inst = assert_spot_inst_id(inst_id)
         extra.pop("tdMode", None)
         extra.pop("td_mode", None)

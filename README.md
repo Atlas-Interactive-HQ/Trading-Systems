@@ -169,11 +169,11 @@ Trading endpoints (place / cancel / amend / close-position / algos) are allowed 
 Live mode:
 
 - never sends `x-simulated-trading`
-- never sends trade/order/cancel/amend (raises `LiveTradingBlocked` **before** HTTP)
-- `allow_trade=True` is rejected at init
-- read-only account/config/positions are allowed
+- never sends trade/order/cancel/amend by default (raises `LiveTradingBlocked` **before** HTTP)
+- `allow_trade=True` is rejected at init **unless** `tiny_live=True` (see [`phase1/23-tiny-live.md`](./phase1/23-tiny-live.md): notional ≤ €20, limit only)
+- read-only account/config/positions/funding GET are allowed without `tiny_live`
 
-`scripts/okx_auth_smoke.py` always uses `allow_trade=False` (balance read only).
+`scripts/okx_auth_smoke.py` always uses `allow_trade=False` (balance read only). Tiny-live smoke is `scripts/okx_tiny_live_smoke.py` (read-only unless **both** `--place-far-limit` and `--cancel`).
 
 ## Local paper (Phase 1.5)
 
