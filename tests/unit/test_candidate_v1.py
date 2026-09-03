@@ -348,7 +348,7 @@ def test_candidate_v1_overlay_exact_and_originals_untouched():
     # originals not mutated
     assert s0.max_would_place_per_utc_day is None
     assert st0.params.min_atr_frac == 0.001
-    assert set(PROFILES) == {BASELINE, CANDIDATE_V1, CANDIDATE_V2}
+    assert {BASELINE, CANDIDATE_V1, CANDIDATE_V2}.issubset(set(PROFILES))
 
 
 def test_unknown_profile_fails_closed(tmp_path: Path):

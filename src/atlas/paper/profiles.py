@@ -20,6 +20,7 @@ from atlas.strategy.breakout import BreakoutParams, BreakoutV1
 BASELINE = "baseline"
 CANDIDATE_V1 = "candidate_v1_filters"
 CANDIDATE_V2 = "candidate_v2_stops"
+CANDIDATE_V3 = "candidate_v3_combo"
 
 # Trial #2 stop rule: candidate atr_stop_mult = baseline × ATR_STOP_FACTOR, except when the
 # baseline is already 2.0, then ATR_STOP_IF_BASELINE_IS_2. The baseline value is READ from
@@ -123,6 +124,24 @@ PROFILES: dict[str, EvalProfile] = {
             "Sizing rule is unchanged: notional = min(risk budget ÷ stop fraction, 2× equity leverage cap). Where the risk budget binds, a 2× stop halves the notional at the same € at risk; where the 2× leverage cap binds (small ATR/close), the notional stays at the cap and the € at risk per trade DOUBLES. Which regime dominates is measured in the run note, not assumed.",
             "Unchanged: lookback 16, ATR period 14, `min_atr_frac: 0.001`, `oneh_filter: stub`, time-stop 16 bars, no daily cap, €200 book, 5% daily kill, 1.5% risk/trade, one position, X-Perp ≤2x. candidate_v1's daily_cap / min_atr are deliberately NOT included (isolate the stop change). No grid search; one candidate, one trial.",
             "Rationale (phase1/15 loss attribution): stop-outs are the #1 loss driver, fees #2, time-stops a positive offset — widen the stop once and measure on holdout.",
+        ),
+    ),
+    CANDIDATE_V3: EvalProfile(
+        name=CANDIDATE_V3,
+        description=(
+            "Phase D trial #3: combo of v2's wider stop (atr_stop_mult 2.0× baseline, 1.5 → 3.0) "
+            "and v1's daily cap (max 1 would-place per UTC day). min_atr_frac stays 0.001 — "
+            "isolate stops+cap only. oneh stub, time-stop, €200 / 5% kill / 1.5% risk unchanged."
+        ),
+        max_would_place_per_utc_day=1,
+        atr_stop_mult_factor=ATR_STOP_FACTOR,
+        baseline_note="; `atr_stop_mult: 1.5`, no daily cap, `min_atr_frac: 0.001`",
+        notes=(
+            "`atr_stop_mult` → same rule as candidate_v2_stops: 2.0× the baseline multiplier read from `config/default.yaml` at apply time (committed config: baseline **1.5** → candidate **3.0**; 2.5 if the baseline were already 2.0). Resolved values are stamped in the overlay above.",
+            "`max_would_place_per_utc_day: 1` → same as candidate_v1_filters: the first would-place of a UTC day is allowed; further same-day signals are blocked with `blocked_reason: daily_cap` (after kill / one-position, before sizing; counted at decision time).",
+            "`min_atr_frac` is **not** overlaid (stays baseline 0.001). Trial #1's quieter-bar filter is deliberately omitted so this pack isolates stop+cap.",
+            "Sizing rule is unchanged. Wider stops can raise € at risk where the 2× leverage cap bound the baseline (v2 finding); cap-bound share is measured, not assumed.",
+            "Unchanged: lookback 16, ATR period 14, `min_atr_frac: 0.001`, `oneh_filter: stub`, time-stop 16 bars, €200 book, 5% daily kill, 1.5% risk/trade, one position, X-Perp ≤2x. No grid search; one candidate, one trial.",
         ),
     ),
 }

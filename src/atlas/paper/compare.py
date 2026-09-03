@@ -240,6 +240,54 @@ def evaluate_pass_rule(
     }
 
 
+def holdout_side_by_side(
+    a_idx: Mapping[str, Mapping[str, Any]],
+    b_idx: Mapping[str, Mapping[str, Any]],
+    *,
+    a_name: str,
+    b_name: str,
+    windows: Iterable[str] = PRIMARY_WINDOWS,
+) -> dict[str, Any]:
+    """Secondary comparison of two already-evaluated profiles on holdout only.
+
+    Does **not** apply the pass rule. Used to ask whether combo beats v2-only.
+    """
+    per: dict[str, dict[str, Any]] = {}
+    for w in [str(x) for x in windows]:
+        a, b = a_idx.get(w), b_idx.get(w)
+        if not a or not b or not a.get("ok") or not b.get("ok"):
+            per[w] = {"available": False, "b_expectancy_strictly_greater": False}
+            continue
+        ah, bh = a.get("holdout") or {}, b.get("holdout") or {}
+        ae, be = _num(ah.get("expectancy_after_costs_eur")), _num(bh.get("expectancy_after_costs_eur"))
+        add, bdd = _num(ah.get("max_dd_eur")), _num(bh.get("max_dd_eur"))
+        per[w] = {
+            "available": True,
+            "a_name": a_name,
+            "b_name": b_name,
+            "a_holdout_expectancy": ae,
+            "b_holdout_expectancy": be,
+            "expectancy_delta_b_minus_a": None if ae is None or be is None else round(be - ae, 8),
+            "b_expectancy_strictly_greater": bool(ae is not None and be is not None and be > ae),
+            "a_holdout_max_dd": add,
+            "b_holdout_max_dd": bdd,
+            "a_holdout_n_trades": ah.get("n_trades"),
+            "b_holdout_n_trades": bh.get("n_trades"),
+            "a_holdout_n_kill_days": ah.get("n_kill_days"),
+            "b_holdout_n_kill_days": bh.get("n_kill_days"),
+        }
+    return {
+        "not_a_forecast": True,
+        "secondary": True,
+        "a_name": a_name,
+        "b_name": b_name,
+        "windows": [str(x) for x in windows],
+        "per_window": per,
+        "b_better_expectancy_on_all": bool(per)
+        and all(per[w].get("b_expectancy_strictly_greater") for w in per),
+    }
+
+
 def compare_profiles(
     base_samples: Iterable[Mapping[str, Any]],
     cand_samples: Iterable[Mapping[str, Any]],
@@ -474,6 +522,11 @@ WORDING_BY_CANDIDATE = {
         "fail_followup": "No candidate_v2 is proposed in this trial.",
         "not_followup": "Not a candidate_v2 proposal.",
         "not_edge": "Not a claim that the locked breakout, with or without these filters, has edge.",
+    },
+    "candidate_v3_combo": {
+        "fail_followup": "No candidate_v4 is proposed in this trial.",
+        "not_followup": "Not a candidate_v4 proposal.",
+        "not_edge": "Not a claim that the locked breakout, with or without this overlay, has edge.",
     },
 }
 

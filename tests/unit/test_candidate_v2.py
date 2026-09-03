@@ -111,7 +111,7 @@ def test_candidate_v2_widens_stop_only_and_leaves_baseline_untouched():
     assert st0.params.atr_stop_mult == 1.5
     s1, st1 = apply_profile(BASELINE, s0, st0)
     assert s1 is s0 and st1 is st0
-    assert set(PROFILES) == {BASELINE, CANDIDATE_V1, CANDIDATE_V2}
+    assert {BASELINE, CANDIDATE_V1, CANDIDATE_V2}.issubset(set(PROFILES))
     # v1 unaffected by the new field
     assert get_profile(CANDIDATE_V1).overlay() == {"max_would_place_per_utc_day": 1, "min_atr_frac": 0.005}
     assert get_profile(CANDIDATE_V1).resolved_overlay(st0) == get_profile(CANDIDATE_V1).overlay()

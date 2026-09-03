@@ -331,7 +331,7 @@ Same journal path (no re-sequence). `not_a_forecast`. Not a candidate_v1 PR.
 
 ## Candidate profiles (Phase D trials)
 
-`--profile` runs the same eval under a **named overlay** without touching the frozen baseline. `baseline` is the identity (exactly `config/default.yaml`); `candidate_v1_filters` = at most **1 would-place per UTC day** (further same-day signals → `blocked_reason: daily_cap`) + `min_atr_frac: 0.005` (baseline 0.001) — trial #1, **FAIL**, see [`phase1/16-candidate-v1.md`](./phase1/16-candidate-v1.md). `candidate_v2_stops` = `atr_stop_mult` **2.0× the baseline multiplier** read from config (1.5 → 3.0; 2.5 if the baseline were already 2.0) and nothing else — trial #2, **PASS on the research rule but holdout expectancy still negative** (loses less, no edge; promotion to default is a separate decision), see [`phase1/17-candidate-v2-stops.md`](./phase1/17-candidate-v2-stops.md). Everything not named in a profile — 1h stub, lookback, time-stop, €200, 5% kill, 1–2% risk — is inherited unchanged. No grid search: one candidate per trial.
+`--profile` runs the same eval under a **named overlay** without touching the frozen baseline. `baseline` is the identity (exactly `config/default.yaml`); `candidate_v1_filters` = at most **1 would-place per UTC day** (further same-day signals → `blocked_reason: daily_cap`) + `min_atr_frac: 0.005` (baseline 0.001) — trial #1, **FAIL**, see [`phase1/16-candidate-v1.md`](./phase1/16-candidate-v1.md). `candidate_v2_stops` = `atr_stop_mult` **2.0× the baseline multiplier** read from config (1.5 → 3.0; 2.5 if the baseline were already 2.0) and nothing else — trial #2, **PASS on the research rule but holdout expectancy still negative** (loses less, no edge; promotion to default is a separate decision), see [`phase1/17-candidate-v2-stops.md`](./phase1/17-candidate-v2-stops.md). `candidate_v3_combo` = v2 stop (1.5 → 3.0) **plus** v1 daily cap (1 would-place/UTC-day); `min_atr_frac` stays 0.001 — trial #3, see [`phase1/18-candidate-v3-combo.md`](./phase1/18-candidate-v3-combo.md). Everything not named in a profile — 1h stub, lookback, time-stop, €200, 5% kill, 1–2% risk — is inherited unchanged. No grid search: one candidate per trial.
 
 ```bash
 python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile baseline --write-md ''
@@ -342,6 +342,9 @@ python scripts/compare_eval_profiles.py --candidate candidate_v1_filters --write
 python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile candidate_v2_stops
 python scripts/run_paper_eval.py --samples q4 --profile candidate_v2_stops                   # secondary
 python scripts/compare_eval_profiles.py --candidate candidate_v2_stops --write-md phase1/17-candidate-v2-stops.md
+python scripts/run_paper_eval.py --samples similar,2020-09,2023-09 --profile candidate_v3_combo
+python scripts/run_paper_eval.py --samples q4 --profile candidate_v3_combo                   # secondary
+python scripts/compare_eval_profiles.py --candidate candidate_v3_combo --write-md phase1/18-candidate-v3-combo.md
 python scripts/run_dashboard.py   # /eval shows baseline vs every candidate profile on disk
 ```
 
