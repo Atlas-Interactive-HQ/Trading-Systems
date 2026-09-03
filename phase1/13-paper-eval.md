@@ -84,6 +84,8 @@ Stress (full sample):
 
 `not_a_forecast: true`.
 
+Q4 calendar months (Oct/Nov/Dec) are a **separate** seasonal-definition set — see [`14-q4-months.md`](./14-q4-months.md). They do not rewrite this holdout table.
+
 ## What this is not
 
 - Not a Phase C recommendation.

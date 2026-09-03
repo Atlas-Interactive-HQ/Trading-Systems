@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -13,9 +14,13 @@ from atlas.common.config import load_config
 from atlas.paper.md import parse_okx_candle_row
 from atlas.paper.named_windows import (
     NAMED_SOURCE,
+    NAMED_WINDOWS,
     OMS_SPOT_INST,
+    Q4_WINDOW_IDS,
     RESEARCH_SPOT_MD,
     XPERP_MD,
+    calendar_month_spec,
+    expand_window_ids,
     parse_windows_arg,
     run_named_replay,
     run_named_shadow,
@@ -152,6 +157,83 @@ def test_named_does_not_request_doge_usd(tmp_path: Path):
     assert seen
     assert all(inst == RESEARCH_SPOT_MD for inst in seen)
     assert OMS_SPOT_INST not in seen
+
+
+def test_q4_month_bounds():
+    """Oct 31 / Nov 30 / Dec 31 inclusive; exclusive end is the next day."""
+    oct20 = parse_windows_arg("2020-10")[0]
+    assert oct20.start == "2020-10-01"
+    assert oct20.end == "2020-10-31"
+    assert oct20.end_ms_exclusive == int(
+        datetime(2020, 11, 1, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    nov23 = parse_windows_arg("2023-11")[0]
+    assert nov23.end == "2023-11-30"
+    assert nov23.end_ms_exclusive == int(
+        datetime(2023, 12, 1, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    dec24 = parse_windows_arg("2024-12")[0]
+    assert dec24.end == "2024-12-31"
+    assert dec24.end_ms_exclusive == int(
+        datetime(2025, 1, 1, tzinfo=timezone.utc).timestamp() * 1000
+    )
+    spec = calendar_month_spec(2020, 10)
+    assert spec["end"] == "2020-10-31"
+    assert spec["id"] == "2020-10"
+
+
+def test_existing_2020_09_is_not_calendar_september():
+    """2020-09 stays the original Sep→Mar span, distinct from Q4 months."""
+    w = parse_windows_arg("2020-09")[0]
+    assert w.start == "2020-09-01"
+    assert w.end == "2021-03-31"
+    assert "2020-10" in NAMED_WINDOWS
+    assert NAMED_WINDOWS["2020-10"]["end"] == "2020-10-31"
+
+
+def test_unknown_month_id_fails_closed():
+    with pytest.raises(ReplayError, match="unknown"):
+        parse_windows_arg("2020-13")
+    with pytest.raises(ReplayError, match="unknown"):
+        parse_windows_arg("2021-10")
+    with pytest.raises(ReplayError, match="unknown"):
+        parse_windows_arg("2019-01")
+
+
+def test_q4_token_expands_nine_months():
+    ids = expand_window_ids("q4")
+    assert ids == list(Q4_WINDOW_IDS)
+    assert ids == [
+        "2020-10",
+        "2020-11",
+        "2020-12",
+        "2023-10",
+        "2023-11",
+        "2023-12",
+        "2024-10",
+        "2024-11",
+        "2024-12",
+    ]
+    wins = parse_windows_arg("q4")
+    assert [w.id for w in wins] == ids
+
+
+def test_empty_q4_month_skips_not_crash(tmp_path: Path):
+    cfg = load_config()
+    summary = run_named_replay(
+        cfg,
+        windows="2024-10",
+        venue="spot",
+        data_dir=tmp_path,
+        bars_by_window={"2024-10": {"spot": ([], [])}},
+        try_research_perp=False,
+        now_ms=START,
+    )
+    spot = summary["windows"][0]["legs"][0]
+    assert spot["status"] == "skipped"
+    assert spot["n_signals"] == 0
+    assert summary["place_orders"] is False
+    assert summary["windows"][0]["ok"] is False
 
 
 def test_named_shadow_empty_does_not_crash(tmp_path: Path):

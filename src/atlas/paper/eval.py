@@ -20,7 +20,7 @@ from atlas.paper.md import OKX_REST, USER_AGENT, persist_candles
 from atlas.paper.named_windows import (
     NAMED_WINDOWS,
     RESEARCH_SPOT_MD,
-    NamedWindow,
+    expand_window_ids,
     fetch_closed_history,
     parse_windows_arg,
 )
@@ -461,6 +461,7 @@ def run_paper_eval(
     reports_dir.mkdir(parents=True, exist_ok=True)
     results: list[dict[str, Any]] = []
     errors: list[str] = []
+    samples = expand_window_ids(list(samples))
     for sid in samples:
         key = sid.strip()
         try:
@@ -518,17 +519,29 @@ def run_paper_eval(
     return bundle
 
 
-def render_eval_markdown(bundle: dict[str, Any]) -> str:
+def render_eval_markdown(
+    bundle: dict[str, Any],
+    *,
+    heading: str = "13 — Paper eval (Phase D-lite)",
+    extra_intro: str | None = None,
+) -> str:
     lines = [
-        "# 13 — Paper eval (Phase D-lite)",
+        f"# {heading.lstrip('# ').strip()}",
         "",
         "**Stance:** Research. `not_a_forecast: true`. Do not headline PnL. Do not promote to Phase C or live from this score.",
         "",
-        "Primary score: **expectancy after costs** on the €200 paper book. Split is chronological 70/30 (cut never searched). Stress uses the same engine path (2× fees, 1-bar entry delay, 10% missed entries seed 20260903).",
-        "",
-        "Named-window / similar-regime ≠ future performance. BreakoutV1 params were not retuned.",
-        "",
     ]
+    if extra_intro:
+        lines.append(extra_intro.rstrip())
+        lines.append("")
+    lines.extend(
+        [
+            "Primary score: **expectancy after costs** on the €200 paper book. Split is chronological 70/30 (cut never searched). Stress uses the same engine path (2× fees, 1-bar entry delay, 10% missed entries seed 20260903).",
+            "",
+            "Named-window / similar-regime ≠ future performance. BreakoutV1 params were not retuned.",
+            "",
+        ]
+    )
     for sample in bundle.get("samples") or []:
         sid = sample.get("sample_id")
         lines.append(f"## {sid}")

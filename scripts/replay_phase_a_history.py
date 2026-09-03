@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--windows",
         default=None,
-        help="Named calendar windows, e.g. 2020-09,2023-09. Default: similar-regime match.",
+        help="Named calendar windows, e.g. 2020-09,2023-09 or q4 (Oct/Nov/Dec). Default: similar-regime match.",
     )
     args = p.parse_args(argv)
 

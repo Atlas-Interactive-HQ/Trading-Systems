@@ -1,9 +1,13 @@
-# 12 — Named backtest windows (2020-09, 2023-09)
+# 12 — Named backtest windows (2020-09, 2023-09, Q4 months)
 
 **Stance:** Paper/research. No live or demo orders. No PnL headline.  
 **Date:** 2026-09-03
 
 Named windows are **calendar spans**, not similar-regime matches. They do not replace a live Phase A week and are not a forecast.
+
+`2020-09` / `2023-09` stay the original **multi-month** research spans (Sep → following Mar). They are **not** calendar September.
+
+Q4 ids `YYYY-10` / `YYYY-11` / `YYYY-12` are **true calendar months** (Oct 1–31, Nov 1–30, Dec 1–31 UTC). They exist so Phase D can define the system against the same season as the coming months. See [`14-q4-months.md`](./14-q4-months.md). They do not rewrite the 2020-09 / 2023-09 holdout pass rule.
 
 ## Windows (UTC, inclusive)
 
@@ -11,6 +15,15 @@ Named windows are **calendar spans**, not similar-regime matches. They do not re
 |----|------|
 | `2020-09` | 2020-09-01 → 2021-03-31 |
 | `2023-09` | 2023-09-01 → 2024-03-31 |
+| `2020-10` | 2020-10-01 → 2020-10-31 |
+| `2020-11` | 2020-11-01 → 2020-11-30 |
+| `2020-12` | 2020-12-01 → 2020-12-31 |
+| `2023-10` | 2023-10-01 → 2023-10-31 |
+| `2023-11` | 2023-11-01 → 2023-11-30 |
+| `2023-12` | 2023-12-01 → 2023-12-31 |
+| `2024-10` | 2024-10-01 → 2024-10-31 |
+| `2024-11` | 2024-11-01 → 2024-11-30 |
+| `2024-12` | 2024-12-01 → 2024-12-31 |
 
 ## Why DOGE-USDT (research MD)
 
@@ -36,6 +49,9 @@ source .venv/bin/activate
 pytest -q
 python scripts/replay_phase_a_history.py --windows 2020-09,2023-09 --venue spot
 python scripts/run_shadow_replay.py --windows 2020-09,2023-09 --venue spot
+python scripts/replay_phase_a_history.py --windows 2020-10,2020-11,2020-12,2023-10,2023-11,2023-12,2024-10,2024-11,2024-12 --venue spot
+python scripts/run_shadow_replay.py --windows q4 --venue spot
+python scripts/run_paper_eval.py --samples 2020-10,2020-11,2020-12,2023-10,2023-11,2023-12,2024-10,2024-11,2024-12 --write-md phase1/14-q4-months.md
 python scripts/run_dashboard.py --replay   # named-window events show in overzicht
 python scripts/run_dashboard.py --shadow
 ```
