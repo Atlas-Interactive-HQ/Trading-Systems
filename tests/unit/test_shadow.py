@@ -91,6 +91,9 @@ def test_kill_blocks_new_would_place(tmp_path: Path):
     assert summary["n_kills"] >= 1 or summary["n_blocked_by_reason"].get("kill", 0) >= 1
     assert summary["n_blocked_by_reason"].get("kill", 0) >= 1
     assert summary["place_orders"] is False
+    # no profile on this path → no cap → daily_cap count is 0 even though kills happened
+    assert summary["max_would_place_per_utc_day"] is None
+    assert summary["n_blocked_daily_cap"] == 0
 
 
 def test_size_uses_200_not_faucet():

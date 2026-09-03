@@ -608,12 +608,12 @@ def render_eval_markdown(
             "",
             "Named-window / similar-regime ≠ future performance. BreakoutV1 params were not retuned.",
             "",
-            f"Profile: `{prof_name}`"
-            + (f" (overlay: `{json.dumps(overlay, sort_keys=True)}`)" if overlay else " (frozen baseline, no overlay)")
-            + ".",
-            "",
         ]
     )
+    if overlay or prof_name != BASELINE:
+        # Candidate tables are stamped so they can never be mistaken for the frozen baseline.
+        # The baseline renders exactly as before (13/14 regeneration does not drift).
+        lines.extend([f"Profile: `{prof_name}` (overlay: `{json.dumps(overlay, sort_keys=True)}`).", ""])
     for sample in bundle.get("samples") or []:
         sid = sample.get("sample_id")
         lines.append(f"## {sid}")

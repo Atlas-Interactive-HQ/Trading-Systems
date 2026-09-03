@@ -89,6 +89,31 @@ def two_breakouts_next_day() -> list[Bar]:
     return bars
 
 
+def stop_and_rebreak_same_bar_then_later() -> list[Bar]:
+    """Signal 1 at bar 20 (fill 21); bar 22 stops out AND closes above the channel → that signal
+    must be blocked one_position (exited this bar), never daily_cap; a third break at bar 45
+    (same UTC day, flat) is the one the cap blocks."""
+    bars = flat(20)
+    bars.append(b15(20, 100.0, 105.0, 100.0, 105.0))
+    bars.append(b15(21, 105.0, 105.2, 104.8, 105.0))
+    bars.append(b15(22, 105.0, 111.0, 103.0, 111.0))  # low 103.0 < stop ≈103.35 → exit; close 111 > channel
+    bars += flat(22, px=111.0, i0=23)  # bars 23..44
+    bars.append(b15(45, 111.0, 116.0, 111.0, 116.0))
+    bars += flat(4, px=116.0, i0=46)
+    return bars
+
+
+def three_breakouts_same_day() -> list[Bar]:
+    """Breaks at bars 20, 45 and 64 (all 2024-01-01 UTC), stop-outs at 22 and 47 (no kill: ≈€3.3 each)."""
+    bars = stop_and_rebreak_same_bar_then_later()[:46]  # through bar 45 (2nd break, close 116)
+    bars.append(b15(46, 116.0, 116.2, 115.8, 116.0))  # fill
+    bars.append(b15(47, 116.0, 116.1, 113.5, 114.0))  # stop ≈114.35 hit
+    bars += flat(16, px=114.0, i0=48)  # bars 48..63 rebuild the channel
+    bars.append(b15(64, 114.0, 119.0, 114.0, 119.0))  # 3rd break
+    bars += flat(6, px=119.0, i0=65)
+    return bars
+
+
 class ListJournal:
     """Capture engine records in memory (duck-types PaperJournal)."""
 
@@ -147,6 +172,32 @@ def test_daily_cap_blocks_second_same_day_signal_in_shadow(tmp_path: Path):
     assert blocked and blocked[0]["kind"] == "blocked" and blocked[0]["allowed"] is False
     assert blocked[0]["gate"] == "daily_cap"
     assert blocked[0]["place_orders"] is False
+
+
+def test_daily_cap_is_checked_after_one_position_not_before(tmp_path: Path):
+    cfg = with_cfg_oneh_off(tmp_path)
+    bars = stop_and_rebreak_same_bar_then_later()
+    p0, base, _ = _shadow(cfg, bars, cap=None)
+    p1, cand, jr = _shadow(cfg, bars, cap=1)
+    assert base.n_would_place == 2 and base.blocked.get("daily_cap", 0) == 0
+    assert base.blocked.get("one_position", 0) >= 1  # the exit-bar re-break
+    assert cand.n_would_place == 1
+    # exit-bar re-break keeps its one_position label under the cap; only the later break is daily_cap
+    assert cand.blocked.get("one_position", 0) == base.blocked.get("one_position", 0)
+    assert cand.blocked["daily_cap"] == 1
+    cap_rows = [r for c, r in jr.rows if r.get("blocked_reason") == "daily_cap" and c == "decisions"]
+    assert len(cap_rows) == 1 and cap_rows[0]["ref_close"] == 116.0
+    assert p0.n_kills == 0 and p1.n_kills == 0
+
+
+@pytest.mark.parametrize("cap,expect_wp,expect_blocked", [(None, 3, 0), (2, 2, 1), (1, 1, 2)])
+def test_daily_cap_value_is_honoured(tmp_path: Path, cap, expect_wp, expect_blocked):
+    cfg = with_cfg_oneh_off(tmp_path)
+    paper, eng, _ = _shadow(cfg, three_breakouts_same_day(), cap=cap)
+    assert eng.n_would_place == expect_wp
+    assert eng.blocked.get("daily_cap", 0) == expect_blocked
+    assert paper.extra["n_blocked_daily_cap"] == expect_blocked
+    assert paper.n_kills == 0
 
 
 def test_daily_cap_resets_on_next_utc_day(tmp_path: Path):
@@ -326,12 +377,27 @@ def test_evaluate_bars_stamps_profile_and_daily_cap(tmp_path: Path):
     )
     assert base["profile"] == BASELINE and base["profile_overlay"] == {}
     assert cand["profile"] == CANDIDATE_V1
+    assert cand["profile_overlay"] == {"max_would_place_per_utc_day": 1, "min_atr_frac": 0.005}
     assert base["full"]["n_blocked_daily_cap"] == 0
     assert cand["full"]["n_blocked_daily_cap"] == 1
     assert base["full"]["n_would_place"] == 2 and cand["full"]["n_would_place"] == 1
     for key in ("full", "in_sample", "holdout"):
         assert "n_blocked_daily_cap" in base[key] and "n_blocked_daily_cap" in cand[key]
     assert cand["not_a_forecast"] is True and cand["place_orders"] is False
+
+
+def test_run_paper_eval_candidate_applies_min_atr_overlay(tmp_path: Path):
+    """Low-vol breakout (ATR/close ≈ 0.003): baseline trades it, candidate must not — through run_paper_eval."""
+    cfg = with_cfg_oneh_off(tmp_path)
+    bars = _lowvol_breakout() + [b15(i, 100.5, 100.65, 100.35, 100.5) for i in range(21, 30)]
+    h1 = resample_1h(bars)
+    inj = {"2024-11": ({SYM: bars}, {SYM: h1}, {SYM: "spot"}, "fixture")}
+    b = run_paper_eval(cfg, samples=["2024-11"], data_dir=tmp_path, bars_by_sample=inj, profile=BASELINE)
+    c = run_paper_eval(cfg, samples=["2024-11"], data_dir=tmp_path, bars_by_sample=inj, profile=CANDIDATE_V1)
+    assert b["samples"][0]["full"]["n_would_place"] >= 1
+    assert c["samples"][0]["full"]["n_would_place"] == 0
+    assert c["samples"][0]["full"]["n_trades"] == 0
+    assert c["samples"][0]["profile_overlay"] == {"max_would_place_per_utc_day": 1, "min_atr_frac": 0.005}
 
 
 def test_run_paper_eval_profiles_no_trade_client_and_per_profile_files(
@@ -434,6 +500,12 @@ def test_stress_notes_flag_kill_truncation_not_a_win():
     assert notes["1bar_entry_delay"]["trade_set_differs"] is True
     assert notes["1bar_entry_delay"]["kill_truncation_confound"] is False
     assert fee2["false_win_mechanism"] == "kill_truncation"
+    # same n_trades but one more kill-day under 2× fees is still a different trade set (truncation)
+    killonly = stress_notes(_row("2020-10", hold_exp=-0.3, hold_dd=100.0, n=93, full_exp=-0.67, full_fee=25.7,
+                                 n2=93, kill2=6, exp2=-0.63, fee2=47.6))
+    assert killonly["2x_fees"]["trade_set_differs"] is True
+    assert killonly["2x_fees"]["kill_truncation_confound"] is True
+    assert killonly["2x_fees"]["false_win_mechanism"] == "kill_truncation"
     # same trade set, LESS negative under 2× fees → equity-path sizing confound, still not a win
     sizing = stress_notes(_row("2023-09", hold_exp=-0.3, hold_dd=100.0, n=100, full_exp=-0.54, exp2=-0.52))
     assert sizing["2x_fees"]["trade_set_differs"] is False
@@ -451,15 +523,21 @@ def test_stress_notes_flag_kill_truncation_not_a_win():
 
 def test_compare_and_markdown_say_fail_plainly_and_flag_truncation():
     base = [_row("2020-09", hold_exp=-0.30, hold_dd=100.0), _row("2023-09", hold_exp=-0.26, hold_dd=100.0),
-            _row("similar", hold_exp=-0.6, hold_dd=10.0), _row("2024-11", hold_exp=-1.0, hold_dd=45.0)]
+            _row("similar", hold_exp=-0.6, hold_dd=10.0), _row("2024-11", hold_exp=-1.0, hold_dd=45.0),
+            _row("2024-12", hold_exp=-1.2, hold_dd=45.0)]
     cand = [_row("2020-09", hold_exp=-0.35, hold_dd=90.0, n=60, full_exp=-0.25, full_fee=30.0, n2=50, kill2=9, exp2=-0.20, fee2=50.0),
             _row("2023-09", hold_exp=-0.10, hold_dd=90.0), _row("similar", hold_exp=-0.5, hold_dd=9.0),
-            _row("2024-11", hold_exp=-0.9, hold_dd=40.0)]
+            _row("2024-11", hold_exp=-0.9, hold_dd=40.0), _row("2024-12", hold_exp=-1.2, hold_dd=40.0)]  # 2024-12 equal
     cmp = compare_profiles(base, cand, cand_name=CANDIDATE_V1, cand_overlay={"max_would_place_per_utc_day": 1, "min_atr_frac": 0.005})
     assert cmp["pass_rule"]["verdict"] == "FAIL"
     assert cmp["not_a_forecast"] is True and cmp["place_orders"] is False
     roles = {r["sample_id"]: r["role"] for r in cmp["samples"]}
-    assert roles == {"2020-09": "primary", "2023-09": "primary", "similar": "secondary", "2024-11": "seasonal"}
+    assert roles == {"2020-09": "primary", "2023-09": "primary", "similar": "secondary", "2024-11": "seasonal", "2024-12": "seasonal"}
+    # delta = candidate − baseline (sign matters for every table)
+    d = cmp["samples"][0]["slices"]["holdout"]["delta"]
+    assert d["expectancy_after_costs_eur"] == pytest.approx(-0.35 - (-0.30))
+    assert d["max_dd_eur"] == pytest.approx(90.0 - 100.0)
+    assert d["n_trades"] == pytest.approx(20 - 16)  # 60//3 − 50//3
     assert [r["sample_id"] for r in cmp["samples"]][:2] == ["2020-09", "2023-09"]
     md = render_candidate_markdown(cmp, heading="16 — test", reproduce=["echo x"])
     assert "Verdict: **FAIL**" in md
@@ -472,6 +550,11 @@ def test_compare_and_markdown_say_fail_plainly_and_flag_truncation():
     assert "not_a_forecast" in md
     assert "would have made" not in md.lower()
     assert "Not a candidate_v2 proposal" in md
+    # kill-truncation prose names the sample, the mechanism and the verdict on it
+    assert "`2020-09` / candidate: 2× fees reads -0.2000 vs -0.2500 base (less negative) with n_trades 60→50 and kill-days 5→9" in md
+    assert "the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**" in md
+    # Q4 count sentence: 2024-11 (-0.9 vs -1.0) counts, 2024-12 (equal) must not
+    assert "less negative than baseline in 1 of 2 Q4 months" in md
     # run note is wrapped in markers and round-trips through extract_run_note / extract_heading
     from atlas.paper.compare import extract_heading, extract_run_note
     md_n = render_candidate_markdown(cmp, heading="16 — test", run_note="## Mac run\n\nnote body")
@@ -491,7 +574,7 @@ def test_eval_page_shows_profile_comparison_without_pnl_hero(tmp_path: Path):
     app.state.reports_dir = tmp_path / "reports"
     for prof, rows in (
         (BASELINE, [_row("2020-09", hold_exp=-0.30, hold_dd=100.0), _row("2023-09", hold_exp=-0.26, hold_dd=100.0)]),
-        (CANDIDATE_V1, [_row("2020-09", hold_exp=-0.20, hold_dd=90.0), _row("2023-09", hold_exp=-0.10, hold_dd=95.0)]),
+        (CANDIDATE_V1, [_row("2020-09", hold_exp=-0.20, hold_dd=90.0, n=30), _row("2023-09", hold_exp=-0.10, hold_dd=95.0, n=30)]),
     ):
         d = tmp_path / "reports" / "profiles" / prof
         d.mkdir(parents=True)
@@ -510,5 +593,8 @@ def test_eval_page_shows_profile_comparison_without_pnl_hero(tmp_path: Path):
     assert "PASS" in html
     assert "not_a_forecast" in html
     assert "PnL hero" not in html and "would have made" not in html.lower()
+    # per slice the order is baseline THEN candidate: holdout 50//3=16 vs 30//3=10, IS/full 50 vs 30
+    compact = "".join(html.split())
+    assert "<td>n_trades</td><td>16</td><td>10</td><td>50</td><td>30</td><td>50</td><td>30</td>" in compact
     # write routes still refused
     assert TestClient(app).post("/eval").status_code == 405
