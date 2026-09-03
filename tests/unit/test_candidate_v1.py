@@ -32,6 +32,7 @@ from atlas.paper.md import resample_1h
 from atlas.paper.profiles import (
     BASELINE,
     CANDIDATE_V1,
+    CANDIDATE_V2,
     PROFILES,
     ProfileError,
     apply_profile,
@@ -347,7 +348,7 @@ def test_candidate_v1_overlay_exact_and_originals_untouched():
     # originals not mutated
     assert s0.max_would_place_per_utc_day is None
     assert st0.params.min_atr_frac == 0.001
-    assert set(PROFILES) == {BASELINE, CANDIDATE_V1}
+    assert set(PROFILES) == {BASELINE, CANDIDATE_V1, CANDIDATE_V2}
 
 
 def test_unknown_profile_fails_closed(tmp_path: Path):

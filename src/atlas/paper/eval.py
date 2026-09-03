@@ -226,8 +226,13 @@ def evaluate_bars(
     venue_by_symbol: dict[str, str] | None = None,
     md_label: str = "",
     profile: EvalProfile | str | None = None,
+    profile_overlay: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     prof = profile if isinstance(profile, EvalProfile) else get_profile(profile)
+    # Reports carry the RESOLVED overlay (concrete values, e.g. atr_stop_mult 3.0) when the caller
+    # resolved it against the TRUE baseline (run_paper_eval does). Never resolve here against the
+    # strategy argument — it is usually already overlaid and would stamp a doubled value.
+    overlay = dict(profile_overlay) if profile_overlay is not None else prof.overlay()
     vmap = venue_by_symbol or {s: "spot" for s in bars_by_symbol}
     full = run_slice(
         bars_by_symbol=bars_by_symbol,
@@ -295,7 +300,7 @@ def evaluate_bars(
         "sample_id": sample_id,
         "md_label": md_label,
         "profile": prof.name,
-        "profile_overlay": prof.overlay(),
+        "profile_overlay": overlay,
         "not_a_forecast": True,
         "split": {
             "frac_in_sample": SPLIT_FRAC,
@@ -466,7 +471,9 @@ def run_paper_eval(
 ) -> dict[str, Any]:
     prof = profile if isinstance(profile, EvalProfile) else get_profile(profile)
     # Baseline is the identity overlay: same objects as config/default.yaml produces.
-    settings, strategy = apply_profile(prof, shadow_settings(cfg), strategy_from_app_config(cfg))
+    base_strategy = strategy_from_app_config(cfg)
+    resolved_overlay = prof.resolved_overlay(base_strategy)  # concrete values vs THIS baseline
+    settings, strategy = apply_profile(prof, shadow_settings(cfg), base_strategy)
     root = Path(data_dir)
     reports_dir = root / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -499,6 +506,7 @@ def run_paper_eval(
                 venue_by_symbol=vmap,
                 md_label=label,
                 profile=prof,
+                profile_overlay=resolved_overlay,
             )
         except ReplayError as exc:
             errors.append(f"{key}:{exc}")
@@ -524,7 +532,7 @@ def run_paper_eval(
         "source": EVAL_SOURCE,
         "not_a_forecast": True,
         "profile": prof.name,
-        "profile_overlay": prof.overlay(),
+        "profile_overlay": resolved_overlay,
         "samples": results,
         "errors": errors,
         "disclaimer": (

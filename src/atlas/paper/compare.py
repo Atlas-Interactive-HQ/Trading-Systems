@@ -248,6 +248,9 @@ def compare_profiles(
     cand_name: str,
     base_overlay: Mapping[str, Any] | None = None,
     cand_overlay: Mapping[str, Any] | None = None,
+    cand_description: str = "",
+    cand_notes: Iterable[str] = (),
+    cand_baseline_note: str = "",
 ) -> dict[str, Any]:
     base_idx = index_samples(base_samples)
     cand_idx = index_samples(cand_samples)
@@ -295,7 +298,13 @@ def compare_profiles(
         "not_a_forecast": True,
         "source": COMPARE_SOURCE,
         "baseline": {"name": base_name, "overlay": dict(base_overlay or {})},
-        "candidate": {"name": cand_name, "overlay": dict(cand_overlay or {})},
+        "candidate": {
+            "name": cand_name,
+            "overlay": dict(cand_overlay or {}),
+            "description": cand_description,
+            "notes": list(cand_notes),
+            "baseline_note": cand_baseline_note,
+        },
         "roles": {
             "primary": list(PRIMARY_WINDOWS),
             "secondary": list(SECONDARY_WINDOWS),
@@ -452,6 +461,26 @@ def _confound_prose(cmp: Mapping[str, Any]) -> list[str]:
     return out or ["- No 2× fee row on any sample shows a kill-truncation confound."]
 
 
+# Wording pinned per candidate so already-committed docs regenerate byte-identically
+# (phase1/16 was written when "candidate_v2" was the hypothetical next trial and the
+# overlay was a pair of filters). Defaults are overlay-agnostic.
+WORDING_DEFAULT = {
+    "fail_followup": "No follow-up candidate is proposed in this trial.",
+    "not_followup": "Not a proposal for a follow-up candidate or a parameter sweep.",
+    "not_edge": "Not a claim that the locked breakout, with or without this overlay, has edge.",
+}
+WORDING_BY_CANDIDATE = {
+    "candidate_v1_filters": {
+        "fail_followup": "No candidate_v2 is proposed in this trial.",
+        "not_followup": "Not a candidate_v2 proposal.",
+        "not_edge": "Not a claim that the locked breakout, with or without these filters, has edge.",
+    },
+}
+
+
+def _wording(cand_name: str, key: str) -> str:
+    return WORDING_BY_CANDIDATE.get(cand_name, {}).get(key) or WORDING_DEFAULT[key]
+
 RUN_NOTE_START = "<!-- run-note:start -->"
 RUN_NOTE_END = "<!-- run-note:end -->"
 
@@ -472,6 +501,17 @@ def extract_heading(markdown: str) -> str | None:
     return None
 
 
+def _resolved_lines(overlay: Mapping[str, Any]) -> list[str]:
+    """One generated bullet per rule-type knob, stating the value resolved against THIS config."""
+    out: list[str] = []
+    if "atr_stop_mult" in overlay and "atr_stop_mult_baseline" in overlay:
+        out.append(
+            f"- Resolved against this config: `atr_stop_mult` baseline **{_f(overlay.get('atr_stop_mult_baseline'), 2)}** → "
+            f"candidate **{_f(overlay.get('atr_stop_mult'), 2)}** (factor {_f(overlay.get('atr_stop_mult_factor'), 1)})."
+        )
+    return out
+
+
 def render_candidate_markdown(
     cmp: Mapping[str, Any],
     *,
@@ -490,11 +530,10 @@ def render_candidate_markdown(
         "",
         "## Candidate",
         "",
-        f"- Baseline: `{base.get('name')}` — frozen BreakoutV1 + `config/default.yaml` (no overlay; `min_atr_frac: 0.001`, no daily cap).",
+        f"- Baseline: `{base.get('name')}` — frozen BreakoutV1 + `config/default.yaml` (no overlay{cand.get('baseline_note') or ''}).",
         f"- Candidate: `{cand.get('name')}` — overlay `{json.dumps(cand.get('overlay') or {}, sort_keys=True)}`.",
-        "- `max_would_place_per_utc_day: 1` → the first would-place decision of a UTC day is allowed; further same-day signals are blocked with `blocked_reason: daily_cap` (checked after kill / one-position, before sizing; counted at decision time even if the fill is later missed).",
-        "- `min_atr_frac: 0.005` → 15m ATR/close below 0.5% is untradeable (baseline 0.1%). Not a fade; ranging stays off.",
-        "- Unchanged: `oneh_filter: stub`, lookback 16, ATR period 14, ATR stop 1.5×, time-stop 16 bars, €200 book, 5% daily kill, 1.5% risk/trade, one position, X-Perp ≤2x. No grid search; one candidate, one trial.",
+        *[f"- {note}" for note in (cand.get("notes") or [])],
+        *_resolved_lines(cand.get("overlay") or {}),
         "",
         "## Pass / fail rule (decided up front)",
         "",
@@ -506,9 +545,23 @@ def render_candidate_markdown(
     lines.extend(_verdict_table(rule))
     lines.append("")
     if verdict == "PASS":
-        lines.append("Both primary windows pass on holdout expectancy and holdout max DD. This is a research PASS on paper; it says nothing about live and does not by itself unlock Phase C.")
+        lines.append("Both primary windows pass on holdout expectancy and holdout max DD. This is a research PASS on paper; it says nothing about live and does not by itself unlock Phase C. Promoting the candidate into the frozen baseline (`config/default.yaml`) is a separate decision for Atlas/Kaje, not part of this trial.")
+        still_negative = [
+            w for w in (rule.get("windows") or [])
+            if (_num(((rule.get("per_window") or {}).get(w) or {}).get("candidate_holdout_expectancy")) or 0.0) < 0
+        ]
+        if still_negative:
+            lines.append("")
+            lines.append(
+                "**Still negative.** Candidate holdout expectancy after costs is below zero on "
+                + ", ".join(f"`{w}`" for w in still_negative)
+                + ". PASS here means *loses less than the frozen baseline on holdout*, not *positive expectancy* and not edge."
+            )
     else:
-        lines.append("At least one primary window fails the rule. **FAIL** — keep the frozen baseline. No candidate_v2 is proposed in this trial.")
+        lines.append(
+            "At least one primary window fails the rule. **FAIL** — keep the frozen baseline. "
+            + _wording(str(cand.get("name")), "fail_followup")
+        )
     lines.append("")
     if run_note:
         # Markers let a plain re-run of the compare script carry this note over verbatim.
@@ -612,8 +665,8 @@ def render_candidate_markdown(
             "",
             "- Not a Phase C recommendation.",
             "- Not a live-trading recommendation.",
-            "- Not a claim that the locked breakout, with or without these filters, has edge.",
-            "- Not a candidate_v2 proposal.",
+            f"- {_wording(str(cand.get('name')), 'not_edge')}",
+            f"- {_wording(str(cand.get('name')), 'not_followup')}",
             "",
         ]
     )

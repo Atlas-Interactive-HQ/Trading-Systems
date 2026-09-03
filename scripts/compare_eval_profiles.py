@@ -21,6 +21,7 @@ if str(_SRC) not in sys.path:
 
 from atlas.common.config import load_config  # noqa: E402
 from atlas.oms.spot_demo import redact_record  # noqa: E402
+from atlas.paper.engine import strategy_from_app_config  # noqa: E402
 from atlas.paper.compare import (  # noqa: E402
     compare_profiles,
     extract_heading,
@@ -89,13 +90,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
+    # Overlay stamped in the doc/JSON is the RESOLVED one (concrete values vs this config's baseline).
+    base_strategy = strategy_from_app_config(cfg)
     cmp = compare_profiles(
         profiles[base.name],
         profiles[cand.name],
         base_name=base.name,
         cand_name=cand.name,
-        base_overlay=base.overlay(),
-        cand_overlay=cand.overlay(),
+        base_overlay=base.resolved_overlay(base_strategy),
+        cand_overlay=cand.resolved_overlay(base_strategy),
+        cand_description=cand.description,
+        cand_notes=cand.notes,
+        cand_baseline_note=cand.baseline_note,
     )
     out_json = Path(args.write_json) if args.write_json else reports_dir / f"compare_{cand.name}_vs_{base.name}.json"
     out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -111,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         "not_a_forecast": True,
         "baseline": base.name,
         "candidate": cand.name,
-        "candidate_overlay": cand.overlay(),
+        "candidate_overlay": cand.resolved_overlay(base_strategy),
         "verdict": rule["verdict"],
         "per_window": rule["per_window"],
         "samples_compared": [r["sample_id"] for r in cmp["samples"] if r.get("ok")],

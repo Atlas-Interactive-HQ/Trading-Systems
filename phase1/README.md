@@ -25,6 +25,7 @@
 | [14-q4-months.md](./14-q4-months.md) | Q4 calendar-month samples (Oct/Nov/Dec) for seasonal definition |
 | [15-loss-attribution-bull-gate.md](./15-loss-attribution-bull-gate.md) | Loss drivers + one bull-gate counterfactual (not a forecast) |
 | [16-candidate-v1.md](./16-candidate-v1.md) | Phase D trial #1: frozen baseline vs `candidate_v1_filters` (daily_cap 1/UTC-day + min_atr 0.005); pass/fail rule in code; not a forecast |
+| [17-candidate-v2-stops.md](./17-candidate-v2-stops.md) | Phase D trial #2: frozen baseline vs `candidate_v2_stops` (atr_stop_mult 1.5 → 3.0, nothing else); same pass/fail rule; not a forecast |
 
 ## Locked highlights (see 00 for full list)
 
