@@ -461,6 +461,26 @@ def _confound_prose(cmp: Mapping[str, Any]) -> list[str]:
     return out or ["- No 2× fee row on any sample shows a kill-truncation confound."]
 
 
+# Wording pinned per candidate so already-committed docs regenerate byte-identically
+# (phase1/16 was written when "candidate_v2" was the hypothetical next trial and the
+# overlay was a pair of filters). Defaults are overlay-agnostic.
+WORDING_DEFAULT = {
+    "fail_followup": "No follow-up candidate is proposed in this trial.",
+    "not_followup": "Not a proposal for a follow-up candidate or a parameter sweep.",
+    "not_edge": "Not a claim that the locked breakout, with or without this overlay, has edge.",
+}
+WORDING_BY_CANDIDATE = {
+    "candidate_v1_filters": {
+        "fail_followup": "No candidate_v2 is proposed in this trial.",
+        "not_followup": "Not a candidate_v2 proposal.",
+        "not_edge": "Not a claim that the locked breakout, with or without these filters, has edge.",
+    },
+}
+
+
+def _wording(cand_name: str, key: str) -> str:
+    return WORDING_BY_CANDIDATE.get(cand_name, {}).get(key) or WORDING_DEFAULT[key]
+
 RUN_NOTE_START = "<!-- run-note:start -->"
 RUN_NOTE_END = "<!-- run-note:end -->"
 
@@ -513,9 +533,23 @@ def render_candidate_markdown(
     lines.extend(_verdict_table(rule))
     lines.append("")
     if verdict == "PASS":
-        lines.append("Both primary windows pass on holdout expectancy and holdout max DD. This is a research PASS on paper; it says nothing about live and does not by itself unlock Phase C.")
+        lines.append("Both primary windows pass on holdout expectancy and holdout max DD. This is a research PASS on paper; it says nothing about live and does not by itself unlock Phase C. Promoting the candidate into the frozen baseline (`config/default.yaml`) is a separate decision for Atlas/Kaje, not part of this trial.")
+        still_negative = [
+            w for w in (rule.get("windows") or [])
+            if (_num(((rule.get("per_window") or {}).get(w) or {}).get("candidate_holdout_expectancy")) or 0.0) < 0
+        ]
+        if still_negative:
+            lines.append("")
+            lines.append(
+                "**Still negative.** Candidate holdout expectancy after costs is below zero on "
+                + ", ".join(f"`{w}`" for w in still_negative)
+                + ". PASS here means *loses less than the frozen baseline on holdout*, not *positive expectancy* and not edge."
+            )
     else:
-        lines.append("At least one primary window fails the rule. **FAIL** — keep the frozen baseline. No candidate_v2 is proposed in this trial.")
+        lines.append(
+            "At least one primary window fails the rule. **FAIL** — keep the frozen baseline. "
+            + _wording(str(cand.get("name")), "fail_followup")
+        )
     lines.append("")
     if run_note:
         # Markers let a plain re-run of the compare script carry this note over verbatim.
@@ -619,8 +653,8 @@ def render_candidate_markdown(
             "",
             "- Not a Phase C recommendation.",
             "- Not a live-trading recommendation.",
-            "- Not a claim that the locked breakout, with or without these filters, has edge.",
-            "- Not a candidate_v2 proposal.",
+            f"- {_wording(str(cand.get('name')), 'not_edge')}",
+            f"- {_wording(str(cand.get('name')), 'not_followup')}",
             "",
         ]
     )

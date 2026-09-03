@@ -194,7 +194,18 @@ def test_candidate_section_is_data_driven_from_profile_notes():
                            cand_description=v2.description, cand_notes=v2.notes, cand_baseline_note=v2.baseline_note)
     assert cmp["candidate"]["overlay"]["atr_stop_mult"] == 3.0 and cmp["candidate"]["notes"] == list(v2.notes)
     md = render_candidate_markdown(cmp, heading="17 — test")
+    # PASS with still-negative holdouts must say so, and must not read as a promotion or live signal
+    assert "Verdict: **PASS**" in md
+    assert "**Still negative.** Candidate holdout expectancy after costs is below zero on `2020-09`, `2023-09`." in md
+    assert "loses less than the frozen baseline" in md and "not part of this trial" in md
+    cand_pos = [_row("2020-09", hold_exp=0.05, hold_dd=100.0), _row("2023-09", hold_exp=-0.10, hold_dd=100.0)]
+    md_pos = render_candidate_markdown(compare_profiles(base, cand_pos, cand_name=CANDIDATE_V2), heading="x")
+    assert "below zero on `2023-09`." in md_pos and "`2020-09`," not in md_pos.split("**Still negative.**")[1][:40]
     assert "(no overlay; `atr_stop_mult: 1.5`)" in md
+    # v1-era closing wording must not leak into a v2 document
+    assert "Not a candidate_v2 proposal" not in md and "these filters" not in md
+    assert "- Not a proposal for a follow-up candidate or a parameter sweep." in md
+    assert "- Not a claim that the locked breakout, with or without this overlay, has edge." in md
     assert '"atr_stop_mult": 3.0' in md and '"atr_stop_mult_baseline": 1.5' in md
     assert "baseline **1.5** → candidate **3.0**" in md
     assert "deliberately NOT included" in md
@@ -207,6 +218,7 @@ def test_candidate_section_is_data_driven_from_profile_notes():
     assert "(no overlay; `min_atr_frac: 0.001`, no daily cap)." in md1
     assert "- `max_would_place_per_utc_day: 1` → the first would-place decision of a UTC day is allowed;" in md1
     assert "- Unchanged: `oneh_filter: stub`, lookback 16, ATR period 14, ATR stop 1.5×," in md1
+    assert "- Not a candidate_v2 proposal." in md1 and "with or without these filters, has edge." in md1
 
 
 def test_eval_page_renders_every_candidate_profile(tmp_path: Path):
