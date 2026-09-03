@@ -53,8 +53,9 @@ PASS_RULE_TEXT = (
     "after costs is strictly greater than baseline (less negative or positive) AND candidate "
     "holdout max DD <= baseline holdout max DD × 1.10. A holdout with zero trades has no "
     "expectancy and fails closed. Stress is documented, never scored: a less-negative "
-    "expectancy under 2× fees that comes with fewer trades / more kill-days is a kill-truncation "
-    "confound, not a win. similar (June) and Q4 months are secondary and do not rewrite this rule."
+    "expectancy under 2× fees is never a win — with fewer trades / more kill-days it is kill "
+    "truncation; with the same trade set it is smaller positions on a poorer equity path (sizing "
+    "scales with equity). similar (June) and Q4 months are secondary and do not rewrite this rule."
 )
 
 STRESS_CAVEAT_TEXT = (
@@ -62,9 +63,12 @@ STRESS_CAVEAT_TEXT = (
     "full run and the 2× run comes from the equity path: higher fees drain the book faster, the "
     "5% daily kill trips earlier, positions are flattened and the rest of that UTC day is blocked. "
     "Fewer, earlier-killed trades can make expectancy per trade read LESS negative under 2× fees "
-    "while the book is simply dying sooner. Read 2× fees on a comparable basis: fee drag per trade "
-    "should be ≈2× the base (fee_per_trade_ratio), and total fee drag € should be worse or equal "
-    "unless truncation removed trades. Never read a less-negative 2× expectancy as a win."
+    "while the book is simply dying sooner. A second mechanism needs no truncation: sizing scales "
+    "with equity (risk budget = 1.5% of equity), so a poorer equity path under 2× fees means smaller "
+    "positions and smaller € losses per trade — the same trade set reads less negative in €/trade. "
+    "Read 2× fees on a comparable basis: fee drag per trade should be ≈2× the base "
+    "(fee_per_trade_ratio), and total fee drag € should be worse or equal unless truncation removed "
+    "trades. Fees cannot improve a strategy: never read a less-negative 2× expectancy as a win."
 )
 
 
@@ -133,6 +137,13 @@ def stress_notes(sample: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
         # Fees never change signals → for 2× fees a different trade set is purely the
         # kill/equity path (truncation). Delay/miss change the trade set by construction.
         confound = key == "2x_fees" and trade_set_differs
+        # Same trade set yet less-negative €/trade under 2× fees: sizing scales with
+        # equity (risk budget = 1.5% of equity), so a poorer equity path means smaller
+        # positions and smaller € losses. Also not a win.
+        equity_path = key == "2x_fees" and less_negative and not trade_set_differs
+        mechanism = None
+        if less_negative and key == "2x_fees":
+            mechanism = "kill_truncation" if trade_set_differs else "equity_path_sizing"
         out[key] = {
             "n_trades_full": n_full,
             "n_trades_stress": n_s,
@@ -154,7 +165,10 @@ def stress_notes(sample: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
             "max_dd_stress": _num(s.get("max_dd_eur")),
             "trade_set_differs": bool(trade_set_differs),
             "kill_truncation_confound": bool(confound),
-            "false_win_risk": bool(less_negative and confound),
+            "equity_path_confound": bool(equity_path),
+            "false_win_mechanism": mechanism,
+            # ANY less-negative 2× fees expectancy is a false-win risk; fees cannot help.
+            "false_win_risk": bool(less_negative and key == "2x_fees"),
         }
     return out
 
@@ -298,8 +312,15 @@ def _i(x: Any) -> str:
 
 
 def _pct(x: Any) -> str:
+    """Signed percentage (for changes)."""
     v = _num(x)
     return "—" if v is None else f"{100.0 * v:+.1f}%"
+
+
+def _rate(x: Any) -> str:
+    """Unsigned percentage (for win rates)."""
+    v = _num(x)
+    return "—" if v is None else f"{100.0 * v:.1f}%"
 
 
 def _slice_table(row: Mapping[str, Any]) -> list[str]:
@@ -317,7 +338,7 @@ def _slice_table(row: Mapping[str, Any]) -> list[str]:
         ("expectancy_after_costs_eur", "expectancy after costs (€/trade)", lambda v: _f(v, 4)),
         ("max_dd_eur", "max DD (€)", lambda v: _f(v, 2)),
         ("fee_drag_eur", "fee drag (€)", lambda v: _f(v, 2)),
-        ("win_rate", "win rate (secondary)", _pct),
+        ("win_rate", "win rate (secondary)", _rate),
     )
     for key, title, fmt in spec:
         d = (hold.get("delta") or {}).get(key)
@@ -343,8 +364,10 @@ def _stress_table(row: Mapping[str, Any]) -> list[str]:
             if not n:
                 continue
             flag = ""
-            if n.get("false_win_risk"):
+            if n.get("false_win_risk") and n.get("false_win_mechanism") == "kill_truncation":
                 flag = "**kill-truncation: less-negative expectancy is NOT a win**"
+            elif n.get("false_win_risk"):
+                flag = "**equity-path sizing: less-negative expectancy is NOT a win**"
             elif n.get("kill_truncation_confound"):
                 flag = "kill-truncation (trade set differs)"
             elif key != "2x_fees" and n.get("trade_set_differs"):
@@ -390,12 +413,19 @@ def _confound_prose(cmp: Mapping[str, Any]) -> list[str]:
             n = ((row.get("stress_notes") or {}).get(prof) or {}).get("2x_fees") or {}
             if not n:
                 continue
-            if n.get("false_win_risk"):
+            if n.get("false_win_risk") and n.get("false_win_mechanism") == "kill_truncation":
                 out.append(
                     f"- `{row['sample_id']}` / {prof}: 2× fees reads {_f(n.get('expectancy_stress'), 4)} vs {_f(n.get('expectancy_full'), 4)} base "
                     f"(less negative) with n_trades {_i(n.get('n_trades_full'))}→{_i(n.get('n_trades_stress'))} and kill-days "
-                    f"{_i(n.get('n_kill_days_full'))}→{_i(n.get('n_kill_days_stress'))}. Fee/trade ratio {_f(n.get('fee_per_trade_ratio'), 2)} confirms fees doubled; "
-                    f"the 'improvement' is kill truncation. **Not a win.**"
+                    f"{_i(n.get('n_kill_days_full'))}→{_i(n.get('n_kill_days_stress'))}. Fee rate doubled (fee/trade ratio {_f(n.get('fee_per_trade_ratio'), 2)}; "
+                    f"below 2.0 because positions shrink on the poorer equity path); the 'improvement' is the kill flattening/truncating the trade set. **Not a win.**"
+                )
+            elif n.get("false_win_risk"):
+                out.append(
+                    f"- `{row['sample_id']}` / {prof}: 2× fees reads {_f(n.get('expectancy_stress'), 4)} vs {_f(n.get('expectancy_full'), 4)} base "
+                    f"(less negative) with the SAME trade set (n_trades {_i(n.get('n_trades_full'))}, kill-days {_i(n.get('n_kill_days_full'))}) and total fee drag "
+                    f"{_f(n.get('fee_drag_full'), 2)}→{_f(n.get('fee_drag_stress'), 2)}. Sizing scales with equity, so the poorer equity path under 2× fees "
+                    f"shrinks positions and € losses per trade. **Not a win.**"
                 )
             elif n.get("kill_truncation_confound"):
                 out.append(
@@ -528,7 +558,7 @@ def render_candidate_markdown(
 
     lines.extend(
         [
-            "## How to read the 2× fees stress (kill truncation)",
+            "## How to read the 2× fees stress (kill truncation and equity-path sizing)",
             "",
             str(cmp.get("stress_caveat") or STRESS_CAVEAT_TEXT),
             "",

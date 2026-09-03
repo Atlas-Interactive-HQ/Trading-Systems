@@ -412,10 +412,20 @@ def test_stress_notes_flag_kill_truncation_not_a_win():
     # delay/miss change the trade set by construction → not a kill-truncation confound
     assert notes["1bar_entry_delay"]["trade_set_differs"] is True
     assert notes["1bar_entry_delay"]["kill_truncation_confound"] is False
+    assert fee2["false_win_mechanism"] == "kill_truncation"
+    # same trade set, LESS negative under 2× fees → equity-path sizing confound, still not a win
+    sizing = stress_notes(_row("2023-09", hold_exp=-0.3, hold_dd=100.0, n=100, full_exp=-0.54, exp2=-0.52))
+    assert sizing["2x_fees"]["trade_set_differs"] is False
+    assert sizing["2x_fees"]["kill_truncation_confound"] is False
+    assert sizing["2x_fees"]["equity_path_confound"] is True
+    assert sizing["2x_fees"]["false_win_risk"] is True
+    assert sizing["2x_fees"]["false_win_mechanism"] == "equity_path_sizing"
     # clean 2× (same trade set, more negative) → no flags
     clean = stress_notes(_row("2023-09", hold_exp=-0.3, hold_dd=100.0, n=100, full_exp=-0.20, exp2=-0.30))
     assert clean["2x_fees"]["kill_truncation_confound"] is False
+    assert clean["2x_fees"]["equity_path_confound"] is False
     assert clean["2x_fees"]["false_win_risk"] is False
+    assert clean["2x_fees"]["false_win_mechanism"] is None
 
 
 def test_compare_and_markdown_say_fail_plainly_and_flag_truncation():
@@ -434,6 +444,10 @@ def test_compare_and_markdown_say_fail_plainly_and_flag_truncation():
     assert "Verdict: **FAIL**" in md
     assert "kill-truncation" in md
     assert "NOT a win" in md
+    # 2023-09 candidate row above has same trade set + less-negative 2× → sizing mechanism named
+    cand[1]["stress"]["2x_fees"]["expectancy_after_costs_eur"] = -0.25  # full is -0.3 → less negative
+    md_s = render_candidate_markdown(compare_profiles(base, cand, cand_name=CANDIDATE_V1), heading="x")
+    assert "equity-path sizing" in md_s and "Sizing scales with equity" in md_s
     assert "not_a_forecast" in md
     assert "would have made" not in md.lower()
     assert "Not a candidate_v2 proposal" in md
