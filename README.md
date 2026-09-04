@@ -118,6 +118,14 @@ Same 12/30 long/flat on public **BTC-USDT-SWAP 1H**, plus OKX public funding-rat
 python scripts/run_ema_1h_funding_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
 ```
 
+## Donchian 20/10 daily (research)
+
+Conservative BTC-USDT **1D** confirm: long only on close **above the prior 20-day high**; flat on close **below the prior 10-day low**. Never short. Parallel to EMA 12/30; **not** the 15m DOGE BreakoutV1 default. See [`phase1/24-donchian-btc.md`](./phase1/24-donchian-btc.md).
+
+```bash
+python scripts/run_donchian_long_flat_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
+```
+
 ## Config
 
 [`config/default.yaml`](./config/default.yaml) — venues, symbols, OKX EEA bases/modes/universe, **local paper + breakout v1**, secrets **path placeholders**.
