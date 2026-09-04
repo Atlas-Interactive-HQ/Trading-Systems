@@ -275,6 +275,16 @@ tbody tr:nth-child(even) { background: var(--surface-canvas); }
 .health-roll.state-warn { color: var(--state-warning); }
 .health-roll.state-fail { color: var(--state-error); }
 
+.live20-chart-wrap { overflow-x: auto; margin: 8px 0 12px; }
+.live20-chart { width: 100%; height: auto; display: block; }
+.live20-chart-bg { fill: var(--surface-canvas); }
+.live20-price { stroke: var(--surface-inverse); stroke-width: 1.5; }
+.live20-fill-sell { stroke: var(--state-accent); stroke-width: 1.25; stroke-dasharray: 4 3; }
+.live20-fill-buy { stroke: var(--state-ok); stroke-width: 1.25; stroke-dasharray: 4 3; }
+.live20-fill-sell-label { fill: var(--state-accent); font-size: 10px; }
+.live20-fill-buy-label { fill: var(--text-primary); font-size: 10px; }
+.live20-axis { fill: var(--text-tertiary); font-size: 10px; }
+
 .colophon {
   display: flex;
   justify-content: space-between;

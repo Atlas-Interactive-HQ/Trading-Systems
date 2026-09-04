@@ -482,10 +482,16 @@ def _load_oms_state(oms_root: Path, errors: list[ParseError]) -> dict[str, Any]:
 
 
 def _mode_from_events(events: list[dict[str, Any]]) -> tuple[str, str, dict[str, Any] | None]:
-    sessions = [e for e in events if _kind(e) in SESSION_KINDS]
+    sessions = [
+        e
+        for e in events
+        if _kind(e) in SESSION_KINDS or e.get("source") == "live20-roundtrip"
+    ]
     if not sessions:
         return "idle", "geen sessie", None
     latest = sessions[0]  # already newest-first
+    if latest.get("source") == "live20-roundtrip":
+        return "live20", "live20 practice (geen UI-orders)", latest
     if latest.get("source") == "named-window" or _kind(latest) in NAMED_SESSION_KINDS:
         wid = str(latest.get("window_id") or ",".join(latest.get("window_ids") or []) or "")
         label = f"named-window {wid}".strip() if wid else "named-window (research MD)"

@@ -35,6 +35,8 @@ python scripts/okx_tiny_live_roundtrip.py --buy-back
 
 `--max-notional` defaults to **10** (first practice). Hard client cap remains **20**. Timeout cancels leftovers. Journals: `data/live20/YYYY-MM-DD/events.jsonl` (gitignored). Issues log (local): `data/reports/live-20-issues.md` — tracked template: [`live-20-issues.md`](./live-20-issues.md).
 
+Read-only chart (no keys): `python scripts/run_dashboard.py --live20` → **http://127.0.0.1:8787/live20** — public OKX EEA 5m closes for DOGE-USDC plus horizontal lines at filled `avgPx`. If public MD fails, the fills table still shows. The UI never places orders.
+
 Do **not** install a cron / Grok Bot routine from this document.
 
 ## What this is not

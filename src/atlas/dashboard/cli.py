@@ -42,6 +42,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Read data/oms journals (Phase A DOGE). Default when no other mode is set.",
     )
+    p.add_argument(
+        "--live20",
+        action="store_true",
+        help="Read data/live20 journals + DOGE-USDC chart. Public MD only. No keys, no orders.",
+    )
     args = p.parse_args(argv)
     chosen = [
         n
@@ -51,11 +56,12 @@ def main(argv: list[str] | None = None) -> int:
             ("shadow", args.shadow),
             ("ema", args.ema),
             ("oms", args.oms),
+            ("live20", args.live20),
         )
         if v
     ]
     if len(chosen) > 1:
-        raise SystemExit("kies één van --fixtures / --replay / --shadow / --ema / --oms")
+        raise SystemExit("kies één van --fixtures / --replay / --shadow / --ema / --oms / --live20")
 
     cfg = load_config(args.config)
     data_dir = Path(args.data_dir) if args.data_dir else Path(cfg.data_dir)
@@ -65,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
         data_dir = Path(cfg.data_dir) / "shadow"
     if args.ema and args.data_dir is None:
         data_dir = Path(cfg.data_dir) / "ema"
+    if args.live20 and args.data_dir is None:
+        data_dir = Path(cfg.data_dir) / "live20"
     if not data_dir.is_absolute() and not args.fixtures:
         data_dir = Path.cwd() / data_dir
 
@@ -75,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         use_replay=bool(args.replay),
         use_shadow=bool(args.shadow),
         use_ema=bool(args.ema),
+        use_live20=bool(args.live20),
     )
     try:
         import uvicorn
@@ -91,6 +100,8 @@ def main(argv: list[str] | None = None) -> int:
         src_label = "replay " + str(data_dir)
     elif args.ema:
         src_label = "ema " + str(data_dir)
+    elif args.live20:
+        src_label = "live20 " + str(data_dir)
     else:
         src_label = str(data_dir)
     print(

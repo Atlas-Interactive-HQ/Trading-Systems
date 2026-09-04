@@ -39,6 +39,8 @@ OKX_FUNDING_LIMIT_MAX = 100
 FUNDING_INTERVAL_MS = 8 * 60 * 60 * 1000  # OKX BTC-USDT-SWAP cadence (00/08/16 UTC)
 
 BAR_MS = {
+    "1m": 60 * 1000,
+    "5m": 5 * 60 * 1000,
     "15m": 15 * 60 * 1000,
     "1H": 60 * 60 * 1000,
     "1h": 60 * 60 * 1000,
@@ -65,15 +67,15 @@ class PaperDataError(RuntimeError):
 
 def bar_ms(bar: str) -> int:
     if bar not in BAR_MS:
-        raise PaperDataError(f"unsupported bar {bar!r}; use 15m, 1H, or 1D")
+        raise PaperDataError(f"unsupported bar {bar!r}; use 1m, 5m, 15m, 1H, or 1D")
     return BAR_MS[bar]
 
 
 def okx_bar(bar: str) -> str:
     if bar.lower() in ("1h", "1H"):
         return "1H"
-    if bar == "15m":
-        return "15m"
+    if bar in ("1m", "5m", "15m"):
+        return bar
     if bar.lower() in ("1d", "1D"):
         return "1D"
     raise PaperDataError(f"unsupported bar {bar!r}")

@@ -25,6 +25,7 @@ from atlas.paper.compare import evaluate_pass_rule, index_samples
 from atlas.paper.donchian_eval import load_donchian_reports
 from atlas.paper.ema_eval import load_ema_reports
 from atlas.paper.ema_1h_eval import load_ema_1h_reports
+from atlas.dashboard.live20_view import build_live20_page
 from atlas.paper.ema_observer import load_ema_observer_rows
 from atlas.paper.eval import load_eval_reports, load_profile_reports
 from atlas.paper.profiles import BASELINE, PROFILES
@@ -69,24 +70,29 @@ def _resolve_data_dir(
     use_replay: bool,
     use_shadow: bool = False,
     use_ema: bool = False,
-) -> tuple[Path, bool, bool, bool, bool]:
+    use_live20: bool = False,
+) -> tuple[Path, bool, bool, bool, bool, bool]:
     if use_fixtures:
-        return bundled_fixtures_dir(), True, False, False, False
+        return bundled_fixtures_dir(), True, False, False, False, False
     if use_shadow:
         if data_dir is not None:
-            return Path(data_dir), False, False, True, False
-        return Path(cfg.data_dir) / "shadow", False, False, True, False
+            return Path(data_dir), False, False, True, False, False
+        return Path(cfg.data_dir) / "shadow", False, False, True, False, False
     if use_replay:
         if data_dir is not None:
-            return Path(data_dir), False, True, False, False
-        return Path(cfg.data_dir) / "replay", False, True, False, False
+            return Path(data_dir), False, True, False, False, False
+        return Path(cfg.data_dir) / "replay", False, True, False, False, False
     if use_ema:
         if data_dir is not None:
-            return Path(data_dir), False, False, False, True
-        return Path(cfg.data_dir) / "ema", False, False, False, True
+            return Path(data_dir), False, False, False, True, False
+        return Path(cfg.data_dir) / "ema", False, False, False, True, False
+    if use_live20:
+        if data_dir is not None:
+            return Path(data_dir), False, False, False, False, True
+        return Path(cfg.data_dir) / "live20", False, False, False, False, True
     if data_dir is not None:
-        return Path(data_dir), False, False, False, False
-    return Path(cfg.data_dir), False, False, False, False
+        return Path(data_dir), False, False, False, False, False
+    return Path(cfg.data_dir), False, False, False, False, False
 
 
 _CMP_TITLES = {
@@ -171,15 +177,17 @@ def create_app(
     use_replay: bool = False,
     use_shadow: bool = False,
     use_ema: bool = False,
+    use_live20: bool = False,
 ) -> FastAPI:
     cfg = load_config(config_path)
-    resolved, fixtures, replay, shadow, ema = _resolve_data_dir(
+    resolved, fixtures, replay, shadow, ema, live20 = _resolve_data_dir(
         data_dir,
         cfg,
         use_fixtures=use_fixtures,
         use_replay=use_replay,
         use_shadow=use_shadow,
         use_ema=use_ema,
+        use_live20=use_live20,
     )
 
     app = FastAPI(
@@ -197,11 +205,13 @@ def create_app(
     app.state.use_replay = replay
     app.state.use_shadow = shadow
     app.state.use_ema = ema
+    app.state.use_live20 = live20
     reports = Path(cfg.data_dir)
     if not reports.is_absolute():
         reports = Path.cwd() / reports
     app.state.reports_dir = reports / "reports"
     app.state.ema_dir = resolved if ema else reports / "ema"
+    app.state.live20_dir = resolved if live20 else reports / "live20"
 
     def snapshot() -> DashboardSnapshot:
         return load_snapshot(
@@ -244,6 +254,11 @@ def create_app(
     @app.get("/health", response_class=HTMLResponse)
     def health(request: Request) -> HTMLResponse:
         return page(request, "health.html")
+
+    @app.get("/live20", response_class=HTMLResponse)
+    def live20_page(request: Request) -> HTMLResponse:
+        view = build_live20_page(Path(app.state.live20_dir))
+        return page(request, "live20.html", {"live20": view})
 
     @app.get("/eval", response_class=HTMLResponse)
     def eval_page(request: Request) -> HTMLResponse:
