@@ -34,6 +34,7 @@
 | [23-tiny-live.md](./23-tiny-live.md) | Gated OKX EEA tiny-live (manual far-limit+cancel, €20 cap); default still fail-closed |
 | [24-donchian-btc.md](./24-donchian-btc.md) | BTC daily Donchian 20/10 long/flat paper trial; parallel to EMA; not Phase A / not live |
 | [25-live20-roundtrip.md](./25-live20-roundtrip.md) | Manual ≤€20 DOGE-USDC limit sell→buy-back practice; tiny_live gate; not a routine |
+| [26-ema-12-21.md](./26-ema-12-21.md) | EMA 12/21 vs locked 12/30 on BTC-USDT 1D; observer default stays 12/30; not live |
 
 ## Locked highlights (see 00 for full list)
 

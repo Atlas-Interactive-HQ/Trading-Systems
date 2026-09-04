@@ -130,6 +130,16 @@ Conservative BTC-USDT **1D** confirm: long only on close **above the prior 20-da
 python scripts/run_donchian_long_flat_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
 ```
 
+## EMA 12/21 vs locked 12/30 (research compare)
+
+TradingView-style **EMA(12)/EMA(21)** neighbor vs locked **12/30** on public **BTC-USDT** 1D. Same long/flat family, never short. Dual-window interesting + OOS CLEAR are **docs only — do not promote**. Weekday observer stays **12/30** under `data/ema/`. See [`phase1/26-ema-12-21.md`](./phase1/26-ema-12-21.md).
+
+```bash
+python scripts/run_ema_12_21_compare.py --windows 2020-09,2023-09,2022-bear,2023-chop
+# optional 12/21 journals (does not replace weekday 12/30):
+python scripts/run_ema_paper_session.py --fast 12 --slow 21 --journal-subdir ema21
+```
+
 ## Config
 
 [`config/default.yaml`](./config/default.yaml) — venues, symbols, OKX EEA bases/modes/universe, **local paper + breakout v1**, secrets **path placeholders**.
@@ -394,9 +404,10 @@ python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --windows 2020-09,2023
 python scripts/run_ema_long_flat_eval.py --asset DOGE-USDT --windows 2020-09,2023-09
 python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --samples q4
 python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --windows 2022-bear,2023-chop,2020-09,2023-09
+python scripts/run_ema_12_21_compare.py --windows 2020-09,2023-09,2022-bear,2023-chop
 ```
 
-`not_a_forecast`. Named bull windows bias a long-only rule. OOS stress: [`phase1/20-ema-oos-stress.md`](./phase1/20-ema-oos-stress.md). Does not replace Phase A.
+`not_a_forecast`. Named bull windows bias a long-only rule. OOS stress: [`phase1/20-ema-oos-stress.md`](./phase1/20-ema-oos-stress.md). 12/21 neighbor compare: [`phase1/26-ema-12-21.md`](./phase1/26-ema-12-21.md) (docs only; observer default stays 12/30). Does not replace Phase A.
 
 ## Tests
 
