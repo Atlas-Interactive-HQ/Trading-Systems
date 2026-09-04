@@ -1,9 +1,11 @@
 """Strategy modules. v1 = 15m breakout L+S; ranging disabled.
 
-`EmaTrendV1` is a parallel research family (daily long/flat), not a Phase A replacement.
+`EmaTrendV1` and `DonchianLongFlatV1` are parallel research families (daily long/flat),
+not Phase A replacements.
 """
 
 from atlas.strategy.breakout import BreakoutV1
+from atlas.strategy.donchian_trend import DonchianLongFlatV1
 from atlas.strategy.ema_trend import EmaTrendV1
 
-__all__ = ["BreakoutV1", "EmaTrendV1"]
+__all__ = ["BreakoutV1", "DonchianLongFlatV1", "EmaTrendV1"]

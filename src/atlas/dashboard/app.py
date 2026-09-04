@@ -22,6 +22,7 @@ from atlas.dashboard.reader import (
 from atlas.paper.compare import METRICS as CMP_METRICS
 from atlas.paper.compare import SLICES as CMP_SLICES
 from atlas.paper.compare import evaluate_pass_rule, index_samples
+from atlas.paper.donchian_eval import load_donchian_reports
 from atlas.paper.ema_eval import load_ema_reports
 from atlas.paper.ema_1h_eval import load_ema_1h_reports
 from atlas.paper.ema_observer import load_ema_observer_rows
@@ -360,6 +361,34 @@ def create_app(
                     "bh_max_dd_eur": bh.get("max_dd_eur"),
                 }
             )
+        donchian_raw = load_donchian_reports(app.state.reports_dir)
+        donchian_evals: list[dict[str, Any]] = []
+        for sample in donchian_raw:
+            if not sample.get("ok"):
+                donchian_evals.append(
+                    {
+                        "sample_id": sample.get("sample_id"),
+                        "ok": False,
+                        "error": sample.get("error"),
+                    }
+                )
+                continue
+            hold = sample.get("holdout") or {}
+            bh = hold.get("buy_and_hold") or {}
+            donchian_evals.append(
+                {
+                    "sample_id": sample.get("sample_id"),
+                    "ok": True,
+                    "symbol": sample.get("symbol"),
+                    "strategy": sample.get("strategy"),
+                    "n_trades": hold.get("n_trades"),
+                    "net_return_eur": hold.get("net_return_eur"),
+                    "max_dd_eur": hold.get("max_dd_eur"),
+                    "bh_max_dd_eur": bh.get("max_dd_eur"),
+                    "time_in_market": hold.get("time_in_market"),
+                    "expectancy_after_costs_eur": hold.get("expectancy_after_costs_eur"),
+                }
+            )
         observer_rows = load_ema_observer_rows(app.state.ema_dir)
         latest_obs = next((r for r in observer_rows if r.get("kind") in ("ema_state", "ema_decision")), None)
         ema_observer = None
@@ -384,6 +413,7 @@ def create_app(
                 "comparison": comparison,
                 "ema_evals": ema_evals,
                 "ema_1h_evals": ema_1h_evals,
+                "donchian_evals": donchian_evals,
                 "ema_observer": ema_observer,
             },
         )

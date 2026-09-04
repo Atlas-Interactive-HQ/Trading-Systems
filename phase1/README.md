@@ -32,6 +32,7 @@
 | [21-ema-paper-observer.md](./21-ema-paper-observer.md) | Forward EMA paper observer (BTC-USDT 1D journals under `data/ema/`); no orders; not live |
 | [22-ema-1h-funding.md](./22-ema-1h-funding.md) | EMA 12/30 on BTC-USDT-SWAP 1H + public funding; incomplete → fee-only; not live |
 | [23-tiny-live.md](./23-tiny-live.md) | Gated OKX EEA tiny-live (manual far-limit+cancel, €20 cap); default still fail-closed |
+| [24-donchian-btc.md](./24-donchian-btc.md) | BTC daily Donchian 20/10 long/flat paper trial; parallel to EMA; not Phase A / not live |
 
 ## Locked highlights (see 00 for full list)
 
