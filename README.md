@@ -181,7 +181,7 @@ Live mode:
 - `allow_trade=True` is rejected at init **unless** `tiny_live=True` (see [`phase1/23-tiny-live.md`](./phase1/23-tiny-live.md): notional ≤ €20, limit only)
 - read-only account/config/positions/funding GET are allowed without `tiny_live`
 
-`scripts/okx_auth_smoke.py` always uses `allow_trade=False` (balance read only). Tiny-live smoke is `scripts/okx_tiny_live_smoke.py` (read-only unless **both** `--place-far-limit` and `--cancel`).
+`scripts/okx_auth_smoke.py` always uses `allow_trade=False` (balance read only). Tiny-live smoke is `scripts/okx_tiny_live_smoke.py` (read-only unless **both** `--place-far-limit` and `--cancel`). Manual ≤€20 DOGE-USDC fill practice: `scripts/okx_tiny_live_roundtrip.py` (read-only unless `--roundtrip` / `--sell-fill` / `--buy-back`; see [`phase1/25-live20-roundtrip.md`](./phase1/25-live20-roundtrip.md)).
 
 ## Local paper (Phase 1.5)
 
