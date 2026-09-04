@@ -33,6 +33,7 @@
 | [22-ema-1h-funding.md](./22-ema-1h-funding.md) | EMA 12/30 on BTC-USDT-SWAP 1H + public funding; incomplete → fee-only; not live |
 | [23-tiny-live.md](./23-tiny-live.md) | Gated OKX EEA tiny-live (manual far-limit+cancel, €20 cap); default still fail-closed |
 | [24-donchian-btc.md](./24-donchian-btc.md) | BTC daily Donchian 20/10 long/flat paper trial; parallel to EMA; not Phase A / not live |
+| [25-live20-roundtrip.md](./25-live20-roundtrip.md) | Manual ≤€20 DOGE-USDC limit sell→buy-back practice; tiny_live gate; not a routine |
 
 ## Locked highlights (see 00 for full list)
 
