@@ -35,6 +35,7 @@
 | [24-donchian-btc.md](./24-donchian-btc.md) | BTC daily Donchian 20/10 long/flat paper trial; parallel to EMA; not Phase A / not live |
 | [25-live20-roundtrip.md](./25-live20-roundtrip.md) | Manual ≤€20 DOGE-USDC limit sell→buy-back practice; tiny_live gate; not a routine |
 | [26-ema-12-21.md](./26-ema-12-21.md) | EMA 12/21 vs locked 12/30 on BTC-USDT 1D; observer default stays 12/30; not live |
+| [27-ema-donchian-confirm.md](./27-ema-donchian-confirm.md) | EMA 12/30 AND Donchian 20/10 confirm on BTC-USDT 1D; dual-window FAIL unless both clear; not live |
 
 ## Locked highlights (see 00 for full list)
 

@@ -140,6 +140,14 @@ python scripts/run_ema_12_21_compare.py --windows 2020-09,2023-09,2022-bear,2023
 python scripts/run_ema_paper_session.py --fast 12 --slow 21 --journal-subdir ema21
 ```
 
+## EMA + Donchian confirm (research)
+
+BTC-USDT **1D** long only if **EMA(12) > EMA(30)** AND **close > prior 20-day high**; flat if EMA flattens **or** close **< prior 10-day low**. Never short. Dual-window interesting must both clear or **FAIL**. Docs only — do not promote. Does not change the EMA 12/30 observer or Phase A. See [`phase1/27-ema-donchian-confirm.md`](./phase1/27-ema-donchian-confirm.md).
+
+```bash
+python scripts/run_ema_donchian_confirm_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
+```
+
 ## Config
 
 [`config/default.yaml`](./config/default.yaml) — venues, symbols, OKX EEA bases/modes/universe, **local paper + breakout v1**, secrets **path placeholders**.
@@ -407,7 +415,7 @@ python scripts/run_ema_long_flat_eval.py --asset BTC-USDT --windows 2022-bear,20
 python scripts/run_ema_12_21_compare.py --windows 2020-09,2023-09,2022-bear,2023-chop
 ```
 
-`not_a_forecast`. Named bull windows bias a long-only rule. OOS stress: [`phase1/20-ema-oos-stress.md`](./phase1/20-ema-oos-stress.md). 12/21 neighbor compare: [`phase1/26-ema-12-21.md`](./phase1/26-ema-12-21.md) (docs only; observer default stays 12/30). Does not replace Phase A.
+`not_a_forecast`. Named bull windows bias a long-only rule. OOS stress: [`phase1/20-ema-oos-stress.md`](./phase1/20-ema-oos-stress.md). 12/21 neighbor compare: [`phase1/26-ema-12-21.md`](./phase1/26-ema-12-21.md) (docs only; observer default stays 12/30). EMA+Donchian confirm: [`phase1/27-ema-donchian-confirm.md`](./phase1/27-ema-donchian-confirm.md) (docs only). Does not replace Phase A.
 
 ## Tests
 
