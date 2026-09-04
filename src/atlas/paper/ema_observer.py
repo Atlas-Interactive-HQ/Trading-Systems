@@ -42,9 +42,12 @@ DISCLAIMER = (
 )
 
 
-def ema_root(data_dir: str | Path) -> Path:
-    """Journals live under data/ema/, never data/oms/ or data/shadow/."""
-    return Path(data_dir) / "ema"
+def ema_root(data_dir: str | Path, subdir: str = "ema") -> Path:
+    """Journals live under data/ema/ by default (never data/oms/ or data/shadow/)."""
+    name = str(subdir or "ema").strip() or "ema"
+    if "/" in name or "\\" in name or name in {".", ".."}:
+        name = "ema"
+    return Path(data_dir) / name
 
 
 def closed_bars_only(bars: list[Bar]) -> list[Bar]:
@@ -370,6 +373,8 @@ def _common_fields(snap: dict[str, Any], *, paper_shadow: bool) -> dict[str, Any
     return {
         "source": EMA_OBSERVER_SOURCE,
         "strategy": snap.get("strategy"),
+        "fast": snap.get("fast"),
+        "slow": snap.get("slow"),
         "symbol": snap.get("symbol") or EMA_OBSERVER_SYMBOL,
         "bar": EMA_OBSERVER_BAR,
         "venue": "okx-eea-public",
@@ -400,14 +405,20 @@ def run_ema_paper_session(
     client: Any | None = None,
     run_id: str | None = None,
     now_ms: int | None = None,
+    fast: int = 12,
+    slow: int = 30,
+    journal_subdir: str = "ema",
 ) -> dict[str, Any]:
-    """One observer pass. Public MD only. Never constructs a trade client."""
+    """One observer pass. Public MD only. Never constructs a trade client.
+
+    Default 12/30 under data/ema/. 12/21 is opt-in (--fast/--slow + --journal-subdir ema21).
+    """
     from atlas.paper.engine import PaperSettings
 
     settings = EmaBookSettings.from_paper(PaperSettings.from_app_config(cfg))
-    strategy = EmaTrendV1(EmaTrendParams(fast=12, slow=30))
+    strategy = EmaTrendV1(EmaTrendParams(fast=int(fast), slow=int(slow)))
     rest = (getattr(getattr(cfg, "okx", None), "rest_base", None) or OKX_REST).rstrip("/")
-    root = ema_root(data_dir)
+    root = ema_root(data_dir, journal_subdir)
     root.mkdir(parents=True, exist_ok=True)
     rid = run_id or new_run_id("ema-obs")
     ts = int(now_ms if now_ms is not None else utc_ms())
@@ -448,10 +459,17 @@ def run_ema_paper_session(
     }
     events_path = journal.append("events", start_rec, ts_ms=ts)
 
+    fast_n = int(strategy.params.fast)
+    slow_n = int(strategy.params.slow)
+    reason = (
+        f"ema{fast_n}_gt_ema{slow_n}"
+        if snap["desired"] == LONG
+        else f"ema{fast_n}_le_ema{slow_n}_flat"
+    )
     decision = {
         "kind": KIND_DECISION,
         **_common_fields(snap, paper_shadow=paper_shadow),
-        "reason": "ema12_gt_ema30" if snap["desired"] == LONG else "ema12_le_ema30_flat",
+        "reason": reason,
         "n_bars": snap.get("n_bars"),
     }
     if ledger is not None:

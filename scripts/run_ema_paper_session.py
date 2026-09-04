@@ -35,6 +35,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--data-dir", default=None)
     p.add_argument("--asset", default=EMA_OBSERVER_SYMBOL, help="Research MD instId (BTC-USDT)")
     p.add_argument("--lookback-days", type=int, default=90, help="Closed 1D bars to fetch (incl. EMA30 warmup)")
+    p.add_argument("--fast", type=int, default=12, help="Fast EMA period (default 12)")
+    p.add_argument("--slow", type=int, default=30, help="Slow EMA period (default 30; weekday routine)")
+    p.add_argument(
+        "--journal-subdir",
+        default="ema",
+        help="Under data-dir (default ema). Use ema21 for 12/21 without touching the 12/30 path.",
+    )
     p.add_argument(
         "--paper-shadow",
         action="store_true",
@@ -55,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
             symbol=args.asset,
             paper_shadow=bool(args.paper_shadow),
             lookback_days=args.lookback_days,
+            fast=args.fast,
+            slow=args.slow,
+            journal_subdir=args.journal_subdir,
         )
     except ReplayError as exc:
         print(
