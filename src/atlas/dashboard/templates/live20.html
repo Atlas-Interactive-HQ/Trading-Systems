@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Live20{% endblock %}
+{% block heading %}Live20 practice (DOGE-USDC){% endblock %}
+{% block body %}
+<p class="lede">Read-only chart of public <code>{{ live20.inst_id }}</code> {{ live20.bar }} closes plus fill lines from <code>data/live20/</code> journals. Deze UI plaatst geen orders. <code>not_a_forecast</code>. Geen Phase C. Geen keys.</p>
+
+<section class="card" style="margin-bottom:16px">
+  <h2>Prijs + entries</h2>
+  {% if live20.svg %}
+  <div class="live20-chart-wrap">{{ live20.svg|safe }}</div>
+  <p class="hint">{{ live20.n_bars }} × {{ live20.bar }} public candles · {{ live20.n_fills }} fills. Sell = terracotta, buy = sage.</p>
+  {% else %}
+  <article class="empty">
+    <h2>Geen candles</h2>
+    <p>Public OKX EEA MD ontbreekt of faalde (fail closed). Journals blijven hieronder zichtbaar. {{ live20.md_error or "" }}</p>
+  </article>
+  {% endif %}
+  {% if live20.md_error and live20.svg %}
+  <p class="hint">MD note: {{ live20.md_error }}</p>
+  {% endif %}
+  <p class="hint">Journals-only net DOGE (niet een live balance): <strong>{{ "%.4g"|format(live20.net_doge) }}</strong>{% if live20.net_doge > 0.01 %} — long-ish leftover{% elif live20.net_doge < -0.01 %} — short-ish leftover (sold more than bought back){% else %} — roughly flat in journals{% endif %}.</p>
+</section>
+
+<section class="card">
+  <h2>Fills (avgPx)</h2>
+  {% if not live20.fills %}
+  <p class="hint">Nog geen filled sell_poll / buy_poll rijen. Draai <code>python scripts/okx_tiny_live_roundtrip.py --roundtrip --sz 50</code> op de keyed box, daarna <code>python scripts/run_dashboard.py --live20</code>.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tijd UTC</th>
+        <th>Side</th>
+        <th>avgPx</th>
+        <th>sz</th>
+        <th>ordId</th>
+        <th>fee</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in live20.fills %}
+      <tr>
+        <td>{{ f.ts_utc or "—" }}</td>
+        <td>{{ f.side }}</td>
+        <td>{{ f.px }}</td>
+        <td>{{ f.sz if f.sz is not none else "—" }}</td>
+        <td>{{ f.ord_id or "—" }}</td>
+        <td>{{ f.fee or "—" }} {% if f.fee_ccy %}{{ f.fee_ccy }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{% endblock %}

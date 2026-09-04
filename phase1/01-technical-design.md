@@ -179,6 +179,8 @@ Future professional UI will consume — **do not build UI now**:
 
 **Linkage:** Every bot/strategy decision carries `run_id`, `config_hash`, `symbol`, `venue` so UI can interlink activity timelines with number feeds.
 
+**Dashboard v0 (read-only, later):** local HTML. `python scripts/run_dashboard.py --live20` serves `/live20` — public OKX EEA 5m closes for DOGE-USDC plus horizontal fill lines from `data/live20/` journals. No API keys. No orders. See [`25-live20-roundtrip.md`](./25-live20-roundtrip.md).
+
 ---
 
 ## 8. Execution & cost model (paper / backtest)

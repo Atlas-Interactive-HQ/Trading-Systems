@@ -77,6 +77,9 @@ python scripts/run_dashboard.py --shadow
 
 # EMA paper observer journals (data/ema) — no orders, not Phase A DOGE
 python scripts/run_dashboard.py --ema
+
+# live20 practice journals + public DOGE-USDC chart (no keys, no orders)
+python scripts/run_dashboard.py --live20
 ```
 
 Open **http://127.0.0.1:8787**
@@ -87,6 +90,7 @@ Open **http://127.0.0.1:8787**
 | `/signals` | Latest DOGE spot + X-Perp breakout rows from `decisions.jsonl` (or EMA state with `--ema`) |
 | `/oms` | Decisions / orders / cancels / events from `data/oms/` (or `data/ema/` with `--ema`) |
 | `/eval` | Paper eval tables + EMA observer section when journals exist. **No PnL hero.** |
+| `/live20` | DOGE-USDC public 5m close + live20 fill lines from `data/live20/`. **No keys. No orders.** |
 | `/health` | Pipeline ok/warn/fail — never secrets |
 
 Override data dir: `python scripts/run_dashboard.py --data-dir /path/to/data`  
