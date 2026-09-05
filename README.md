@@ -148,6 +148,14 @@ BTC-USDT **1D** long only if **EMA(12) > EMA(30)** AND **close > prior 20-day hi
 python scripts/run_ema_donchian_confirm_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
 ```
 
+## EMA ATR gate (research)
+
+BTC-USDT **1D** EMA 12/30 long/flat, long only if **SMA-ATR(14)/close ≥ 0.01** (locked, not a grid). Else flat. Never short. Dual-window interesting must both clear or **FAIL**. Docs only — do not promote. Does not change the EMA observer or `config/default.yaml`. See [`phase1/29-ema-atr-gate.md`](./phase1/29-ema-atr-gate.md).
+
+```bash
+python scripts/run_ema_atr_gate_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
+```
+
 ## Config
 
 [`config/default.yaml`](./config/default.yaml) — venues, symbols, OKX EEA bases/modes/universe, **local paper + breakout v1**, secrets **path placeholders**.

@@ -37,6 +37,7 @@
 | [26-ema-12-21.md](./26-ema-12-21.md) | EMA 12/21 vs locked 12/30 on BTC-USDT 1D; observer default stays 12/30; not live |
 | [27-ema-donchian-confirm.md](./27-ema-donchian-confirm.md) | EMA 12/30 AND Donchian 20/10 confirm on BTC-USDT 1D; dual-window FAIL unless both clear; not live |
 | [28-live20-resting-exits.md](./28-live20-resting-exits.md) | Manual live20 resting limit TP / protect-limit (leave on book); tiny_live gate; not auto-TP |
+| [29-ema-atr-gate.md](./29-ema-atr-gate.md) | EMA 12/30 + locked ATR(14)/close ≥ 0.01 gate on BTC-USDT 1D; dual-window FAIL unless both clear; not live |
 
 ## Locked highlights (see 00 for full list)
 
