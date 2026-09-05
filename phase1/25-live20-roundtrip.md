@@ -37,6 +37,8 @@ python scripts/okx_tiny_live_roundtrip.py --buy-back
 
 Read-only chart (no keys): `python scripts/run_dashboard.py --live20` → **http://127.0.0.1:8787/live20** — public OKX EEA 5m closes for DOGE-USDC plus horizontal lines at filled `avgPx`. If public MD fails, the fills table still shows. The UI never places orders.
 
+Resting take-profit / protect-limit (leave on the book, do not auto-cancel): [`28-live20-resting-exits.md`](./28-live20-resting-exits.md) — `python scripts/okx_tiny_live_exit.py`. Still not a weekday auto-TP.
+
 Do **not** install a cron / Grok Bot routine from this document.
 
 ## What this is not
