@@ -203,7 +203,7 @@ Live mode:
 - `allow_trade=True` is rejected at init **unless** `tiny_live=True` (see [`phase1/23-tiny-live.md`](./phase1/23-tiny-live.md): notional ≤ €20, limit only)
 - read-only account/config/positions/funding GET are allowed without `tiny_live`
 
-`scripts/okx_auth_smoke.py` always uses `allow_trade=False` (balance read only). Tiny-live smoke is `scripts/okx_tiny_live_smoke.py` (read-only unless **both** `--place-far-limit` and `--cancel`). Manual ≤€20 DOGE-USDC fill practice: `scripts/okx_tiny_live_roundtrip.py` (read-only unless `--roundtrip` / `--sell-fill` / `--buy-back`; see [`phase1/25-live20-roundtrip.md`](./phase1/25-live20-roundtrip.md)).
+`scripts/okx_auth_smoke.py` always uses `allow_trade=False` (balance read only). Tiny-live smoke is `scripts/okx_tiny_live_smoke.py` (read-only unless **both** `--place-far-limit` and `--cancel`). Manual ≤€20 DOGE-USDC fill practice: `scripts/okx_tiny_live_roundtrip.py` (read-only unless `--roundtrip` / `--sell-fill` / `--buy-back`; see [`phase1/25-live20-roundtrip.md`](./phase1/25-live20-roundtrip.md)). Resting limit TP / protect-limit (leave on the book): `scripts/okx_tiny_live_exit.py` (read-only unless `--place-tp` / `--place-protect-limit` / `--cancel-ord` / `--cancel-all-pending`; see [`phase1/28-live20-resting-exits.md`](./phase1/28-live20-resting-exits.md)). Not a weekday auto-TP.
 
 ## Local paper (Phase 1.5)
 

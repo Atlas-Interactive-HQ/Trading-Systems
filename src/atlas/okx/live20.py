@@ -31,6 +31,7 @@ QUOTE_FEE_BUFFER = 0.995
 FILLED_STATES = frozenset({"filled"})
 DONE_STATES = frozenset({"filled", "canceled", "cancelled", "mmp_canceled"})
 SOURCE = "live20-roundtrip"
+SOURCE_EXIT = "live20-resting-exits"
 
 
 def _row0(payload: dict[str, Any]) -> dict[str, Any]:
@@ -139,6 +140,39 @@ def order_view(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def pending_public(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    data = payload.get("data") or []
+    rows: list[dict[str, Any]] = []
+    if not isinstance(data, list):
+        return rows
+    for d in data:
+        if not isinstance(d, dict):
+            continue
+        rows.append(
+            {
+                "ordId": d.get("ordId"),
+                "instId": d.get("instId"),
+                "side": d.get("side"),
+                "px": d.get("px"),
+                "sz": d.get("sz"),
+                "state": d.get("state"),
+                "ordType": d.get("ordType"),
+            }
+        )
+    return rows
+
+
+def mid_px(book: dict[str, float | None]) -> float | None:
+    bid = book.get("bid")
+    ask = book.get("ask")
+    if bid is not None and ask is not None and float(bid) > 0 and float(ask) > 0:
+        return (float(bid) + float(ask)) / 2.0
+    last = book.get("last")
+    if last is not None and float(last) > 0:
+        return float(last)
+    return None
+
+
 def clamp_max_notional(raw: float) -> float:
     cap = float(TINY_LIVE_NOTIONAL_CAP)
     v = float(raw)
@@ -150,8 +184,9 @@ def clamp_max_notional(raw: float) -> float:
 class Live20Journal:
     """Append-only JSONL under data/live20/{UTC-date}/. No secrets."""
 
-    def __init__(self, data_dir: str | Path) -> None:
+    def __init__(self, data_dir: str | Path, *, source: str = SOURCE) -> None:
         self.root = Path(data_dir) / "live20"
+        self.source = str(source or SOURCE)
         self._lock = threading.Lock()
         self._seq = 0
 
@@ -162,13 +197,13 @@ class Live20Journal:
             seq = self._seq
         row = redact_record(
             {
-                "source": SOURCE,
+                "source": self.source,
                 "seq": seq,
                 "place_orders": False,
                 "not_a_forecast": True,
                 **record,
                 "ts_ms": ts,
-                "source": SOURCE,
+                "source": self.source,
             }
         )
         directory = self.root / utc_date_str(ts)
@@ -215,6 +250,7 @@ def snapshot(client: OkxEeaClient, inst_id: str) -> dict[str, Any]:
         "funding_balances": public_asset(funding),
         "pending_n": len(pending.get("data") or []) if isinstance(pending.get("data"), list) else 0,
         "pending_code": pending.get("code"),
+        "pending_orders": pending_public(pending),
     }
 
 
@@ -553,6 +589,293 @@ def run_roundtrip(
             "sold": result.get("sold"),
             "bought": result.get("bought"),
             "n_posts": n_posts,
+        },
+    )
+    result["journals"] = {"root": str(journal.root)}
+    return result
+
+
+def _fail_closed(result: dict[str, Any], journal: Live20Journal, error: str) -> dict[str, Any]:
+    result["ok"] = False
+    result["error"] = error
+    journal.append("events", {"kind": "error", "error": error})
+    return result
+
+
+def run_resting_exits(
+    client: OkxEeaClient,
+    *,
+    place_tp: bool = False,
+    place_protect: bool = False,
+    cancel_ord: str | None = None,
+    cancel_all: bool = False,
+    px: float | None = None,
+    tp_pct: float | None = None,
+    sz: str | None = None,
+    inst_id: str = LOCKED_INST,
+    max_notional: float = PRACTICE_NOTIONAL_DEFAULT,
+    data_dir: str | Path = "data",
+) -> dict[str, Any]:
+    """Read-only snapshot, or place/cancel resting limit exits. Never market. Never auto-cancel a new place."""
+    cancel_id = str(cancel_ord).strip() if cancel_ord not in (None, "") else ""
+    mutate = bool(place_tp or place_protect or cancel_id or cancel_all)
+    max_n = clamp_max_notional(max_notional)
+    journal = Live20Journal(data_dir, source=SOURCE_EXIT)
+    try:
+        inst = assert_spot_inst_id(inst_id)
+    except ValueError as exc:
+        return {
+            "ok": False,
+            "dry_run": not mutate,
+            "error": str(exc),
+            "place_orders": False,
+            "not_a_forecast": True,
+            "source": SOURCE_EXIT,
+        }
+    snap = snapshot(client, inst)
+    book = {"last": snap.get("last"), "bid": snap.get("bid"), "ask": snap.get("ask")}
+    mid = mid_px(book)  # type: ignore[arg-type]
+    result: dict[str, Any] = {
+        "ok": True,
+        "dry_run": not mutate,
+        "mode": client.mode,
+        "tiny_live": bool(getattr(client, "tiny_live", False)),
+        "place_orders": False,
+        "not_a_forecast": True,
+        "source": SOURCE_EXIT,
+        "instId": inst,
+        "max_notional": max_n,
+        "notional_cap": TINY_LIVE_NOTIONAL_CAP,
+        "snapshot": snap,
+        "mid": mid,
+        "n_posts": 0,
+        "placed": [],
+        "canceled": [],
+        "left_resting": True,
+        "disclaimer": (
+            "live20 resting exits. not_a_forecast. not Phase C. not a weekday auto-TP. "
+            "limit only. never market. never exchange stop. leave resting (no auto-cancel). "
+            "cap 20 unchanged. protect-limit is NOT a stop-loss."
+        ),
+    }
+    journal.append(
+        "events",
+        {
+            "kind": "session_start",
+            "dry_run": not mutate,
+            "place_tp": place_tp,
+            "place_protect": place_protect,
+            "cancel_ord": cancel_id or None,
+            "cancel_all": cancel_all,
+            "instId": inst,
+            "sz": sz,
+            "pending_n": snap.get("pending_n"),
+        },
+    )
+    if not mutate:
+        result["note"] = (
+            "read-only. mutating requires --place-tp, --place-protect-limit, "
+            "--cancel-ord, and/or --cancel-all-pending."
+        )
+        result["journals"] = {"root": str(journal.root)}
+        return result
+
+    # Fail closed on incomplete flags *before* any POST.
+    if place_tp and place_protect:
+        if tp_pct is None or px is None:
+            return _fail_closed(
+                result,
+                journal,
+                "place-tp + place-protect-limit needs --tp-pct (TP) and --px (protect) (fail closed, no POST)",
+            )
+    elif place_tp:
+        has_px = px is not None
+        has_pct = tp_pct is not None
+        if has_px == has_pct:
+            return _fail_closed(
+                result,
+                journal,
+                "--place-tp requires exactly one of --px or --tp-pct (fail closed, no POST)",
+            )
+    elif place_protect:
+        if px is None:
+            return _fail_closed(
+                result,
+                journal,
+                "--place-protect-limit requires --px below mid (fail closed, no POST)",
+            )
+        if tp_pct is not None:
+            return _fail_closed(
+                result,
+                journal,
+                "--place-protect-limit does not take --tp-pct (fail closed, no POST)",
+            )
+
+    if place_tp or place_protect:
+        if sz in (None, ""):
+            return _fail_closed(
+                result, journal, "place requires --sz N (fail closed, no POST)"
+            )
+        try:
+            size = float(sz)
+        except (TypeError, ValueError):
+            return _fail_closed(result, journal, "invalid --sz (fail closed, no POST)")
+        if size <= 0:
+            return _fail_closed(result, journal, "invalid --sz (fail closed, no POST)")
+
+    if (place_tp or place_protect) and mid is None:
+        return _fail_closed(result, journal, "no mid (bid/ask/last) (fail closed, no POST)")
+
+    tp_px: float | None = None
+    protect_px: float | None = None
+    if place_tp:
+        if tp_pct is not None:
+            try:
+                pct = float(tp_pct)
+            except (TypeError, ValueError):
+                return _fail_closed(result, journal, "invalid --tp-pct (fail closed, no POST)")
+            if pct <= 0:
+                return _fail_closed(
+                    result, journal, "--tp-pct must be > 0 (fail closed, no POST)"
+                )
+            tp_px = float(mid) * (1.0 + pct / 100.0)  # type: ignore[arg-type]
+        else:
+            try:
+                tp_px = float(px)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return _fail_closed(result, journal, "invalid --px (fail closed, no POST)")
+        if tp_px <= float(mid):  # type: ignore[arg-type]
+            return _fail_closed(
+                result,
+                journal,
+                f"TP px {tp_px} must be above mid {mid} (fail closed, no POST)",
+            )
+    if place_protect:
+        try:
+            protect_px = float(px)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return _fail_closed(result, journal, "invalid --px (fail closed, no POST)")
+        if protect_px >= float(mid):  # type: ignore[arg-type]
+            return _fail_closed(
+                result,
+                journal,
+                f"protect px {protect_px} must be below mid {mid} (limit-only, NOT a stop) "
+                "(fail closed, no POST)",
+            )
+
+    n_posts = 0
+
+    def _cancel_one(oid: str) -> dict[str, Any]:
+        nonlocal n_posts
+        cancel = client.cancel_order(instId=inst, ordId=str(oid))
+        n_posts += 1
+        view = order_view(cancel)
+        rec = {"ok": str(cancel.get("code")) == "0", "ordId": oid, "cancel": view}
+        journal.append("events", {"kind": "cancel", "ordId": oid, **view})
+        result["canceled"].append(rec)
+        return rec
+
+    if cancel_id:
+        pending_ids = {str(r.get("ordId") or "") for r in (snap.get("pending_orders") or [])}
+        pending_inst = {
+            str(r.get("ordId") or ""): str(r.get("instId") or "")
+            for r in (snap.get("pending_orders") or [])
+        }
+        if pending_inst.get(cancel_id) not in (inst, "", None) and cancel_id in pending_ids:
+            return _fail_closed(
+                result,
+                journal,
+                f"ordId {cancel_id} is not {inst} (fail closed, no POST)",
+            )
+        _cancel_one(cancel_id)
+
+    if cancel_all:
+        for row in snap.get("pending_orders") or []:
+            oid = str(row.get("ordId") or "")
+            row_inst = str(row.get("instId") or inst)
+            if not oid or row_inst != inst:
+                continue
+            if cancel_id and oid == cancel_id:
+                continue
+            _cancel_one(oid)
+
+    if place_tp and tp_px is not None:
+        journal.append(
+            "events",
+            {
+                "kind": "intent",
+                "role": "tp",
+                "side": "sell",
+                "instId": inst,
+                "sz": str(sz),
+                "px": tp_px,
+                "ordType": "limit",
+                "leave_resting": True,
+            },
+        )
+        placed = _place_limit(
+            client, inst=inst, side="sell", sz=str(sz), px=float(tp_px), max_notional=max_n
+        )
+        n_posts += 1
+        result["tp_place"] = placed
+        result["placed"].append({"role": "tp", **placed})
+        journal.append("events", {"kind": "tp_place", "leave_resting": True, **placed})
+        if not placed.get("ok"):
+            result["ok"] = False
+            result["error"] = placed.get("error") or "tp place failed"
+            result["n_posts"] = n_posts
+            result["journals"] = {"root": str(journal.root)}
+            return result
+
+    if place_protect and protect_px is not None:
+        journal.append(
+            "events",
+            {
+                "kind": "intent",
+                "role": "protect_limit",
+                "side": "sell",
+                "instId": inst,
+                "sz": str(sz),
+                "px": protect_px,
+                "ordType": "limit",
+                "leave_resting": True,
+                "not_a_stop": True,
+            },
+        )
+        placed = _place_limit(
+            client,
+            inst=inst,
+            side="sell",
+            sz=str(sz),
+            px=float(protect_px),
+            max_notional=max_n,
+        )
+        n_posts += 1
+        result["protect_place"] = placed
+        result["placed"].append({"role": "protect_limit", **placed})
+        journal.append(
+            "events",
+            {"kind": "protect_place", "leave_resting": True, "not_a_stop": True, **placed},
+        )
+        if not placed.get("ok"):
+            result["ok"] = False
+            result["error"] = placed.get("error") or "protect place failed"
+            result["n_posts"] = n_posts
+            result["journals"] = {"root": str(journal.root)}
+            return result
+
+    result["n_posts"] = n_posts
+    result["ok"] = True
+    result["left_resting"] = True
+    journal.append(
+        "events",
+        {
+            "kind": "session_end",
+            "ok": True,
+            "n_posts": n_posts,
+            "left_resting": True,
+            "n_placed": len(result["placed"]),
+            "n_canceled": len(result["canceled"]),
         },
     )
     result["journals"] = {"root": str(journal.root)}
