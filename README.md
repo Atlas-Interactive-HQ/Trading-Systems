@@ -156,6 +156,14 @@ BTC-USDT **1D** EMA 12/30 long/flat, long only if **SMA-ATR(14)/close ≥ 0.01**
 python scripts/run_ema_atr_gate_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
 ```
 
+## EMA persist-2 entry (research)
+
+BTC-USDT **1D** EMA 12/30 long/flat with **asymmetric persist-2 entry**: enter long only after **two consecutive** closed bars with EMA12>EMA30; exit on the first closed bar with EMA12≤EMA30. Never short. Side-by-side vs locked 12/30. **PASS/FAIL** docs only — do not promote. Observer stays **12/30** under `data/ema/`. No persist=3/4/5 sweeps. See [`phase1/31-ema-persist2-entry.md`](./phase1/31-ema-persist2-entry.md).
+
+```bash
+python scripts/run_ema_persist2_eval.py --windows 2020-09,2023-09,2022-bear,2023-chop
+```
+
 ## Config
 
 [`config/default.yaml`](./config/default.yaml) — venues, symbols, OKX EEA bases/modes/universe, **local paper + breakout v1**, secrets **path placeholders**.
