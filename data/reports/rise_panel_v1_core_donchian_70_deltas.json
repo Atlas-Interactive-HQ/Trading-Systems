@@ -1,0 +1,65 @@
+{
+  "core_baseline_id": "rise_panel_v1_core_doge_ema12_30_1d_eur140",
+  "core_improve_id": "rise_panel_v1_core_doge_donchian20_10_1d_eur140",
+  "deltas": {
+    "compare_to": "rise_panel_v1_core_doge_ema12_30_1d_eur140",
+    "improve_id": "rise_panel_v1_core_doge_donchian20_10_1d_eur140",
+    "median_expectancy_eur": {
+      "baseline": -2.95452845,
+      "delta": 2.25254302,
+      "improve": -0.70198543
+    },
+    "median_trades": {
+      "baseline": 1.0,
+      "delta": 0.0,
+      "improve": 1.0
+    },
+    "n_exp_gt_0": {
+      "baseline": 2,
+      "delta": 0,
+      "improve": 2
+    },
+    "not_a_forecast": true,
+    "note": "Promote-as-better ONLY if panel_net higher than Core EMA. Core EMA often thin n / BH-like \u2014 soft PASS alone \u2260 Core-arm.",
+    "panel_net_eur": {
+      "baseline": 363.99833497,
+      "delta": -115.83429945,
+      "improve": 248.16403552
+    },
+    "place_orders": false,
+    "promote_as_better": false
+  },
+  "not_a_forecast": true,
+  "ok": true,
+  "place_orders": false,
+  "soft_promote_improve": {
+    "differs_from_core_style_ab": true,
+    "expectancy_gt_0_ok": false,
+    "gate": "soft_promote_v1",
+    "gate_note": "INTENTIONAL labeled gate \u2014 NOT a silent rewrite of core_style_return A\u2227B three-stream board. median_trades\u226b0 (coded >=1) AND >=5/7 exp>0 AND panel_net>0.",
+    "median_expectancy_eur": -0.70198543,
+    "median_trades": 1.0,
+    "median_trades_min": 1,
+    "median_trades_ok": true,
+    "n_expectancy_gt_0": 2,
+    "n_expectancy_gt_0_required": 5,
+    "n_net_gt_0": 6,
+    "n_trades_per_window": [
+      1,
+      1,
+      1,
+      0,
+      1,
+      2,
+      0
+    ],
+    "n_windows": 7,
+    "not_a_forecast": true,
+    "panel_net_eur": 248.16403552,
+    "panel_net_ok": true,
+    "pass": false,
+    "place_orders": false,
+    "verdict": "FAIL",
+    "worst_dd_eur": 91.47954686
+  }
+}
