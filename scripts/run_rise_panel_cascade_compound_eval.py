@@ -34,6 +34,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--data-dir", default=None)
     p.add_argument("--pause-s", type=float, default=0.12)
     p.add_argument("--write-md", default="phase1/55-rise-panel-cascade-compound.md")
+    p.add_argument(
+        "--scalp-mode",
+        choices=("1h_daily_bull", "4h_ema"),
+        default="1h_daily_bull",
+        help="1h_daily_bull=#55 provisional; 4h_ema=#57 Scalp improve",
+    )
     args = p.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -45,8 +51,15 @@ def main(argv: list[str] | None = None) -> int:
     reports = data_dir / "reports"
     reports.mkdir(parents=True, exist_ok=True)
 
-    bundle = run_cascade_compound_panel(cfg, data_dir=data_dir, pause_s=args.pause_s)
-    path = write_report_json(bundle, reports / "rise_panel_v1_cascade_compound.json")
+    bundle = run_cascade_compound_panel(
+        cfg, data_dir=data_dir, pause_s=args.pause_s, scalp_mode=args.scalp_mode
+    )
+    out_name = (
+        "rise_panel_v1_cascade_compound_scalp4h.json"
+        if args.scalp_mode == "4h_ema"
+        else "rise_panel_v1_cascade_compound.json"
+    )
+    path = write_report_json(bundle, reports / out_name)
     print(
         json.dumps(
             {
