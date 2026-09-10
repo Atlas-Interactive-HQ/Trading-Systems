@@ -5,6 +5,11 @@
 **Family:** Mid **EMA12/30 long/flat** on **DOGE-USDT 1D** — SAME Core rule (`EmaTrendV1` / `walk_long_flat` / three-tier Core arm) at Mid €40. **Gate:** Core-style RETURN (honest reuse of what measured plus). **This gate intentionally differs from Mid #36–#40 holdout-expectancy gate** (fragile low-n). Scalp halted.
 
 ## Verdict set A: **PASS**
+## Verdict set B: **FAIL**
+
+> **Dual-window disclaimer:** #41 is **NOT dual-window robust**. Set A PASSed under `core_style_return`; alternate set B **FAIL**ed (only B1 clean). Do **not** treat set A alone as OOS-confirmed across both window packs. This remains Core-style EMA long/flat on a Mid €40 sleeve — not HF Mid, not a live promote, not auto €200.
+
+**Caveats kept:** gate label `core_style_return` (differs from #36–#40 holdout-exp); holdout `n_trades=0` requires TIM≥0.8 + marked net>0; **A2 Mid max DD ≈ €292 equals BH DD** on a €40 sleeve (relative DD gate only — not a live Mid risk profile).
 
 ## Rule cards
 
@@ -103,12 +108,86 @@ Mid score: gate=core_style_return full_pass=True net>0=True dd_ok=True holdout_o
 
 **Scalp:** OUT of this trial (halt).
 
+
+## Results — alternate set B (no param rescue)
+
+**Overall: FAIL**
+
+Measured from `data/reports/mid_doge_ema_coregate_B.json`. Same locked `core_style_return` gate as set A — **no strategy param rescue**.
+
+- Mid: FAIL (clean_pass=['B1'] only; full+=['B1', 'B3']; holdout_fail=['B3']; B2 full net<0; n_trades=[0, 2, 1]; TIM=['0.5714', '0.3933', '0.8901']; median_trades=1.0; low_n_ok=True)
+- Scalp: OUT of trial
+- Core: informational only (not in overall gate)
+- Gate: `core_style_return` — differs_from_holdout_exp_gate=True
+
+### B1 — 2020-10-01 → 2020-12-31 UTC
+
+MD bars: daily(pad)=131 trade=91 holdout=28
+
+**Core (informational — EMA12/30 long / BH on DOGE-USDT €140)**
+
+| arm | net € | max DD € | n_trades | fee € | BH net € | BH DD € |
+|---|---:|---:|---:|---:|---:|---:|
+| EMA | 100.9579 | 53.4298 | 0 | 0.0700 | 104.3781 | 54.2424 |
+
+**Mid (DOGE EMA12/30 long/flat full-sleeve €40; Core-style RETURN gate; DD≤BH×1.1 else ≤€20.0)**
+
+| slice | n_trades | expectancy €/trade | net € | max DD € | fee € | TIM | BH DD € |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| full | 0 | NaN | 28.8451 | 15.2657 | 0.0200 | 0.5714 | 15.4978 |
+| holdout | 0 | NaN | 12.9730 | 11.7462 | 0.0200 | 1.0000 | 11.7462 |
+Mid score: gate=core_style_return full_pass=True net>0=True dd_ok=True holdout_ok=True (dd_rule: dd<=BH×1.1 (cap=17.0476, bh_dd=15.49783575); holdout: holdout net_return>0; if n_trades=0 require TIM≥0.8 and marked net>0 (NOT holdout-expectancy — differs from Mid #36–#40)) — **clean**
+
+**Scalp:** OUT of this trial (halt).
+
+### B2 — 2023-01-01 → 2023-03-31 UTC
+
+MD bars: daily(pad)=129 trade=89 holdout=27
+
+**Core (informational — EMA12/30 long / BH on DOGE-USDT €140)**
+
+| arm | net € | max DD € | n_trades | fee € | BH net € | BH DD € |
+|---|---:|---:|---:|---:|---:|---:|
+| EMA | -8.6474 | 28.2935 | 2 | 0.2741 | 11.4788 | 60.5559 |
+
+**Mid (DOGE EMA12/30 long/flat full-sleeve €40; Core-style RETURN gate; DD≤BH×1.1 else ≤€20.0)**
+
+| slice | n_trades | expectancy €/trade | net € | max DD € | fee € | TIM | BH DD € |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| full | 2 | -1.2353 | -2.4707 | 8.0839 | 0.0783 | 0.3933 | 17.3017 |
+| holdout | 0 | NaN | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 6.3017 |
+Mid score: gate=core_style_return full_pass=False net>0=False dd_ok=True holdout_ok=None (dd_rule: dd<=BH×1.1 (cap=19.0319, bh_dd=17.30169164)) — **FAIL full net<0**
+
+**Scalp:** OUT of this trial (halt).
+
+### B3 — 2024-10-01 → 2024-12-31 UTC
+
+MD bars: daily(pad)=131 trade=91 holdout=28
+
+**Core (informational — EMA12/30 long / BH on DOGE-USDT €140)**
+
+| arm | net € | max DD € | n_trades | fee € | BH net € | BH DD € |
+|---|---:|---:|---:|---:|---:|---:|
+| EMA | 272.9236 | 197.4927 | 1 | 0.2765 | 273.6432 | 197.4927 |
+
+**Mid (DOGE EMA12/30 long/flat full-sleeve €40; Core-style RETURN gate; DD≤BH×1.1 else ≤€20.0)**
+
+| slice | n_trades | expectancy €/trade | net € | max DD € | fee € | TIM | BH DD € |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| full | 1 | 77.9782 | 77.9782 | 56.4265 | 0.0790 | 0.8901 | 56.4265 |
+| holdout | 1 | -7.8548 | -7.8548 | 15.3744 | 0.0361 | 0.6429 | 15.3744 |
+Mid score: gate=core_style_return full_pass=True net>0=True dd_ok=True holdout_ok=False (dd_rule: dd<=BH×1.1 (cap=62.0691, bh_dd=56.42648007); holdout net_return<0) — **FAIL holdout red**
+
+**Scalp:** OUT of this trial (halt).
+
 ## What not to rescue
 
 - Do **not** change EMA periods, sleeve size, bar size, or costs to chase PASS.
 - Do **not** invent bars, drop windows, or claim live readiness.
 - Do **not** place live orders from this research.
 - On red PnL: try alternate windows (set B) before changing rules.
+- Set B already measured: **FAIL** — do **not** drop set B or rewrite the gate to claim dual-window PASS.
+- Do **not** promote #41 to HF Mid live or auto €200; A2 DD≈BH on €40 is a relative-gate artifact.
 - Do **not** change `config/default.yaml`.
 - Do **not** revert to #36–#40 holdout-expectancy scoring for this trial.
 
