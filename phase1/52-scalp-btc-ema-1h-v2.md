@@ -1,16 +1,38 @@
-# 50 — Scalp BTC EMA12/30 on **1H** + daily EMA bull (Scalp sleeve; Mid/Core OUT)
+# 52 — Scalp BTC EMA12/30 on **1H** + daily EMA bull — confirmation_windows_v2 (Scalp sleeve; Mid/Core OUT)
 
 **Stance:** Research. `not_a_forecast: true`. Never places orders. Do not headline PnL.
 **Config:** `config/default.yaml` **untouched**.
-**Family:** Scalp **EMA12/30 long/flat** on **BTC-USDT 1H** + **daily EMA12>EMA30** filter ON for **new longs** (bull focus — entry gate); sleeve €20. SAME Core EMA rule spirit (`EmaTrendV1` / Mid #41 / Mid #45 / Scalp #48) scaled to Scalp €20 on 1H for BTC. **Gate:** Core-style RETURN (intentional). **`differs_from_holdout_exp_gate: true`** — reason: Scalp 1H EMA holdouts can be thin / fragile for holdout-expectancy (low n or n=0 common); reuse Core-style RETURN measurement (Mid #41 / #45 / Scalp #46 / #48 pattern) scaled to Scalp €20 instead of Mid #36–#44 holdout-exp gate. Mid/Core halted.
+**Family:** Scalp **EMA12/30 long/flat** on **BTC-USDT 1H** + **daily EMA12>EMA30** filter ON for **new longs** (bull focus — entry gate); sleeve €20. SAME rule as Scalp #50. **Gate:** Core-style RETURN (intentional). **`differs_from_holdout_exp_gate: true`** — reason: Scalp 1H EMA holdouts can be thin / fragile for holdout-expectancy (low n or n=0 common); reuse Core-style RETURN measurement (Mid #41 / #45 / Scalp #46 / #48 pattern) scaled to Scalp €20 instead of Mid #36–#44 holdout-exp gate. **`confirmation_windows_v2: true`**. Mid/Core halted. BTC research-only.
 
-> **Gate locked BEFORE score:** `core_style_return` dual-window — set A **and** set B each need ≥2/3 clean windows (FULL net>0 after costs + DD≤BH×1.1 else abs €10 + holdout net>0 or n=0&TIM≥0.8&marked net>0). Expectancy always documented. `differs_from_holdout_exp_gate: true`.
+> **Gate locked BEFORE score:** `core_style_return` dual-window — set A **and** set B each need ≥2/3 clean windows (FULL net>0 after costs + DD≤BH×1.1 else abs €10 + holdout net>0 or n=0&TIM≥0.8&marked net>0). Expectancy always documented. `differs_from_holdout_exp_gate: true`. `confirmation_windows_v2: true`.
 
 ## Verdict set A: **PASS**
 ## Verdict set B: **FAIL**
 
 **Dual-window robust:** NO (requires A PASS **and** B PASS under locked `core_style_return`).
 On FAIL: **no** EMA period / TF / asset / costs grind; do **not** silently revert windows; archive; report only. Do not propose Scalp param / asset / TF rescue from this trial.
+
+## Windows LOCKED before scoring (`confirmation_windows_v2`)
+
+### Set A — SAME as #50 / PRIMARY_SET_A
+
+| id | start | end |
+|----|-------|-----|
+| A1 | 2023-10-01 | 2023-12-31 |
+| A2 | 2021-01-01 | 2021-03-31 |
+| A3 | 2024-02-01 | 2024-04-30 |
+
+### Set B — bull-only alternate (NEW; not old #50 B2/B3)
+
+**Reason:** Prior #50 B included non-bull / holdout-fragile windows while A PASSed on bull focus.
+
+| id | start | end | note |
+|----|-------|-----|------|
+| B1 | 2020-10-01 | 2020-12-31 | 2020-10-01 → 2020-12-31 UTC (late-2020 bull run-up) |
+| B2 | 2023-07-01 | 2023-09-30 | 2023-07-01 → 2023-09-30 UTC (Q3-2023 bull / pre-ETF) |
+| B3 | 2024-05-01 | 2024-07-31 | 2024-05-01 → 2024-07-31 UTC (post-halving early-summer 2024) |
+
+Excluded old B2 `2023-01-01→2023-03-31` and old B3 `2024-10-01→2024-12-31`. No overlap with PRIMARY_SET_A.
 
 ## Rule cards (LOCKED before scoring)
 
@@ -28,7 +50,7 @@ On FAIL: **no** EMA period / TF / asset / costs grind; do **not** silently rever
 - Bar: **1H**.
 - Expectancy: **always documented**; not the PASS gate.
 - Low n_trades: **OK** (document n_trades / TIM / expectancy; not a FAIL gate).
-- Windows: same A/B calendars as recent Mid/Scalp trials mapped to 1H bars; MD fallbacks labeled.
+- Windows: set A = PRIMARY_SET_A (#50); set B = bull-only `confirmation_windows_v2` (#52); MD fallbacks labeled.
 
 ### Mid / Core
 
@@ -41,7 +63,7 @@ On FAIL: **no** EMA period / TF / asset / costs grind; do **not** silently rever
 3. Dual-window: set **A PASS and set B PASS**.
 4. Document n_trades / TIM / expectancy; low n OK (not a FAIL gate).
 
-> **Note:** `differs_from_holdout_exp_gate: true` — Scalp 1H EMA holdouts can be thin / fragile for holdout-expectancy (low n or n=0 common); reuse Core-style RETURN measurement (Mid #41 / #45 / Scalp #46 / #48 pattern) scaled to Scalp €20 instead of Mid #36–#44 holdout-exp gate. Prior holdout-exp trials: ['#36', '#37', '#38', '#39', '#40', '#42', '#43', '#44'].
+> **Note:** `differs_from_holdout_exp_gate: true` — Scalp 1H EMA holdouts can be thin / fragile for holdout-expectancy (low n or n=0 common); reuse Core-style RETURN measurement (Mid #41 / #45 / Scalp #46 / #48 pattern) scaled to Scalp €20 instead of Mid #36–#44 holdout-exp gate. Prior holdout-exp trials: ['#36', '#37', '#38', '#39', '#40', '#42', '#43', '#44']. `confirmation_windows_v2: true` — bull-only alternate B (see locked table).
 
 ## Results — primary set A
 
@@ -94,7 +116,7 @@ Scalp score: gate=core_style_return full_pass=True net>0=True dd_ok=True holdout
 
 **Mid / Core:** OUT of this trial.
 
-## Results — alternate set B (no param rescue)
+## Results — alternate set B bull-only v2 (no param rescue)
 
 **Overall: FAIL**
 
@@ -150,8 +172,8 @@ Scalp score: gate=core_style_return full_pass=False net>0=False dd_ok=True holdo
 - Do **not** change EMA periods, sleeve size, bar size, daily filter, asset, or costs to chase PASS.
 - Do **not** invent bars, drop windows, or claim live readiness.
 - Do **not** place live orders from this research.
-- On FAIL: archive; report only — **no** EMA period / TF / asset / costs grind.
+- On FAIL: archive; report only — **no** EMA period / TF / asset / costs grind; **do not silently revert windows**.
 - Do **not** change `config/default.yaml`.
 - Do **not** revert to #36–#44 holdout-expectancy scoring for this trial.
 
-`source: scalp_btc_ema_1h` · `bar: 1H` · `place_orders: false` · `not_a_forecast: true` · `gate: core_style_return` · `differs_from_holdout_exp_gate: true`
+`source: scalp_btc_ema_1h_v2` · `bar: 1H` · `place_orders: false` · `not_a_forecast: true` · `gate: core_style_return` · `differs_from_holdout_exp_gate: true` · `confirmation_windows_v2: true`
