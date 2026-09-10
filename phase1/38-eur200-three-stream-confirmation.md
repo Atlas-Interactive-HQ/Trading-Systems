@@ -49,8 +49,8 @@ RAISE "ga live €200" ONLY when ALL THREE confirmed + Kaje phrase
 Core  : CONFIRMED (design) — EMA12/30 DOGE long/flat
 Mid   : CONFIRMED (research) — #51 BTC 1D EMA12/30 dual A∧B PASS;
         sleeve €40; caveat n≈0/TIM≈BH on clean windows; BTC research-only
-Scalp : FAIL archive #52 — same #50 rule + bull-only B v2 (A PASS / B FAIL);
-        sleeve €20; no window revert / no EMA-TF grind; BTC research-only
+Scalp : PENDING — #52 FAIL archived (A PASS / B FAIL, bull-only B v2);
+        next #53 BTC 1D EMA €20 (Mid #51 twin); BTC research-only
 Cascade: Scalp → Mid → Core one-way only
 Red PnL: other periods BEFORE grinding a FAIL rule
 Live NOW: ≤€20 + session-ja; Mid/Scalp HALTED; no auto €200
@@ -64,9 +64,9 @@ Parent : phase1/32 + 37 + this 38
 |--------|--------|----------------|------|--------|
 | Core | policy share of €200 (design) | EMA12/30 long/flat | primary choppy-bull PASS | **CONFIRMED** (design) |
 | Mid | €40 | #51 BTC 1D EMA12/30 PASS (PR #48) · caveat: clean windows often n=0 TIM≈1.0 ≈BH open-hold, not HF Mid · BTC research-only | `core_style_return` A∧B | **CONFIRMED** (research + caveat) |
-| Scalp | €20 | #46/#48/#50/#52 FAIL — #52 A PASS / B FAIL on bull-only `confirmation_windows_v2` (archived; no grind; no window revert) | `core_style_return` A∧B | **FAIL** (archived) |
+| Scalp | €20 | #46/#48/#50/#52 FAIL · #52 A+/B− on bull-only `confirmation_windows_v2` (archived) · next #53 BTC 1D EMA €20 | `core_style_return` A∧B | **PENDING** |
 
 Live trade gate until board is all CONFIRMED + Kaje phrase: **TINY ≤ €20**.
 
 **2026-09-10 Mid #51:** CONFIRMED with caveat (n≈0 / TIM≈BH).
-**2026-09-10 Scalp #52:** FAIL (A PASS / B FAIL on bull-only confirmation_windows_v2; B2/B3 full net≤0). Archived; no EMA/TF/asset/costs grind; windows not reverted. Three-stream still blocked on **Scalp**. Live remains DOGE tiny ≤€20; no BTC arming; no `ga live €200` until Scalp CONFIRMED + Kaje phrase.
+**2026-09-10 Scalp #52:** FAIL (A PASS / B FAIL on bull-only confirmation_windows_v2; B2/B3 full net≤0). Archived; no grind; windows not reverted. Next #53 BTC 1D EMA scalp twin. Three-stream still blocked on **Scalp**. Live remains DOGE tiny ≤€20; no BTC arming; no `ga live €200` until Scalp CONFIRMED + Kaje phrase.
