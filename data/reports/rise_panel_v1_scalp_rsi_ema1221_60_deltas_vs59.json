@@ -1,0 +1,63 @@
+{
+  "deltas_vs_59": {
+    "compare_to": "rise_panel_v1_scalp_doge_rsi14_mr_1h_eur20",
+    "improve_id": "rise_panel_v1_scalp_doge_rsi14_mr_ema1221_1h_eur20",
+    "median_expectancy_eur": {
+      "delta": null,
+      "improve": null,
+      "ref": 0.51283369
+    },
+    "median_trades": {
+      "delta": -7.0,
+      "improve": 0.0,
+      "ref": 7.0
+    },
+    "n_exp_gt_0": {
+      "delta": -5,
+      "improve": 0,
+      "ref": 5
+    },
+    "not_a_forecast": true,
+    "panel_net_eur": {
+      "delta": -18.24239095,
+      "improve": 0.0,
+      "ref": 18.24239095
+    },
+    "place_orders": false
+  },
+  "not_a_forecast": true,
+  "ok": true,
+  "place_orders": false,
+  "scalp_improve_id": "rise_panel_v1_scalp_doge_rsi14_mr_ema1221_1h_eur20",
+  "scalp_rsi_mr_id": "rise_panel_v1_scalp_doge_rsi14_mr_1h_eur20",
+  "soft_promote_improve": {
+    "differs_from_core_style_ab": true,
+    "expectancy_gt_0_ok": false,
+    "gate": "soft_promote_v1",
+    "gate_note": "INTENTIONAL labeled gate \u2014 NOT a silent rewrite of core_style_return A\u2227B three-stream board. median_trades\u226b0 (coded >=1) AND >=5/7 exp>0 AND panel_net>0.",
+    "median_expectancy_eur": null,
+    "median_trades": 0.0,
+    "median_trades_min": 1,
+    "median_trades_ok": false,
+    "n_expectancy_gt_0": 0,
+    "n_expectancy_gt_0_required": 5,
+    "n_net_gt_0": 0,
+    "n_trades_per_window": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "n_windows": 7,
+    "not_a_forecast": true,
+    "panel_net_eur": 0.0,
+    "panel_net_ok": false,
+    "pass": false,
+    "place_orders": false,
+    "verdict": "FAIL",
+    "worst_dd_eur": 0.0
+  }
+}
