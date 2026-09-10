@@ -233,6 +233,7 @@ class ShadowEngine(PaperEngine):
                 equity=ledger.equity,
             )
             if allow_queue and not queued and self._pending is None:
+                tp = float((sig.extras or {}).get("take_profit") or 0.0)
                 self._queue_entry(
                     Order(
                         symbol=symbol,
@@ -241,6 +242,7 @@ class ShadowEngine(PaperEngine):
                         kind="entry",
                         reason=sig.reason,
                         stop=sig.stop,
+                        take_profit=tp,
                         decision_ts_ms=last.ts_close_ms,
                         cloid=self._cloid(),
                     ),

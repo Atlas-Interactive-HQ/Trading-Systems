@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 from atlas.collectors.base import new_run_id
-from atlas.paper.fills import simulate_market_fill, stop_hit_price
+from atlas.paper.fills import simulate_market_fill, stop_hit_price, take_profit_hit_price
 from atlas.paper.journal import PaperJournal
 from atlas.paper.ledger import Ledger
 from atlas.paper.risk import check_daily_kill, gate_new_entry, size_order, validate_risk_params
@@ -146,7 +146,7 @@ class PaperEngine:
     def __init__(
         self,
         settings: PaperSettings,
-        strategy: BreakoutV1 | None = None,
+        strategy: Any = None,
         *,
         journal: PaperJournal | None = None,
         run_id: str | None = None,
@@ -489,6 +489,7 @@ class PaperEngine:
                 self._rejects += 1
                 self._log("events", {"type": "reject", **rec}, last.ts_close_ms)
                 continue
+            tp = float((sig.extras or {}).get("take_profit") or 0.0)
             self._queue_entry(
                 Order(
                     symbol=symbol,
@@ -497,6 +498,7 @@ class PaperEngine:
                     kind="entry",
                     reason=sig.reason,
                     stop=sig.stop,
+                    take_profit=tp,
                     decision_ts_ms=last.ts_close_ms,
                     cloid=self._cloid(),
                 ),
@@ -562,7 +564,7 @@ class PaperEngine:
                 kind="entry",
                 cloid=order.cloid,
             )
-            ledger.apply_fill(fill, stop=order.stop, opened_i=bar_i)
+            ledger.apply_fill(fill, stop=order.stop, opened_i=bar_i, take_profit=float(getattr(order, 'take_profit', 0.0) or 0.0))
             self._entries += 1
             self._fills.append(fill)
             self._turnover = q(self._turnover + abs(fill.qty * fill.price))
@@ -598,6 +600,15 @@ class PaperEngine:
             ts_hit = bar.ts_open_ms if gapped else bar.ts_close_ms
             self._exit(ledger, bar, ref_price=hit, ts_ms=ts_hit, reason="stop", bar_i=bar_i)
             self._stops += 1
+            return
+        tp = float(getattr(pos, "take_profit", 0.0) or 0.0)
+        tp_hit = take_profit_hit_price(pos.side, tp, bar) if tp > 0 else None
+        if tp_hit is not None:
+            gapped_tp = (pos.side is Side.LONG and bar.open >= tp) or (
+                pos.side is Side.SHORT and bar.open <= tp
+            )
+            ts_hit = bar.ts_open_ms if gapped_tp else bar.ts_close_ms
+            self._exit(ledger, bar, ref_price=tp_hit, ts_ms=ts_hit, reason="take_profit", bar_i=bar_i)
             return
         held = bar_i - pos.opened_i
         if held >= self.settings.time_stop_bars:
