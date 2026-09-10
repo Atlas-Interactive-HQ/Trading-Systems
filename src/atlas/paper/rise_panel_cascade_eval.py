@@ -89,6 +89,11 @@ from atlas.strategy.scalp_doge_donchian_1h import (
     FAMILY as SCALP_FAMILY_DONCHIAN_1H,
     ScalpDogeDonchian1hV1,
 )
+from atlas.strategy.scalp_doge_breakout_1h import (
+    BAR as SCALP_BAR_BREAKOUT_1H,
+    FAMILY as SCALP_FAMILY_BREAKOUT_1H,
+    ScalpDogeBreakout1hV1,
+)
 
 SOURCE = "rise_panel_cascade_compound"
 COMPOUND_ID = "rise_panel_v1_cascade_compound_721"
@@ -97,18 +102,21 @@ COMPOUND_ID_SCALP15M = "rise_panel_v1_cascade_compound_721_scalp15m"
 COMPOUND_ID_SCALP_RSI_MR = "rise_panel_v1_cascade_compound_721_scalp_rsi_mr_1h"
 COMPOUND_ID_SCALP_RSI_EMA = "rise_panel_v1_cascade_compound_721_scalp_rsi_ema1221_1h"
 COMPOUND_ID_SCALP_DONCHIAN = "rise_panel_v1_cascade_compound_721_scalp_donchian_1h"
+COMPOUND_ID_SCALP_BREAKOUT = "rise_panel_v1_cascade_compound_721_scalp_breakout_1h"
 SCALP_CANDIDATE_ID = "rise_panel_v1_scalp_doge_ema12_30_1h_daily_bull_eur20"
 SCALP_CANDIDATE_ID_4H = "rise_panel_v1_scalp_doge_ema12_30_4h_eur20"
 SCALP_CANDIDATE_ID_15M = "rise_panel_v1_scalp_doge_ema12_30_15m_eur20"
 SCALP_CANDIDATE_ID_RSI_MR = "rise_panel_v1_scalp_doge_rsi14_mr_1h_eur20"
 SCALP_CANDIDATE_ID_RSI_EMA = "rise_panel_v1_scalp_doge_rsi14_mr_ema1221_1h_eur20"
 SCALP_CANDIDATE_ID_DONCHIAN = "rise_panel_v1_scalp_doge_donchian20_10_1h_eur20"
+SCALP_CANDIDATE_ID_BREAKOUT = "rise_panel_v1_scalp_doge_breakoutv1_1h_eur20"
 SCALP_STANDIN_LABEL = "scalp_doge_ema_1h_daily_bull"
 SCALP_4H_LABEL = "scalp_doge_ema_4h"
 SCALP_15M_LABEL = "scalp_doge_ema_15m"
 SCALP_RSI_MR_LABEL = "scalp_doge_rsi_mr_1h"
 SCALP_RSI_EMA_LABEL = "scalp_doge_rsi_ema1221_1h"
 SCALP_DONCHIAN_LABEL = "scalp_doge_donchian_1h"
+SCALP_BREAKOUT_LABEL = "scalp_doge_breakout_1h"
 # Back-compat aliases used by 1H path / markdown
 SCALP_BAR = SCALP_BAR_1H
 SCALP_FAMILY = SCALP_FAMILY_1H
@@ -117,7 +125,7 @@ WARMUP_PAD_4H_DAYS = 10
 WARMUP_PAD_1H_DAYS = 3
 WARMUP_PAD_15M_DAYS = 2
 DAY_MS = 24 * 60 * 60 * 1000
-SCALP_MODES = ("1h_daily_bull", "4h_ema", "15m_ema", "1h_rsi_mr", "1h_rsi_ema1221", "1h_donchian")
+SCALP_MODES = ("1h_daily_bull", "4h_ema", "15m_ema", "1h_rsi_mr", "1h_rsi_ema1221", "1h_donchian", "1h_breakout")
 
 CASCADE_RULE = {
     "name": "window_end_surplus_share_721",
@@ -501,6 +509,62 @@ def run_scalp_donchian_1h_on_window(
 
 
 
+
+def run_scalp_breakout_1h_on_window(
+    *,
+    bars_1h: list,
+    window: RiseWindow,
+    equity: float,
+    fee_rate: float,
+    slippage_bps: float,
+) -> dict[str, Any]:
+    """Scalp DOGE 1H BreakoutV1 long/flat on one rise window (#62 substitute)."""
+    settings = EmaBookSettings(
+        equity_eur=float(equity),
+        fee_rate=float(fee_rate),
+        slippage_bps=float(slippage_bps),
+        leverage=1.0,
+    )
+    strat = ScalpDogeBreakout1hV1()
+    trade_bars = [b for b in bars_1h if window.start_ms <= b.ts_open_ms < window.end_ms_exclusive]
+    if len(trade_bars) < 12:
+        return _fail_row(window, arm="scalp_breakout_v1_1h", error="insufficient 1H bars")
+    walk = walk_long_flat(
+        bars_1h,
+        strategy=strat,
+        settings=settings,
+        trade_start_ms=window.start_ms,
+        trade_end_ms=window.end_ms_exclusive,
+    )
+    bh = buy_and_hold(trade_bars, settings=settings)
+    return {
+        "ok": True,
+        "window_id": window.id,
+        "start": window.start,
+        "end": window.end,
+        "character": window.character,
+        "asset": ASSET,
+        "bar": SCALP_BAR_BREAKOUT_1H,
+        "arm": "scalp_breakout_v1_1h",
+        "family": SCALP_FAMILY_BREAKOUT_1H,
+        "equity_eur": equity,
+        "n_trades": int(walk.get("n_trades") or 0),
+        "n_entries": int(walk.get("n_entries") or 0),
+        "expectancy_after_costs_eur": walk.get("expectancy_after_costs_eur"),
+        "net_return_eur": walk.get("net_return_eur"),
+        "max_dd_eur": walk.get("max_dd_eur"),
+        "fee_drag_eur": walk.get("fee_drag_eur"),
+        "time_in_market": walk.get("time_in_market"),
+        "bh_net_return_eur": bh.get("net_return_eur"),
+        "bh_max_dd_eur": bh.get("max_dd_eur"),
+        "start_equity_eur": walk.get("start_equity_eur"),
+        "end_equity_eur": walk.get("end_equity_eur"),
+        "not_a_forecast": True,
+        "place_orders": False,
+    }
+
+
+
 def _compound_window_row(
     *,
     window: RiseWindow,
@@ -618,6 +682,7 @@ def run_cascade_compound_panel(
       - "1h_rsi_mr": Scalp #59 (DOGE 1H RSI(14) MR €20)
       - "1h_rsi_ema1221": Scalp #60 (DOGE 1H RSI(14) MR ∩ EMA12/21 €20)
       - "1h_donchian": Scalp #61 (DOGE 1H Donchian 20/10 €20)
+      - "1h_breakout": Scalp #62 (DOGE 1H BreakoutV1 long/flat €20)
     """
     if scalp_mode not in SCALP_MODES:
         raise ValueError(f"scalp_mode must be one of {SCALP_MODES}, got {scalp_mode!r}")
@@ -714,6 +779,15 @@ def run_cascade_compound_panel(
                     bars_1h=bars_1h, window=w,
                     equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
                 )
+            elif scalp_mode == "1h_breakout":
+                bars_1h = fetch_bars(
+                    cw, ASSET, SCALP_BAR_BREAKOUT_1H, data_dir=data_dir, rest_base=rest_base,
+                    pause_s=pause_s, pad_days=WARMUP_PAD_1H_DAYS,
+                )
+                scalp = run_scalp_breakout_1h_on_window(
+                    bars_1h=bars_1h, window=w,
+                    equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
+                )
             else:
                 bars_1h = fetch_bars(
                     cw, ASSET, SCALP_BAR_1H, data_dir=data_dir, rest_base=rest_base,
@@ -743,6 +817,8 @@ def run_cascade_compound_panel(
                 arm_fail = "scalp_rsi14_mr_ema1221_1h"
             elif scalp_mode == "1h_donchian":
                 arm_fail = "scalp_donchian20_10_1h"
+            elif scalp_mode == "1h_breakout":
+                arm_fail = "scalp_breakout_v1_1h"
             else:
                 arm_fail = "scalp_ema_1h_daily_bull"
             scalp = _fail_row(w, arm=arm_fail, error=str(exc))
@@ -856,6 +932,18 @@ def run_cascade_compound_panel(
                 }
                 if scalp_mode == "1h_donchian"
                 else {
+                    "id": SCALP_CANDIDATE_ID_BREAKOUT,
+                    "bar": SCALP_BAR_BREAKOUT_1H,
+                    "strategy": SCALP_FAMILY_BREAKOUT_1H,
+                    "sleeve_start_eur": SCALP_START_EUR,
+                    "standin_label": SCALP_BREAKOUT_LABEL,
+                    "prefer": "1H BreakoutV1 long/flat at Scalp €20 (#62)",
+                    "provisional_scalp": provisional_scalp,
+                    "soft_promote": scalp_soft,
+                    "scalp_mode": scalp_mode,
+                }
+                if scalp_mode == "1h_breakout"
+                else {
                     "id": SCALP_CANDIDATE_ID,
                     "bar": SCALP_BAR_1H,
                     "strategy": SCALP_FAMILY_1H,
@@ -875,6 +963,7 @@ def run_cascade_compound_panel(
             else COMPOUND_ID_SCALP_RSI_MR if scalp_mode == "1h_rsi_mr"
             else COMPOUND_ID_SCALP_RSI_EMA if scalp_mode == "1h_rsi_ema1221"
             else COMPOUND_ID_SCALP_DONCHIAN if scalp_mode == "1h_donchian"
+            else COMPOUND_ID_SCALP_BREAKOUT if scalp_mode == "1h_breakout"
             else COMPOUND_ID
         ),
         "provisional_scalp": provisional_scalp,
