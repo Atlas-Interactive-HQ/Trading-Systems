@@ -69,22 +69,31 @@ from atlas.strategy.scalp_doge_ema_4h import (
     FAMILY as SCALP_FAMILY_4H,
     ScalpDogeEma4hV1,
 )
+from atlas.strategy.scalp_doge_ema_15m import (
+    BAR as SCALP_BAR_15M,
+    FAMILY as SCALP_FAMILY_15M,
+    ScalpDogeEma15mV1,
+)
 
 SOURCE = "rise_panel_cascade_compound"
 COMPOUND_ID = "rise_panel_v1_cascade_compound_721"
 COMPOUND_ID_SCALP4H = "rise_panel_v1_cascade_compound_721_scalp4h"
+COMPOUND_ID_SCALP15M = "rise_panel_v1_cascade_compound_721_scalp15m"
 SCALP_CANDIDATE_ID = "rise_panel_v1_scalp_doge_ema12_30_1h_daily_bull_eur20"
 SCALP_CANDIDATE_ID_4H = "rise_panel_v1_scalp_doge_ema12_30_4h_eur20"
+SCALP_CANDIDATE_ID_15M = "rise_panel_v1_scalp_doge_ema12_30_15m_eur20"
 SCALP_STANDIN_LABEL = "scalp_doge_ema_1h_daily_bull"
 SCALP_4H_LABEL = "scalp_doge_ema_4h"
+SCALP_15M_LABEL = "scalp_doge_ema_15m"
 # Back-compat aliases used by 1H path / markdown
 SCALP_BAR = SCALP_BAR_1H
 SCALP_FAMILY = SCALP_FAMILY_1H
 WARMUP_DAILY = 40
 WARMUP_PAD_4H_DAYS = 10
 WARMUP_PAD_1H_DAYS = 3
+WARMUP_PAD_15M_DAYS = 2
 DAY_MS = 24 * 60 * 60 * 1000
-SCALP_MODES = ("1h_daily_bull", "4h_ema")
+SCALP_MODES = ("1h_daily_bull", "4h_ema", "15m_ema")
 
 CASCADE_RULE = {
     "name": "window_end_surplus_share_721",
@@ -248,6 +257,60 @@ def run_scalp_4h_on_window(
     }
 
 
+def run_scalp_15m_on_window(
+    *,
+    bars_15m: list,
+    window: RiseWindow,
+    equity: float,
+    fee_rate: float,
+    slippage_bps: float,
+) -> dict[str, Any]:
+    """Scalp DOGE 15m EMA12/30 long/flat on one rise window (#58 substitute)."""
+    settings = EmaBookSettings(
+        equity_eur=float(equity),
+        fee_rate=float(fee_rate),
+        slippage_bps=float(slippage_bps),
+        leverage=1.0,
+    )
+    strat = ScalpDogeEma15mV1()
+    trade_bars = [b for b in bars_15m if window.start_ms <= b.ts_open_ms < window.end_ms_exclusive]
+    if len(trade_bars) < 12:
+        return _fail_row(window, arm="scalp_ema12_30_15m", error="insufficient 15m bars")
+    walk = walk_long_flat(
+        bars_15m,
+        strategy=strat,
+        settings=settings,
+        trade_start_ms=window.start_ms,
+        trade_end_ms=window.end_ms_exclusive,
+    )
+    bh = buy_and_hold(trade_bars, settings=settings)
+    return {
+        "ok": True,
+        "window_id": window.id,
+        "start": window.start,
+        "end": window.end,
+        "character": window.character,
+        "asset": ASSET,
+        "bar": SCALP_BAR_15M,
+        "arm": "scalp_ema12_30_15m",
+        "family": SCALP_FAMILY_15M,
+        "equity_eur": equity,
+        "n_trades": int(walk.get("n_trades") or 0),
+        "n_entries": int(walk.get("n_entries") or 0),
+        "expectancy_after_costs_eur": walk.get("expectancy_after_costs_eur"),
+        "net_return_eur": walk.get("net_return_eur"),
+        "max_dd_eur": walk.get("max_dd_eur"),
+        "fee_drag_eur": walk.get("fee_drag_eur"),
+        "time_in_market": walk.get("time_in_market"),
+        "bh_net_return_eur": bh.get("net_return_eur"),
+        "bh_max_dd_eur": bh.get("max_dd_eur"),
+        "start_equity_eur": walk.get("start_equity_eur"),
+        "end_equity_eur": walk.get("end_equity_eur"),
+        "not_a_forecast": True,
+        "place_orders": False,
+    }
+
+
 def _compound_window_row(
     *,
     window: RiseWindow,
@@ -361,6 +424,7 @@ def run_cascade_compound_panel(
     scalp_mode:
       - "1h_daily_bull": provisional Scalp from #55
       - "4h_ema": Scalp improve #57 (DOGE 4H EMA12/30 €20)
+      - "15m_ema": Scalp improve #58 (DOGE 15m EMA12/30 €20)
     """
     if scalp_mode not in SCALP_MODES:
         raise ValueError(f"scalp_mode must be one of {SCALP_MODES}, got {scalp_mode!r}")
@@ -421,6 +485,15 @@ def run_cascade_compound_panel(
                     bars_4h=bars_4h_scalp, window=w,
                     equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
                 )
+            elif scalp_mode == "15m_ema":
+                bars_15m = fetch_bars(
+                    cw, ASSET, SCALP_BAR_15M, data_dir=data_dir, rest_base=rest_base,
+                    pause_s=pause_s, pad_days=WARMUP_PAD_15M_DAYS,
+                )
+                scalp = run_scalp_15m_on_window(
+                    bars_15m=bars_15m, window=w,
+                    equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
+                )
             else:
                 bars_1h = fetch_bars(
                     cw, ASSET, SCALP_BAR_1H, data_dir=data_dir, rest_base=rest_base,
@@ -440,7 +513,12 @@ def run_cascade_compound_panel(
                 )
         except ReplayError as exc:
             errors.append(f"{w.id} scalp: {exc}")
-            arm_fail = "scalp_ema12_30_4h" if scalp_mode == "4h_ema" else "scalp_ema_1h_daily_bull"
+            if scalp_mode == "4h_ema":
+                arm_fail = "scalp_ema12_30_4h"
+            elif scalp_mode == "15m_ema":
+                arm_fail = "scalp_ema12_30_15m"
+            else:
+                arm_fail = "scalp_ema_1h_daily_bull"
             scalp = _fail_row(w, arm=arm_fail, error=str(exc))
 
         assert core is not None and mid is not None and scalp is not None
@@ -504,6 +582,18 @@ def run_cascade_compound_panel(
                 }
                 if scalp_mode == "4h_ema"
                 else {
+                    "id": SCALP_CANDIDATE_ID_15M,
+                    "bar": SCALP_BAR_15M,
+                    "strategy": SCALP_FAMILY_15M,
+                    "sleeve_start_eur": SCALP_START_EUR,
+                    "standin_label": SCALP_15M_LABEL,
+                    "prefer": "same-family 15m EMA12/30 at Scalp €20 (#58)",
+                    "provisional_scalp": provisional_scalp,
+                    "soft_promote": scalp_soft,
+                    "scalp_mode": scalp_mode,
+                }
+                if scalp_mode == "15m_ema"
+                else {
                     "id": SCALP_CANDIDATE_ID,
                     "bar": SCALP_BAR_1H,
                     "strategy": SCALP_FAMILY_1H,
@@ -517,7 +607,11 @@ def run_cascade_compound_panel(
             ),
         },
         "scalp_mode": scalp_mode,
-        "compound_id": COMPOUND_ID_SCALP4H if scalp_mode == "4h_ema" else COMPOUND_ID,
+        "compound_id": (
+            COMPOUND_ID_SCALP4H if scalp_mode == "4h_ema"
+            else COMPOUND_ID_SCALP15M if scalp_mode == "15m_ema"
+            else COMPOUND_ID
+        ),
         "provisional_scalp": provisional_scalp,
         "cascade_rule": CASCADE_RULE,
         "costs": {"fee_rate": fee_rate, "slippage_bps": slip, "note": "PaperSettings 5+5 bps"},
