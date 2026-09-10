@@ -166,7 +166,7 @@ def fetch_bars(
     trade = [b for b in bars if window.start_ms <= b.ts_open_ms and b.ts_close_ms <= end_ms]
     if not trade:
         raise ReplayError(f"{bar} {symbol} {window.id} no bars in trade window (fail closed)")
-    bar_ms = {"15m": 15 * 60 * 1000, "1H": 60 * 60 * 1000, "1h": 60 * 60 * 1000, "1D": DAY_MS, "1d": DAY_MS}[bar]
+    bar_ms = {"15m": 15 * 60 * 1000, "1H": 60 * 60 * 1000, "1h": 60 * 60 * 1000, "4H": 4 * 60 * 60 * 1000, "4h": 4 * 60 * 60 * 1000, "1D": DAY_MS, "1d": DAY_MS}[bar]
     got_start = trade[0].ts_open_ms
     got_end = trade[-1].ts_close_ms
     incomplete = got_start > window.start_ms + bar_ms or got_end < end_ms - bar_ms
