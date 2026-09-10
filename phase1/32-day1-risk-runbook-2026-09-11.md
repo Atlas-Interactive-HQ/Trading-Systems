@@ -19,3 +19,9 @@ Kaje ACK: **no `ga live €200` until Core + Mid + Scalp all three confirmed**, 
 Full checklist + bot rule card: [`38-eur200-three-stream-confirmation.md`](./38-eur200-three-stream-confirmation.md).
 
 Until then: live **≤€20** + session-ja; Mid/Scalp live **HALTED**; Mid must be non-EMA twin with dual-window A+B PASS; Scalp own family A+B PASS; cascade Scalp→Mid→Core; red PnL → other periods before rule changes.
+
+---
+
+## Addendum 2026-09-10c — Mid/Scalp gate → core_style_return
+
+Kaje authorized (intentional): Mid/Scalp confirmation gate is now **`core_style_return` dual A∧B** (replaces holdout-exp used on #36–44). Core unchanged CONFIRMED. Active trials: Mid **#45** DOGE 4H EMA12/30 €40; Scalp **#46** DOGE 15m breakout + daily EMA bull filter €20 (parallel). Live still **≤€20**; no `ga live €200` until all three confirmed. See [`38`](./38-eur200-three-stream-confirmation.md).
