@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Scalp BTC EMA12/30 1H + daily bull Core-style RETURN gate eval. Research only. No orders.
+"""Scalp BTC EMA12/30 1H + daily bull Core-style RETURN gate eval (#52 v2). Research only. No orders.
 
 Does NOT change config/default.yaml. not_a_forecast. Mid/Core OUT.
-Gate: core_style_return (NOT #36–#44 holdout-exp). Always runs BOTH set A and set B.
+Gate: core_style_return (NOT #36–#44 holdout-exp). confirmation_windows_v2 bull-only B.
+Always runs BOTH set A and set B.
 """
 
 from __future__ import annotations
@@ -29,13 +30,13 @@ from atlas.paper.scalp_btc_ema_1h_eval import (  # noqa: E402
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
-        description="Scalp BTC EMA12/30 1H + daily bull Core-style RETURN gate (research only)"
+        description="Scalp #52 BTC EMA12/30 1H + daily bull confirmation_windows_v2 (research only)"
     )
     p.add_argument("--config", default=None)
     p.add_argument("--data-dir", default=None)
     p.add_argument("--pause-s", type=float, default=0.12)
     p.add_argument("--set", choices=("A", "B", "both"), default="both")
-    p.add_argument("--write-md", default="phase1/50-scalp-btc-ema-1h.md")
+    p.add_argument("--write-md", default="phase1/52-scalp-btc-ema-1h-v2.md")
     args = p.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -52,8 +53,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.set in ("A", "both"):
         bundle_a = run_set("A", cfg=cfg, data_dir=data_dir, pause_s=args.pause_s)
-        path_a = write_report_json(bundle_a, reports / "scalp_btc_ema_1h_A.json")
-        md_a = reports / "scalp_btc_ema_1h_A.md"
+        path_a = write_report_json(bundle_a, reports / "scalp_btc_ema_1h_v2_A.json")
+        md_a = reports / "scalp_btc_ema_1h_v2_A.md"
         md_a.write_text(render_set_markdown(bundle_a), encoding="utf-8")
         print(
             json.dumps(
@@ -64,8 +65,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.set in ("B", "both"):
         bundle_b = run_set("B", cfg=cfg, data_dir=data_dir, pause_s=args.pause_s)
-        path_b = write_report_json(bundle_b, reports / "scalp_btc_ema_1h_B.json")
-        md_b = reports / "scalp_btc_ema_1h_B.md"
+        path_b = write_report_json(bundle_b, reports / "scalp_btc_ema_1h_v2_B.json")
+        md_b = reports / "scalp_btc_ema_1h_v2_B.md"
         md_b.write_text(render_set_markdown(bundle_b), encoding="utf-8")
         print(
             json.dumps(
@@ -75,11 +76,11 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if bundle_a is None:
-        existing_a = reports / "scalp_btc_ema_1h_A.json"
+        existing_a = reports / "scalp_btc_ema_1h_v2_A.json"
         if existing_a.is_file():
             bundle_a = json.loads(existing_a.read_text(encoding="utf-8"))
     if bundle_b is None:
-        existing_b = reports / "scalp_btc_ema_1h_B.json"
+        existing_b = reports / "scalp_btc_ema_1h_v2_B.json"
         if existing_b.is_file():
             bundle_b = json.loads(existing_b.read_text(encoding="utf-8"))
 
@@ -100,6 +101,8 @@ def main(argv: list[str] | None = None) -> int:
         "bar": "1H",
         "family": "ema12_30_long_flat_1h_daily_bull",
         "gate": "core_style_return",
+        "confirmation_windows_v2": True,
+        "source": "scalp_btc_ema_1h_v2",
         "differs_from_holdout_exp_gate": True,
         "differs_reason": (
             "Scalp 1H EMA holdouts can be thin / fragile for holdout-expectancy "

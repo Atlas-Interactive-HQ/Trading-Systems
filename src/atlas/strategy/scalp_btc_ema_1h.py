@@ -1,6 +1,6 @@
-"""Scalp BTC-USDT 1H EMA12/30 long/flat + daily EMA12/30 bull entry gate (#50).
+"""Scalp BTC-USDT 1H EMA12/30 long/flat + daily EMA12/30 bull entry gate (#50/#52).
 
-LOCKED Scalp #50. Same EMA12/30 long/flat spirit as Core / Mid #41 / Mid #45
+LOCKED Scalp #50 rule; #52 confirmation_windows_v2 reuses this strategy. Same EMA12/30 long/flat spirit as Core / Mid #41 / Mid #45
 but on **1H** bars at Scalp €20 for BTC, with **daily EMA12>EMA30 filter ON for new
 longs** (bull focus — entry gate; mirrors #46 / #48 / PullbackLongV1). Reuses Scalp #48 harness.
 
@@ -30,7 +30,7 @@ class ScalpBtcEma1hParams:
     ema_fast_daily: int = FAST
     ema_slow_daily: int = SLOW
     confirm_closed_only: bool = True
-    daily_bull_filter: bool = True  # ON for new longs (locked #50)
+    daily_bull_filter: bool = True  # ON for new longs (locked #50/#52)
     sleeve: str = "scalp"
     bar: str = BAR
 

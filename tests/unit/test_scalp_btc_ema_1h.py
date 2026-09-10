@@ -1,11 +1,13 @@
-"""Unit tests: Scalp BTC EMA12/30 1H + daily bull Core-style RETURN gate (#50)."""
+"""Unit tests: Scalp BTC EMA12/30 1H + daily bull Core-style RETURN gate (#52 v2)."""
 
 from __future__ import annotations
 
 from atlas.paper.cascade import SCALP_START_EUR
 from atlas.paper.scalp_btc_ema_1h_eval import (
+    ALT_SET_B_V2,
     BAR,
     BH_DD_MULT,
+    CONFIRMATION_WINDOWS_V2,
     DIFFERS_FROM_HOLDOUT_EXP_GATE,
     DIFFERS_REASON,
     FAMILY,
@@ -21,6 +23,7 @@ from atlas.paper.scalp_btc_ema_1h_eval import (
     score_scalp,
     walk_long_flat_1h_daily_bull,
 )
+from atlas.paper.three_tier_eval import PRIMARY_SET_A
 from atlas.paper.ema_eval import EmaBookSettings
 from atlas.paper.types import Bar
 from atlas.strategy.ema_trend import FLAT, LONG
@@ -59,7 +62,8 @@ def test_locked_params():
     assert TIM_HIGH == 0.80
     assert FAMILY == "ema12_30_long_flat_1h_daily_bull"
     assert GATE_NAME == "core_style_return"
-    assert SOURCE == "scalp_btc_ema_1h"
+    assert SOURCE == "scalp_btc_ema_1h_v2"
+    assert CONFIRMATION_WINDOWS_V2 is True
     assert DIFFERS_FROM_HOLDOUT_EXP_GATE is True
     assert "thin" in DIFFERS_REASON.lower() or "fragile" in DIFFERS_REASON.lower()
     assert "#36" in PRIOR_HOLDOUT_EXP_TRIALS and "#44" in PRIOR_HOLDOUT_EXP_TRIALS
@@ -318,3 +322,29 @@ def test_not_using_expectancy_gate():
     assert sc["gate_mode"] == "core_style_return"
     assert sc["full_pass"] is False
     assert sc["full_net_return_gt_0"] is False
+
+
+def test_confirmation_windows_v2_pack_locked():
+    """B pack is bull-only v2; no overlap with A; not old B2/B3."""
+    assert CONFIRMATION_WINDOWS_V2 is True
+    assert len(ALT_SET_B_V2) == 3
+    b = {w.id: (w.start, w.end) for w in ALT_SET_B_V2}
+    assert b["B1"] == ("2020-10-01", "2020-12-31")
+    assert b["B2"] == ("2023-07-01", "2023-09-30")
+    assert b["B3"] == ("2024-05-01", "2024-07-31")
+    # Not old #50 choppy/weak B2/B3
+    assert b["B2"] != ("2023-01-01", "2023-03-31")
+    assert b["B3"] != ("2024-10-01", "2024-12-31")
+    a = [(w.start, w.end) for w in PRIMARY_SET_A]
+    assert a == [
+        ("2023-10-01", "2023-12-31"),
+        ("2021-01-01", "2021-03-31"),
+        ("2024-02-01", "2024-04-30"),
+    ]
+
+    def overlaps(s1, e1, s2, e2) -> bool:
+        return not (e1 < s2 or e2 < s1)
+
+    for bw in ALT_SET_B_V2:
+        for aw in PRIMARY_SET_A:
+            assert not overlaps(bw.start, bw.end, aw.start, aw.end), (bw.id, aw.id)
