@@ -1,0 +1,92 @@
+{
+  "deltas": {
+    "compare_to": "rise_panel_v1_mid_doge_breakoutv1_4h_eur40",
+    "honesty_rule": "promote-as-better only if panel_net higher than Breakout #65; else PASS-but-worse / FAIL clearly",
+    "improve_id": "rise_panel_v1_mid_doge_rsi14_mr_4h_eur40",
+    "median_expectancy_eur": {
+      "baseline": 2.46473352,
+      "delta": 0.67580358,
+      "improve": 3.1405371
+    },
+    "median_trades": {
+      "baseline": 6.0,
+      "delta": -4.0,
+      "improve": 2.0
+    },
+    "n_exp_gt_0": {
+      "baseline": 5,
+      "delta": 1,
+      "improve": 6
+    },
+    "not_a_forecast": true,
+    "panel_net_eur": {
+      "baseline": 95.44829882,
+      "delta": -52.13766094,
+      "improve": 43.31063788
+    },
+    "place_orders": false,
+    "promote_as_better": false
+  },
+  "deltas_vs_ema_archive": {
+    "compare_to": "rise_panel_v1_mid_doge_ema12_30_4h_eur40",
+    "improve_id": "rise_panel_v1_mid_doge_rsi14_mr_4h_eur40",
+    "median_expectancy_eur": {
+      "delta": 1.0477371,
+      "ema_archive": 2.0928,
+      "improve": 3.1405371
+    },
+    "median_trades": {
+      "delta": -5.0,
+      "ema_archive": 7.0,
+      "improve": 2.0
+    },
+    "n_exp_gt_0": {
+      "delta": 0,
+      "ema_archive": 6,
+      "improve": 6
+    },
+    "not_a_forecast": true,
+    "note": "optional honesty vs archived EMA Mid (not current Mid baseline)",
+    "panel_net_eur": {
+      "delta": -40.29976212,
+      "ema_archive": 83.6104,
+      "improve": 43.31063788
+    },
+    "place_orders": false
+  },
+  "mid_baseline_id": "rise_panel_v1_mid_doge_breakoutv1_4h_eur40",
+  "mid_improve_id": "rise_panel_v1_mid_doge_rsi14_mr_4h_eur40",
+  "not_a_forecast": true,
+  "ok": true,
+  "place_orders": false,
+  "soft_promote_improve": {
+    "differs_from_core_style_ab": true,
+    "expectancy_gt_0_ok": true,
+    "gate": "soft_promote_v1",
+    "gate_note": "INTENTIONAL labeled gate \u2014 NOT a silent rewrite of core_style_return A\u2227B three-stream board. median_trades\u226b0 (coded >=1) AND >=5/7 exp>0 AND panel_net>0.",
+    "median_expectancy_eur": 3.1405371,
+    "median_trades": 2.0,
+    "median_trades_min": 1,
+    "median_trades_ok": true,
+    "n_expectancy_gt_0": 6,
+    "n_expectancy_gt_0_required": 5,
+    "n_net_gt_0": 6,
+    "n_trades_per_window": [
+      3,
+      3,
+      2,
+      1,
+      1,
+      2,
+      2
+    ],
+    "n_windows": 7,
+    "not_a_forecast": true,
+    "panel_net_eur": 43.31063788,
+    "panel_net_ok": true,
+    "pass": true,
+    "place_orders": false,
+    "verdict": "PASS",
+    "worst_dd_eur": 18.11125124
+  }
+}
