@@ -64,6 +64,7 @@ class Position:
     notional: float
     entry_fee: float = 0.0
     mark: float = 0.0
+    take_profit: float = 0.0  # 0 = disabled; long exits when high reaches TP
 
     def unrealized(self, price: float | None = None) -> float:
         px = self.mark if price is None else price
@@ -82,6 +83,7 @@ class Order:
     kind: str  # entry | exit
     reason: str
     stop: float = 0.0
+    take_profit: float = 0.0  # 0 = disabled
     decision_ts_ms: int = 0
     cloid: str = ""
 

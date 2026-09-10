@@ -85,3 +85,26 @@ def stop_hit_price(position_side: Side, stop: float, bar: Bar) -> float | None:
     if bar.high >= stop:
         return stop
     return None
+
+
+def take_profit_hit_price(position_side: Side, take_profit: float, bar: Bar) -> float | None:
+    """Return pre-slippage TP fill ref, or None if not hit.
+
+    Gap-through: if the bar opens beyond the TP, use the open (worse for us on TP —
+    we get less favorable than the limit; research-honest).
+    """
+    if take_profit <= 0:
+        return None
+    if position_side is Side.LONG:
+        if bar.open >= take_profit:
+            return bar.open
+        if bar.high >= take_profit:
+            return take_profit
+        return None
+    # short
+    if bar.open <= take_profit:
+        return bar.open
+    if bar.low <= take_profit:
+        return take_profit
+    return None
+

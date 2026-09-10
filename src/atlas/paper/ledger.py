@@ -67,7 +67,7 @@ class Ledger:
         self.kill_reason = None
         return True
 
-    def apply_fill(self, fill: Fill, *, stop: float = 0.0, opened_i: int = 0) -> float:
+    def apply_fill(self, fill: Fill, *, stop: float = 0.0, opened_i: int = 0, take_profit: float = 0.0) -> float:
         """Apply a fill. Returns realized PnL of this fill (0 on entry)."""
         self.n_fills += 1
         self.fees_paid = q(self.fees_paid + fill.fee)
@@ -89,6 +89,7 @@ class Ledger:
                 notional=notional,
                 entry_fee=fill.fee,
                 mark=fill.price,
+                take_profit=float(take_profit or 0.0),
             )
         elif fill.kind == "exit":
             if self.position is None:
@@ -129,6 +130,7 @@ class Ledger:
                 "qty": pos.qty,
                 "entry": pos.entry,
                 "stop": pos.stop,
+                "take_profit": pos.take_profit,
                 "notional": pos.notional,
                 "mark": pos.mark,
                 "upl": pos.unrealized(),
