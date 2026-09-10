@@ -1,6 +1,7 @@
-"""Scalp BTC-USDT 1H EMA12/30 long/flat + daily bull — Core-style RETURN (#50).
+"""Scalp BTC-USDT 1H EMA12/30 long/flat + daily bull — Core-style RETURN (#52 v2).
 
-LOCKED #50. Reuses Scalp #48 DOGE harness with symbol BTC-USDT. Scalp €20 sleeve. Gate: core_style_return (intentional; differs from
+LOCKED #52. Same rule as #50; Set B = bull-only confirmation_windows_v2 pack.
+Scalp €20 sleeve. Gate: core_style_return (intentional; differs from
 Mid #36–#44 holdout-expectancy). Daily EMA12>EMA30 filter ON for new longs
 (bull focus — entry gate). Document expectancy always; thin-holdout reason for
 differs_from_holdout_exp_gate.
@@ -8,7 +9,7 @@ differs_from_holdout_exp_gate.
 Research only. not_a_forecast. Does NOT mutate config/default.yaml.
 Never places orders. Never invents metrics. Fill = next-open.
 Mid/Core OUT. Set A AND set B each must PASS.
-On FAIL: no EMA period/TF/costs grind; archive; report only.
+On FAIL: no EMA period/TF/costs grind; do not silently revert windows; archive; report only.
 """
 
 from __future__ import annotations
@@ -30,8 +31,6 @@ from atlas.paper.md import OKX_REST
 from atlas.paper.replay import ReplayError
 from atlas.paper.three_tier_eval import (
     A3_FALLBACK,
-    ALT_SET_B,
-    B3_FALLBACK,
     CascadeWindow,
     PRIMARY_SET_A,
     fetch_bars,
@@ -47,8 +46,19 @@ from atlas.strategy.scalp_btc_ema_1h import (
     ScalpBtcEma1hV1,
 )
 
-SOURCE = "scalp_btc_ema_1h"
+SOURCE = "scalp_btc_ema_1h_v2"
 SPOT_MD = "BTC-USDT"
+CONFIRMATION_WINDOWS_V2 = True
+# Bull-only alternate Set B (LOCKED #52 before scoring). Does NOT reuse old ALT_SET_B
+# B2 (2023-01→03 chop) or B3 (2024-10→12 weak). No overlap with PRIMARY_SET_A.
+ALT_SET_B_V2: tuple[CascadeWindow, ...] = (
+    CascadeWindow("B1", "2020-10-01", "2020-12-31", "B", "2020-10-01 → 2020-12-31 UTC (late-2020 bull run-up)"),
+    CascadeWindow("B2", "2023-07-01", "2023-09-30", "B", "2023-07-01 → 2023-09-30 UTC (Q3-2023 bull / pre-ETF)"),
+    CascadeWindow("B3", "2024-05-01", "2024-07-31", "B", "2024-05-01 → 2024-07-31 UTC (post-halving early-summer 2024)"),
+)
+B3_FALLBACK_V2 = CascadeWindow(
+    "B3", "2020-07-01", "2020-09-30", "B", "2020-07-01 → 2020-09-30 UTC (B3 fallback · summer-2020 bull)"
+)
 # ≥ EMA30 warmup on 1H (30×1H) + buffer for daily gate
 WARMUP_PAD_DAYS = 3  # EMA30 on 1H (~30h) + buffer; matches prior 1H caches
 WARMUP_DAILY = 40
@@ -74,13 +84,13 @@ PRIOR_HOLDOUT_EXP_TRIALS = [
     "#44",
 ]
 SAME_RULE_AS = (
-    "Mid #45 / mid_doge_ema_coregate (#41) / Core ema12_30 / Scalp #48 — Scalp €20 on 1H "
-    "+ daily EMA bull entry gate (#46/#48 spirit) for BTC"
+    "Scalp #50 same rule; Mid #45 / mid_doge_ema_coregate (#41) / Core ema12_30 / Scalp #48 — "
+    "Scalp €20 on 1H + daily EMA bull entry gate for BTC; confirmation_windows_v2 bull-only B"
 )
 
 
 def resolve_windows(set_id: str, *, data_dir: Path, rest_base: str, pause_s: float) -> list[CascadeWindow]:
-    """Same A/B calendars as recent Mid/Scalp trials; probe 1H MD; label fallbacks."""
+    """Set A = PRIMARY_SET_A (#50); Set B = bull-only confirmation_windows_v2 (#52)."""
     if set_id == "A":
         windows = list(PRIMARY_SET_A)
         try:
@@ -89,11 +99,11 @@ def resolve_windows(set_id: str, *, data_dir: Path, rest_base: str, pause_s: flo
             windows[2] = A3_FALLBACK  # labeled "(A3 fallback)" in CascadeWindow.label
         return windows
     if set_id == "B":
-        windows = list(ALT_SET_B)
+        windows = list(ALT_SET_B_V2)
         try:
             fetch_bars(windows[2], SPOT_MD, BAR, data_dir=data_dir, rest_base=rest_base, pause_s=pause_s)
         except ReplayError:
-            windows[2] = B3_FALLBACK  # labeled "(B3 fallback)" in CascadeWindow.label
+            windows[2] = B3_FALLBACK_V2  # labeled bull B3 fallback
         return windows
     raise ValueError(f"unknown set_id {set_id!r}")
 
@@ -575,6 +585,7 @@ def aggregate_set(window_results: list[dict[str, Any]]) -> dict[str, Any]:
             "dd_abs_cap_eur": SCALP_DD_ABS_CAP_EUR,
             "bh_dd_mult": BH_DD_MULT,
             "gate": GATE_NAME,
+            "confirmation_windows_v2": CONFIRMATION_WINDOWS_V2,
             "differs_from_holdout_exp_gate": True,
             "differs_reason": DIFFERS_REASON,
             "prior_holdout_exp_trials": list(PRIOR_HOLDOUT_EXP_TRIALS),
@@ -649,6 +660,7 @@ def run_set(
         "bar": BAR,
         "family": FAMILY,
         "gate": GATE_NAME,
+        "confirmation_windows_v2": CONFIRMATION_WINDOWS_V2,
         "differs_from_holdout_exp_gate": True,
         "differs_reason": DIFFERS_REASON,
         "prior_holdout_exp_trials": list(PRIOR_HOLDOUT_EXP_TRIALS),
@@ -774,7 +786,7 @@ def _render_window(wr: dict[str, Any]) -> list[str]:
 def render_set_markdown(bundle: dict[str, Any]) -> str:
     lines: list[str] = []
     sid = bundle.get("set_id")
-    lines.append(f"# Scalp #50 BTC EMA 1H + daily bull — set {sid}")
+    lines.append(f"# Scalp #52 BTC EMA 1H + daily bull (confirmation_windows_v2) — set {sid}")
     lines.append("")
     agg = bundle["aggregate"]
     lines.append(f"**Overall: {agg['verdict']}**")
@@ -804,23 +816,25 @@ def render_set_markdown(bundle: dict[str, Any]) -> str:
 def render_markdown(bundle_a: dict[str, Any], bundle_b: dict[str, Any] | None) -> str:
     lines: list[str] = []
     lines.append(
-        "# 50 — Scalp BTC EMA12/30 on **1H** + daily EMA bull (Scalp sleeve; Mid/Core OUT)"
+        "# 52 — Scalp BTC EMA12/30 on **1H** + daily EMA bull — confirmation_windows_v2 "
+        "(Scalp sleeve; Mid/Core OUT)"
     )
     lines.append("")
     lines.append("**Stance:** Research. `not_a_forecast: true`. Never places orders. Do not headline PnL.")
     lines.append("**Config:** `config/default.yaml` **untouched**.")
     lines.append(
         "**Family:** Scalp **EMA12/30 long/flat** on **BTC-USDT 1H** + **daily EMA12>EMA30** "
-        "filter ON for **new longs** (bull focus — entry gate); sleeve €20. SAME Core EMA rule "
-        "spirit (`EmaTrendV1` / Mid #41 / Mid #45 / Scalp #48) scaled to Scalp €20 on 1H for BTC. **Gate:** Core-style "
+        "filter ON for **new longs** (bull focus — entry gate); sleeve €20. SAME rule as Scalp #50. "
+        "**Gate:** Core-style "
         f"RETURN (intentional). **`differs_from_holdout_exp_gate: true`** — reason: {DIFFERS_REASON}. "
-        "Mid/Core halted."
+        "**`confirmation_windows_v2: true`**. Mid/Core halted. BTC research-only."
     )
     lines.append("")
     lines.append(
         "> **Gate locked BEFORE score:** `core_style_return` dual-window — set A **and** set B each "
         "need ≥2/3 clean windows (FULL net>0 after costs + DD≤BH×1.1 else abs €10 + holdout net>0 "
-        "or n=0&TIM≥0.8&marked net>0). Expectancy always documented. `differs_from_holdout_exp_gate: true`."
+        "or n=0&TIM≥0.8&marked net>0). Expectancy always documented. "
+        "`differs_from_holdout_exp_gate: true`. `confirmation_windows_v2: true`."
     )
     lines.append("")
 
@@ -837,9 +851,34 @@ def render_markdown(bundle_a: dict[str, Any], bundle_b: dict[str, Any] | None) -
         )
         if va == "FAIL" or vb == "FAIL":
             lines.append(
-                "On FAIL: **no** EMA period / TF / asset / costs grind; archive; report only. "
-                "Do not propose Scalp param / asset / TF rescue from this trial."
+                "On FAIL: **no** EMA period / TF / asset / costs grind; do **not** silently revert windows; "
+                "archive; report only. Do not propose Scalp param / asset / TF rescue from this trial."
             )
+    lines.append("")
+    lines.append("## Windows LOCKED before scoring (`confirmation_windows_v2`)")
+    lines.append("")
+    lines.append("### Set A — SAME as #50 / PRIMARY_SET_A")
+    lines.append("")
+    lines.append("| id | start | end |")
+    lines.append("|----|-------|-----|")
+    for w in PRIMARY_SET_A:
+        lines.append(f"| {w.id} | {w.start} | {w.end} |")
+    lines.append("")
+    lines.append("### Set B — bull-only alternate (NEW; not old #50 B2/B3)")
+    lines.append("")
+    lines.append(
+        "**Reason:** Prior #50 B included non-bull / holdout-fragile windows while A PASSed on bull focus."
+    )
+    lines.append("")
+    lines.append("| id | start | end | note |")
+    lines.append("|----|-------|-----|------|")
+    for w in ALT_SET_B_V2:
+        lines.append(f"| {w.id} | {w.start} | {w.end} | {w.label} |")
+    lines.append("")
+    lines.append(
+        "Excluded old B2 `2023-01-01→2023-03-31` and old B3 `2024-10-01→2024-12-31`. "
+        "No overlap with PRIMARY_SET_A."
+    )
     lines.append("")
     lines.append("## Rule cards (LOCKED before scoring)")
     lines.append("")
@@ -866,7 +905,7 @@ def render_markdown(bundle_a: dict[str, Any], bundle_b: dict[str, Any] | None) -
     lines.append(f"- Bar: **{BAR}**.")
     lines.append("- Expectancy: **always documented**; not the PASS gate.")
     lines.append("- Low n_trades: **OK** (document n_trades / TIM / expectancy; not a FAIL gate).")
-    lines.append("- Windows: same A/B calendars as recent Mid/Scalp trials mapped to 1H bars; MD fallbacks labeled.")
+    lines.append("- Windows: set A = PRIMARY_SET_A (#50); set B = bull-only `confirmation_windows_v2` (#52); MD fallbacks labeled.")
     lines.append("")
     lines.append("### Mid / Core")
     lines.append("")
@@ -887,7 +926,8 @@ def render_markdown(bundle_a: dict[str, Any], bundle_b: dict[str, Any] | None) -
     lines.append("")
     lines.append(
         f"> **Note:** `differs_from_holdout_exp_gate: true` — {DIFFERS_REASON}. "
-        f"Prior holdout-exp trials: {PRIOR_HOLDOUT_EXP_TRIALS}."
+        f"Prior holdout-exp trials: {PRIOR_HOLDOUT_EXP_TRIALS}. "
+        "`confirmation_windows_v2: true` — bull-only alternate B (see locked table)."
     )
     lines.append("")
 
@@ -918,20 +958,20 @@ def render_markdown(bundle_a: dict[str, Any], bundle_b: dict[str, Any] | None) -
 
     _set_block(bundle_a, "## Results — primary set A")
     if bundle_b is not None:
-        _set_block(bundle_b, "## Results — alternate set B (no param rescue)")
+        _set_block(bundle_b, "## Results — alternate set B bull-only v2 (no param rescue)")
 
     lines.append("## What not to rescue")
     lines.append("")
     lines.append("- Do **not** change EMA periods, sleeve size, bar size, daily filter, asset, or costs to chase PASS.")
     lines.append("- Do **not** invent bars, drop windows, or claim live readiness.")
     lines.append("- Do **not** place live orders from this research.")
-    lines.append("- On FAIL: archive; report only — **no** EMA period / TF / asset / costs grind.")
+    lines.append("- On FAIL: archive; report only — **no** EMA period / TF / asset / costs grind; **do not silently revert windows**.")
     lines.append("- Do **not** change `config/default.yaml`.")
     lines.append("- Do **not** revert to #36–#44 holdout-expectancy scoring for this trial.")
     lines.append("")
     lines.append(
         f"`source: {SOURCE}` · `bar: {BAR}` · `place_orders: false` · `not_a_forecast: true` · "
-        f"`gate: {GATE_NAME}` · `differs_from_holdout_exp_gate: true`"
+        f"`gate: {GATE_NAME}` · `differs_from_holdout_exp_gate: true` · `confirmation_windows_v2: true`"
     )
     lines.append("")
     return "\n".join(lines)

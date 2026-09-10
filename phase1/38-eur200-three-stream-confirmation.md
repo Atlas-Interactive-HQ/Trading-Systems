@@ -16,6 +16,7 @@
 Archived Mid FAILS under old gate: #42 Donchian, #43 RSI(14) MR, #44 1H Donchian — no grind on those rules.
 Archived Mid under `core_style_return` (not dual-robust): **#45** DOGE 4H EMA12/30 — set A PASS · set B FAIL; no grind.
 Archived Scalp FAIL under `core_style_return`: **#46** DOGE 15m BreakoutV1 long + daily EMA bull — set A FAIL · set B FAIL; no param grind.
+Archived Scalp under `core_style_return` + `confirmation_windows_v2`: **#52** BTC 1H EMA12/30 + daily bull — set A PASS · set B FAIL (bull-only B; no grind; no window revert).
 
 ---
 
@@ -48,8 +49,8 @@ RAISE "ga live €200" ONLY when ALL THREE confirmed + Kaje phrase
 Core  : CONFIRMED (design) — EMA12/30 DOGE long/flat
 Mid   : CONFIRMED (research) — #51 BTC 1D EMA12/30 dual A∧B PASS;
         sleeve €40; caveat n≈0/TIM≈BH on clean windows; BTC research-only
-Scalp : PENDING — #52 BTC 1H EMA + bull-only B v2 (after #46/#48/#50 FAIL);
-        sleeve €20; dual A∧B core_style_return; BTC research-only
+Scalp : PENDING — #52 FAIL archived (A PASS / B FAIL, bull-only B v2);
+        next #53 BTC 1D EMA €20 (Mid #51 twin); BTC research-only
 Cascade: Scalp → Mid → Core one-way only
 Red PnL: other periods BEFORE grinding a FAIL rule
 Live NOW: ≤€20 + session-ja; Mid/Scalp HALTED; no auto €200
@@ -63,8 +64,9 @@ Parent : phase1/32 + 37 + this 38
 |--------|--------|----------------|------|--------|
 | Core | policy share of €200 (design) | EMA12/30 long/flat | primary choppy-bull PASS | **CONFIRMED** (design) |
 | Mid | €40 | #51 BTC 1D EMA12/30 PASS (PR #48) · caveat: clean windows often n=0 TIM≈1.0 ≈BH open-hold, not HF Mid · BTC research-only | `core_style_return` A∧B | **CONFIRMED** (research + caveat) |
-| Scalp | €20 | #46/#48/#50 FAIL · #52 same rule + bull-only B v2 (`confirmation_windows_v2`) | `core_style_return` A∧B | **PENDING** |
+| Scalp | €20 | #46/#48/#50/#52 FAIL · #52 A+/B− on bull-only `confirmation_windows_v2` (archived) · next #53 BTC 1D EMA €20 | `core_style_return` A∧B | **PENDING** |
 
 Live trade gate until board is all CONFIRMED + Kaje phrase: **TINY ≤ €20**.
 
-**2026-09-10 Mid #51:** CONFIRMED with caveat (n≈0 / TIM≈BH). Three-stream still blocked on **Scalp**. Live remains DOGE tiny ≤€20; no BTC arming; no `ga live €200` until Scalp CONFIRMED + Kaje phrase.
+**2026-09-10 Mid #51:** CONFIRMED with caveat (n≈0 / TIM≈BH).
+**2026-09-10 Scalp #52:** FAIL (A PASS / B FAIL on bull-only confirmation_windows_v2; B2/B3 full net≤0). Archived; no grind; windows not reverted. Next #53 BTC 1D EMA scalp twin. Three-stream still blocked on **Scalp**. Live remains DOGE tiny ≤€20; no BTC arming; no `ga live €200` until Scalp CONFIRMED + Kaje phrase.
