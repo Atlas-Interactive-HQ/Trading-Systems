@@ -41,6 +41,8 @@
 | [30-ema-sma200-regime.md](./30-ema-sma200-regime.md) | EMA 12/30 + SMA(200) regime on BTC-USDT 1D; dual-window FAIL unless both clear; docs only; not live |
 | [31-ema-persist2-entry.md](./31-ema-persist2-entry.md) | EMA 12/30 asymmetric persist-2 entry on BTC-USDT 1D vs locked 12/30; PASS/FAIL docs only; observer stays 12/30 |
 
+| [46-scalp-doge-breakout-bull.md](./46-scalp-doge-breakout-bull.md) | Scalp DOGE 15m BreakoutV1 long-only + daily EMA bull; core_style_return dual-window; €20; not a forecast |
+
 ## Locked highlights (see 00 for full list)
 
 - Breakouts long **and** short; ranging **disabled**; untradeable regime gates required  

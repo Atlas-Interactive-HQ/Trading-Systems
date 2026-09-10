@@ -14,6 +14,8 @@
 | Live | ≤€20 | **unchanged ≤€20**; no `ga live €200` yet |
 
 Archived Mid FAILS under old gate: #42 Donchian, #43 RSI(14) MR, #44 1H Donchian — no grind on those rules.
+Archived Mid under `core_style_return` (not dual-robust): **#45** DOGE 4H EMA12/30 — set A PASS · set B FAIL; no grind.
+Archived Scalp FAIL under `core_style_return`: **#46** DOGE 15m BreakoutV1 long + daily EMA bull — set A FAIL · set B FAIL; no param grind.
 
 ---
 
@@ -45,9 +47,9 @@ RAISE "ga live €200" ONLY when ALL THREE confirmed + Kaje phrase
 
 Core  : CONFIRMED (design) — EMA12/30 DOGE long/flat
 Mid   : PENDING — dual A AND B under core_style_return (intentional);
-        sleeve €40; trial #45 DOGE 4H EMA12/30 running
-Scalp : PENDING — dual A AND B under core_style_return;
-        sleeve €20; trial #46 DOGE 15m breakout + daily EMA bull filter
+        sleeve €40; #45 archived (A PASS / B FAIL); next TBD
+Scalp : FAIL archive #46 — dual A AND B under core_style_return;
+        sleeve €20; next Scalp TBD (no grind on #46)
 Cascade: Scalp → Mid → Core one-way only
 Red PnL: other periods BEFORE grinding a FAIL rule
 Live NOW: ≤€20 + session-ja; Mid/Scalp HALTED; no auto €200
@@ -61,6 +63,6 @@ Parent : phase1/32 + 37 + this 38
 |--------|--------|----------------|------|--------|
 | Core | policy share of €200 (design) | EMA12/30 long/flat | primary choppy-bull PASS | **CONFIRMED** (design) |
 | Mid | €40 | #45 DOGE 4H EMA12/30 — set A PASS / set B FAIL (archive; no grind) | `core_style_return` A∧B | **PENDING** (next TBD) |
-| Scalp | €20 | #46 DOGE 15m breakout + daily EMA bull filter | `core_style_return` A∧B | **PENDING** (parallel) |
+| Scalp | €20 | #46 DOGE 15m BreakoutV1 long + daily EMA bull | `core_style_return` A∧B | **FAIL** (A FAIL · B FAIL; archived; no grind) |
 
 Live trade gate until board is all CONFIRMED + Kaje phrase: **TINY ≤ €20**.

@@ -13,6 +13,7 @@ from atlas.strategy.ema_persist2 import EmaPersist2EntryV1
 from atlas.strategy.ema_sma200 import EmaSma200RegimeV1
 from atlas.strategy.ema_trend import EmaTrendV1
 from atlas.strategy.pullback import PullbackLongV1
+from atlas.strategy.scalp_doge_breakout_bull import ScalpDogeBreakoutBullV1
 
 __all__ = [
     "BreakoutV1",
@@ -23,4 +24,5 @@ __all__ = [
     "EmaSma200RegimeV1",
     "EmaTrendV1",
     "PullbackLongV1",
+    "ScalpDogeBreakoutBullV1",
 ]
