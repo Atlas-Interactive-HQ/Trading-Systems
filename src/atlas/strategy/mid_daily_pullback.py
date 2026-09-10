@@ -2,14 +2,15 @@
 
 Research only. not_a_forecast. Never shorts. Never places orders.
 
-LOCKED (Kaje 2026-09-10):
-  Bar: DOGE-USDT 1D (same family as Core EMA).
+LOCKED rule card (Kaje 2026-09-10) — params frozen; asset chosen by eval:
+  Bar: spot 1D (DOGE-USDT trial #36 FAIL; BTC-USDT trial #38).
   Regime: NEW entries only if EMA12 > EMA30 on the signal day (closed).
   Entry: pullback reclaim — low ≤ EMA12 within the bar OR prior bar close < EMA12,
          AND signal close > EMA12 AND close > EMA30. Long only.
   Stop: entry_ref − 1.5 × ATR(14, daily); TP +2R; time stop 10 trading days.
   Regime exit: flatten if EMA12 ≤ EMA30 on a later close (fill next open).
   Fill: signal close → next open (EMA family).
+Do not param-grind ATR/TP/time/EMA/risk across assets.
 
 Decision at closed bar; engine fills next open. ATR = SMA of true range
 (same as BreakoutV1 / PullbackLongV1). Same bars + params → same Signal (or None).
