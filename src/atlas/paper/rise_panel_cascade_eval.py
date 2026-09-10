@@ -57,22 +57,34 @@ from atlas.paper.scalp_doge_ema_1h_eval import walk_long_flat_1h_daily_bull
 from atlas.paper.three_tier_eval import CascadeWindow, fetch_bars
 from atlas.paper.types import q
 from atlas.strategy.scalp_doge_ema_1h import (
-    BAR as SCALP_BAR,
-    FAMILY as SCALP_FAMILY,
+    BAR as SCALP_BAR_1H,
+    FAMILY as SCALP_FAMILY_1H,
     FAST,
     SLOW,
     ScalpDogeEma1hParams,
     ScalpDogeEma1hV1,
 )
+from atlas.strategy.scalp_doge_ema_4h import (
+    BAR as SCALP_BAR_4H,
+    FAMILY as SCALP_FAMILY_4H,
+    ScalpDogeEma4hV1,
+)
 
 SOURCE = "rise_panel_cascade_compound"
 COMPOUND_ID = "rise_panel_v1_cascade_compound_721"
+COMPOUND_ID_SCALP4H = "rise_panel_v1_cascade_compound_721_scalp4h"
 SCALP_CANDIDATE_ID = "rise_panel_v1_scalp_doge_ema12_30_1h_daily_bull_eur20"
+SCALP_CANDIDATE_ID_4H = "rise_panel_v1_scalp_doge_ema12_30_4h_eur20"
 SCALP_STANDIN_LABEL = "scalp_doge_ema_1h_daily_bull"
+SCALP_4H_LABEL = "scalp_doge_ema_4h"
+# Back-compat aliases used by 1H path / markdown
+SCALP_BAR = SCALP_BAR_1H
+SCALP_FAMILY = SCALP_FAMILY_1H
 WARMUP_DAILY = 40
 WARMUP_PAD_4H_DAYS = 10
 WARMUP_PAD_1H_DAYS = 3
 DAY_MS = 24 * 60 * 60 * 1000
+SCALP_MODES = ("1h_daily_bull", "4h_ema")
 
 CASCADE_RULE = {
     "name": "window_end_surplus_share_721",
@@ -177,6 +189,60 @@ def run_scalp_1h_on_window(
         "start_equity_eur": walk.get("start_equity_eur"),
         "end_equity_eur": walk.get("end_equity_eur"),
         "n_blocked_by_daily_bull": walk.get("n_blocked_by_daily_bull"),
+        "not_a_forecast": True,
+        "place_orders": False,
+    }
+
+
+def run_scalp_4h_on_window(
+    *,
+    bars_4h: list,
+    window: RiseWindow,
+    equity: float,
+    fee_rate: float,
+    slippage_bps: float,
+) -> dict[str, Any]:
+    """Scalp DOGE 4H EMA12/30 long/flat on one rise window (#57 substitute)."""
+    settings = EmaBookSettings(
+        equity_eur=float(equity),
+        fee_rate=float(fee_rate),
+        slippage_bps=float(slippage_bps),
+        leverage=1.0,
+    )
+    strat = ScalpDogeEma4hV1()
+    trade_bars = [b for b in bars_4h if window.start_ms <= b.ts_open_ms < window.end_ms_exclusive]
+    if len(trade_bars) < 12:
+        return _fail_row(window, arm="scalp_ema12_30_4h", error="insufficient 4H bars")
+    walk = walk_long_flat(
+        bars_4h,
+        strategy=strat,
+        settings=settings,
+        trade_start_ms=window.start_ms,
+        trade_end_ms=window.end_ms_exclusive,
+    )
+    bh = buy_and_hold(trade_bars, settings=settings)
+    return {
+        "ok": True,
+        "window_id": window.id,
+        "start": window.start,
+        "end": window.end,
+        "character": window.character,
+        "asset": ASSET,
+        "bar": SCALP_BAR_4H,
+        "arm": "scalp_ema12_30_4h",
+        "family": SCALP_FAMILY_4H,
+        "equity_eur": equity,
+        "n_trades": int(walk.get("n_trades") or 0),
+        "n_entries": int(walk.get("n_entries") or 0),
+        "expectancy_after_costs_eur": walk.get("expectancy_after_costs_eur"),
+        "net_return_eur": walk.get("net_return_eur"),
+        "max_dd_eur": walk.get("max_dd_eur"),
+        "fee_drag_eur": walk.get("fee_drag_eur"),
+        "time_in_market": walk.get("time_in_market"),
+        "bh_net_return_eur": bh.get("net_return_eur"),
+        "bh_max_dd_eur": bh.get("max_dd_eur"),
+        "start_equity_eur": walk.get("start_equity_eur"),
+        "end_equity_eur": walk.get("end_equity_eur"),
         "not_a_forecast": True,
         "place_orders": False,
     }
@@ -288,8 +354,16 @@ def run_cascade_compound_panel(
     data_dir: Path,
     pause_s: float = 0.12,
     rest_base: str = OKX_REST,
+    scalp_mode: str = "1h_daily_bull",
 ) -> dict[str, Any]:
-    """Run Core+Mid+Scalp on locked R1–R7 with window-end surplus cascade."""
+    """Run Core+Mid+Scalp on locked R1–R7 with window-end surplus cascade.
+
+    scalp_mode:
+      - "1h_daily_bull": provisional Scalp from #55
+      - "4h_ema": Scalp improve #57 (DOGE 4H EMA12/30 €20)
+    """
+    if scalp_mode not in SCALP_MODES:
+        raise ValueError(f"scalp_mode must be one of {SCALP_MODES}, got {scalp_mode!r}")
     fee_rate, slip = _paper_costs(cfg)
     window_rows: list[dict[str, Any]] = []
     core_rows: list[dict[str, Any]] = []
@@ -328,25 +402,46 @@ def run_cascade_compound_panel(
             mid = _fail_row(w, arm="mid_ema12_30_4h", error=str(exc))
 
         try:
-            bars_1h = fetch_bars(
-                cw, ASSET, SCALP_BAR, data_dir=data_dir, rest_base=rest_base,
-                pause_s=pause_s, pad_days=WARMUP_PAD_1H_DAYS,
-            )
-            # Daily bars for bull filter (reuse 1D fetch if core ok else fetch).
-            if core and core.get("ok"):
-                daily_bars = bars_1d  # type: ignore[name-defined]
-            else:
-                daily_bars = fetch_bars(
-                    cw, ASSET, CORE_BAR, data_dir=data_dir, rest_base=rest_base,
-                    pause_s=pause_s, pad_days=WARMUP_DAILY,
+            if scalp_mode == "4h_ema":
+                # Reuse Mid 4H bars when available; else fetch.
+                if mid and mid.get("ok"):
+                    try:
+                        bars_4h_scalp = bars_4h  # type: ignore[name-defined]
+                    except NameError:
+                        bars_4h_scalp = fetch_bars(
+                            cw, ASSET, MID_BAR_CANDIDATE, data_dir=data_dir,
+                            rest_base=rest_base, pause_s=pause_s, pad_days=WARMUP_PAD_4H_DAYS,
+                        )
+                else:
+                    bars_4h_scalp = fetch_bars(
+                        cw, ASSET, MID_BAR_CANDIDATE, data_dir=data_dir,
+                        rest_base=rest_base, pause_s=pause_s, pad_days=WARMUP_PAD_4H_DAYS,
+                    )
+                scalp = run_scalp_4h_on_window(
+                    bars_4h=bars_4h_scalp, window=w,
+                    equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
                 )
-            scalp = run_scalp_1h_on_window(
-                bars_1h=bars_1h, daily_bars=daily_bars, window=w,
-                equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
-            )
+            else:
+                bars_1h = fetch_bars(
+                    cw, ASSET, SCALP_BAR_1H, data_dir=data_dir, rest_base=rest_base,
+                    pause_s=pause_s, pad_days=WARMUP_PAD_1H_DAYS,
+                )
+                # Daily bars for bull filter (reuse 1D fetch if core ok else fetch).
+                if core and core.get("ok"):
+                    daily_bars = bars_1d  # type: ignore[name-defined]
+                else:
+                    daily_bars = fetch_bars(
+                        cw, ASSET, CORE_BAR, data_dir=data_dir, rest_base=rest_base,
+                        pause_s=pause_s, pad_days=WARMUP_DAILY,
+                    )
+                scalp = run_scalp_1h_on_window(
+                    bars_1h=bars_1h, daily_bars=daily_bars, window=w,
+                    equity=SCALP_START_EUR, fee_rate=fee_rate, slippage_bps=slip,
+                )
         except ReplayError as exc:
             errors.append(f"{w.id} scalp: {exc}")
-            scalp = _fail_row(w, arm="scalp_ema_1h_daily_bull", error=str(exc))
+            arm_fail = "scalp_ema12_30_4h" if scalp_mode == "4h_ema" else "scalp_ema_1h_daily_bull"
+            scalp = _fail_row(w, arm=arm_fail, error=str(exc))
 
         assert core is not None and mid is not None and scalp is not None
         core_rows.append(core)
@@ -379,7 +474,6 @@ def run_cascade_compound_panel(
 
     return {
         "ok": all(r.get("ok") for r in window_rows) and len(window_rows) == 7,
-        "compound_id": COMPOUND_ID,
         "panel": PANEL_LABEL,
         "asset": ASSET,
         "systems": {
@@ -396,17 +490,34 @@ def run_cascade_compound_panel(
                 "sleeve_start_eur": MID_START_EUR,
                 "soft_promote_prior": "PASS (#54)",
             },
-            "scalp": {
-                "id": SCALP_CANDIDATE_ID,
-                "bar": SCALP_BAR,
-                "strategy": SCALP_FAMILY,
-                "sleeve_start_eur": SCALP_START_EUR,
-                "standin_label": SCALP_STANDIN_LABEL,
-                "prefer": "turnover Scalp with real trades (1H EMA + daily bull)",
-                "provisional_scalp": provisional_scalp,
-                "soft_promote": scalp_soft,
-            },
+            "scalp": (
+                {
+                    "id": SCALP_CANDIDATE_ID_4H,
+                    "bar": SCALP_BAR_4H,
+                    "strategy": SCALP_FAMILY_4H,
+                    "sleeve_start_eur": SCALP_START_EUR,
+                    "standin_label": SCALP_4H_LABEL,
+                    "prefer": "Mid-family 4H EMA12/30 at Scalp €20 (#57)",
+                    "provisional_scalp": provisional_scalp,
+                    "soft_promote": scalp_soft,
+                    "scalp_mode": scalp_mode,
+                }
+                if scalp_mode == "4h_ema"
+                else {
+                    "id": SCALP_CANDIDATE_ID,
+                    "bar": SCALP_BAR_1H,
+                    "strategy": SCALP_FAMILY_1H,
+                    "sleeve_start_eur": SCALP_START_EUR,
+                    "standin_label": SCALP_STANDIN_LABEL,
+                    "prefer": "turnover Scalp with real trades (1H EMA + daily bull)",
+                    "provisional_scalp": provisional_scalp,
+                    "soft_promote": scalp_soft,
+                    "scalp_mode": scalp_mode,
+                }
+            ),
         },
+        "scalp_mode": scalp_mode,
+        "compound_id": COMPOUND_ID_SCALP4H if scalp_mode == "4h_ema" else COMPOUND_ID,
         "provisional_scalp": provisional_scalp,
         "cascade_rule": CASCADE_RULE,
         "costs": {"fee_rate": fee_rate, "slippage_bps": slip, "note": "PaperSettings 5+5 bps"},
