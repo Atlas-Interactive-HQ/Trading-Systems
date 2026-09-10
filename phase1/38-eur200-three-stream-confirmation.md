@@ -60,7 +60,7 @@ Parent : phase1/32 + 37 + this 38
 | Stream | Sleeve | Family / trial | Gate | Status |
 |--------|--------|----------------|------|--------|
 | Core | policy share of €200 (design) | EMA12/30 long/flat | primary choppy-bull PASS | **CONFIRMED** (design) |
-| Mid | €40 | #45 DOGE 4H EMA12/30 (after #42–44 FAIL archive) | `core_style_return` A∧B | **PENDING** |
+| Mid | €40 | #45 DOGE 4H EMA12/30 — set A PASS / set B FAIL (archive; no grind) | `core_style_return` A∧B | **PENDING** (next TBD) |
 | Scalp | €20 | #46 DOGE 15m breakout + daily EMA bull filter | `core_style_return` A∧B | **PENDING** (parallel) |
 
 Live trade gate until board is all CONFIRMED + Kaje phrase: **TINY ≤ €20**.
