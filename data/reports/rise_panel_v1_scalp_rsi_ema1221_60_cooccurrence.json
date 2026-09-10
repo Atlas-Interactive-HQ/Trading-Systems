@@ -1,0 +1,45 @@
+{
+  "not_a_forecast": true,
+  "note": "structural co-occurrence diagnostic for #60 combined entry",
+  "ok": true,
+  "place_orders": false,
+  "rows": [
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 22,
+      "window_id": "R1"
+    },
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 18,
+      "window_id": "R2"
+    },
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 29,
+      "window_id": "R3"
+    },
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 21,
+      "window_id": "R4"
+    },
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 17,
+      "window_id": "R5"
+    },
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 35,
+      "window_id": "R6"
+    },
+    {
+      "cross_up_and_ema12_gt_21": 0,
+      "rsi_cross_up": 27,
+      "window_id": "R7"
+    }
+  ],
+  "total_cross_up": 169,
+  "total_cross_up_and_ema_bull": 0
+}
