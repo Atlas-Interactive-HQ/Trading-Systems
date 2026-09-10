@@ -29,7 +29,14 @@ SOFT_PROMOTE_NOTE = (
 )
 
 BASELINE_ID = "rise_panel_v1_core_doge_ema12_30_1d_eur140"
+# Mid #54 EMA candidate — ARCHIVE reference only after #65 promote (not current Mid baseline).
 MID_CANDIDATE_ID = "rise_panel_v1_mid_doge_ema12_30_4h_eur40"
+MID_EMA_ARCHIVE_ID = MID_CANDIDATE_ID  # alias: rise_panel_v1_mid_doge_ema12_30_4h_eur40
+# NEW formal Mid baseline (Kaje promote soft PASS #65 BreakoutV1 4H €40; panel_net≈€95.45).
+# Soft PASS / promote ≠ Mid-arm / live. Bot Core+Mid only; Scalp = Kaje manual.
+MID_BASELINE_ID = "rise_panel_v1_mid_doge_breakoutv1_4h_eur40"
+MID_BASELINE_PANEL_NET_EUR = 95.4483  # #65 scored panel_net (promote lock)
+MID_BASELINE_CORE_MID_PANEL_NET_EUR = 459.4466  # Core €140 + Mid Breakout €40
 
 
 @dataclass(frozen=True)

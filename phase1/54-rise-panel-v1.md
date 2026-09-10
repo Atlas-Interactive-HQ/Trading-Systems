@@ -87,7 +87,8 @@ Strategy: long iff closed-bar EMA12 > EMA30; else flat. Never short. Signal clos
 
 ## D. Mid improvement candidate (same 7)
 
-**mid_candidate_id:** `rise_panel_v1_mid_doge_ema12_30_4h_eur40`  · **compare_to:** `rise_panel_v1_core_doge_ema12_30_1d_eur140`
+**mid_candidate_id (ARCHIVE):** `rise_panel_v1_mid_doge_ema12_30_4h_eur40`  · **compare_to:** `rise_panel_v1_core_doge_ema12_30_1d_eur140`
+**NEW Mid formal baseline (promote #65 / 65b):** `rise_panel_v1_mid_doge_breakoutv1_4h_eur40` (panel_net≈€95.45) — EMA Mid = archive only. Soft PASS ≠ Mid-arm.
 
 Mid DOGE-USDT **4H** EMA12/30 long/flat (€40) — TF Mid ≠ 1D Core twin; exits on EMA cross → real turnover (not n≈0 BH twin).
 

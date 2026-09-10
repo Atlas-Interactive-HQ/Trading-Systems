@@ -188,3 +188,8 @@ Reports: `data/reports/rise_panel_v1_core_mid_book_mid_breakout_65.json`
 - Not a claim that past rise windows forecast the next bull.
 
 `not_a_forecast: true`. `place_orders: false`.
+---
+
+## Promote status (Kaje lock — see 65b)
+
+**PROMOTED** to NEW Mid formal baseline: `rise_panel_v1_mid_doge_breakoutv1_4h_eur40` (panel_net≈€95.45). EMA Mid 4H = **archive reference only**. Details: [`65b-mid-breakout-promote.md`](./65b-mid-breakout-promote.md). Soft PASS / promote ≠ Mid-arm / live. Bot Core+Mid only; Scalp = Kaje manual.
