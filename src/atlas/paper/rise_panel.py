@@ -1,0 +1,195 @@
+"""rise_panel_v1 — locked DOGE-USDT similar upward / choppy-bull windows + soft-promote.
+
+LOCKED before scoring (phase1/54-rise-panel-v1.md). Research only. not_a_forecast.
+Never places orders. Does NOT mutate config/default.yaml.
+Soft promote is INTENTIONAL and LABELED — NOT a silent rewrite of core_style A∧B.
+"""
+
+from __future__ import annotations
+
+import statistics
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Any, Iterable, Sequence
+
+from atlas.paper.types import q
+
+PANEL_LABEL = "rise_panel_v1"
+ASSET = "DOGE-USDT"
+CORE_BAR = "1D"
+MID_BAR_CANDIDATE = "4H"
+
+# Soft promote (intentional, labeled). Not core_style_return A∧B.
+SOFT_PROMOTE_GATE = "soft_promote_v1"
+SOFT_PROMOTE_MIN_EXP_POS = 5  # ≥5/7 windows expectancy > 0
+SOFT_PROMOTE_MEDIAN_TRADES_MIN = 1  # ≫ 0 coded as median >= 1 (excludes n≈0 BH twin)
+SOFT_PROMOTE_NOTE = (
+    "INTENTIONAL labeled gate — NOT a silent rewrite of core_style_return A∧B "
+    "three-stream board. median_trades≫0 (coded >=1) AND >=5/7 exp>0 AND panel_net>0."
+)
+
+BASELINE_ID = "rise_panel_v1_core_doge_ema12_30_1d_eur140"
+MID_CANDIDATE_ID = "rise_panel_v1_mid_doge_ema12_30_4h_eur40"
+
+
+@dataclass(frozen=True)
+class RiseWindow:
+    """One locked rise_panel_v1 window (UTC inclusive end date)."""
+
+    id: str
+    start: str
+    end: str
+    character: str
+    approx_move_pct: float
+    approx_peak_pct: float
+    approx_intra_mdd_pct: float
+
+    @property
+    def label(self) -> str:
+        return f"{self.start} → {self.end} UTC"
+
+    @property
+    def start_ms(self) -> int:
+        return _utc_day_ms(self.start)
+
+    @property
+    def end_ms_exclusive(self) -> int:
+        dt = datetime.strptime(self.end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        return int((dt + timedelta(days=1)).timestamp() * 1000)
+
+
+def _utc_day_ms(yyyy_mm_dd: str) -> int:
+    dt = datetime.strptime(yyyy_mm_dd, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    return int(dt.timestamp() * 1000)
+
+
+# Locked BEFORE scoring. Approx % from OKX EEA DOGE-USDT 1D (2026-09-10 fetch).
+RISE_PANEL_V1: tuple[RiseWindow, ...] = (
+    RiseWindow("R1", "2020-10-01", "2020-12-31", "late-2020 year-end grind", 87.1, 107.2, 24.3),
+    RiseWindow("R2", "2021-07-20", "2021-10-20", "mid-2021 post-crash recovery chop", 45.5, 109.5, 40.9),
+    RiseWindow("R3", "2022-08-10", "2022-11-07", "late-2022 bounce (choppy)", 39.8, 123.4, 31.9),
+    RiseWindow("R4", "2023-09-01", "2023-11-30", "Sep–Nov 2023 ETF-anticipation grind", 30.8, 38.0, 9.6),
+    RiseWindow("R5", "2023-12-01", "2024-02-29", "winter 23/24 continuation rise", 49.7, 62.7, 23.5),
+    RiseWindow("R6", "2024-03-01", "2024-05-31", "spring 2024 choppy bull", 28.8, 84.2, 44.4),
+    RiseWindow("R7", "2024-08-07", "2024-11-04", "late-2024 grind", 78.0, 83.3, 20.6),
+)
+
+assert len(RISE_PANEL_V1) == 7
+
+
+def panel_windows() -> tuple[RiseWindow, ...]:
+    return RISE_PANEL_V1
+
+
+def window_by_id(wid: str) -> RiseWindow:
+    for w in RISE_PANEL_V1:
+        if w.id == wid:
+            return w
+    known = ", ".join(w.id for w in RISE_PANEL_V1)
+    raise KeyError(f"unknown rise window {wid!r}; known: {known}")
+
+
+def _median(values: Sequence[float | int]) -> float | None:
+    if not values:
+        return None
+    return float(statistics.median(values))
+
+
+def soft_promote_score(window_rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    """Soft-promote gate over 7 window result dicts.
+
+    Each row should provide:
+      - n_trades (int)
+      - expectancy_after_costs_eur (float | None)  # None when n_trades==0
+      - net_return_eur (float | None)
+
+    PASS iff:
+      median_trades >= SOFT_PROMOTE_MEDIAN_TRADES_MIN  (≫ 0)
+      AND count(expectancy > 0) >= SOFT_PROMOTE_MIN_EXP_POS
+      AND sum(net) > 0
+    """
+    rows = list(window_rows)
+    n_windows = len(rows)
+    trades = [int(r.get("n_trades") or 0) for r in rows]
+    exps: list[float | None] = []
+    nets: list[float] = []
+    for r in rows:
+        exp = r.get("expectancy_after_costs_eur")
+        exps.append(None if exp is None else float(exp))
+        net = r.get("net_return_eur")
+        nets.append(0.0 if net is None else float(net))
+
+    median_trades = _median(trades)
+    n_exp_pos = sum(1 for e in exps if e is not None and e > 0)
+    panel_net = q(sum(nets))
+    worst_dd = None
+    dds = [r.get("max_dd_eur") for r in rows if r.get("max_dd_eur") is not None]
+    if dds:
+        worst_dd = q(max(float(d) for d in dds))
+
+    median_exp_vals = [e for e in exps if e is not None]
+    median_expectancy = _median(median_exp_vals) if median_exp_vals else None
+
+    median_ok = median_trades is not None and median_trades >= SOFT_PROMOTE_MEDIAN_TRADES_MIN
+    exp_ok = n_exp_pos >= SOFT_PROMOTE_MIN_EXP_POS
+    net_ok = panel_net > 0
+    passed = bool(median_ok and exp_ok and net_ok)
+
+    return {
+        "gate": SOFT_PROMOTE_GATE,
+        "gate_note": SOFT_PROMOTE_NOTE,
+        "n_windows": n_windows,
+        "n_trades_per_window": trades,
+        "median_trades": median_trades,
+        "median_trades_ok": median_ok,
+        "median_trades_min": SOFT_PROMOTE_MEDIAN_TRADES_MIN,
+        "n_expectancy_gt_0": n_exp_pos,
+        "n_expectancy_gt_0_required": SOFT_PROMOTE_MIN_EXP_POS,
+        "expectancy_gt_0_ok": exp_ok,
+        "panel_net_eur": panel_net,
+        "panel_net_ok": net_ok,
+        "median_expectancy_eur": None if median_expectancy is None else q(median_expectancy),
+        "worst_dd_eur": worst_dd,
+        "n_net_gt_0": sum(1 for n in nets if n > 0),
+        "pass": passed,
+        "verdict": "PASS" if passed else "FAIL",
+        "not_a_forecast": True,
+        "place_orders": False,
+        "differs_from_core_style_ab": True,
+    }
+
+
+def panel_summary_table(window_rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Informational panel summary (also used for baseline docs)."""
+    soft = soft_promote_score(window_rows)
+    return {
+        "panel": PANEL_LABEL,
+        "n_windows": soft["n_windows"],
+        "n_exp_gt_0": soft["n_expectancy_gt_0"],
+        "n_net_gt_0": soft["n_net_gt_0"],
+        "median_expectancy_eur": soft["median_expectancy_eur"],
+        "median_trades": soft["median_trades"],
+        "panel_net_eur": soft["panel_net_eur"],
+        "worst_dd_eur": soft["worst_dd_eur"],
+        "soft_promote": soft,
+        "not_a_forecast": True,
+        "place_orders": False,
+    }
+
+
+def justification_rows() -> list[dict[str, Any]]:
+    """Locked justification table (dates + approx % + character)."""
+    return [
+        {
+            "id": w.id,
+            "start": w.start,
+            "end": w.end,
+            "approx_move_pct": w.approx_move_pct,
+            "approx_peak_pct": w.approx_peak_pct,
+            "approx_intra_mdd_pct": w.approx_intra_mdd_pct,
+            "character": w.character,
+            "asset": ASSET,
+            "panel": PANEL_LABEL,
+        }
+        for w in RISE_PANEL_V1
+    ]
