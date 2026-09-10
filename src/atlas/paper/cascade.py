@@ -230,3 +230,118 @@ def replay_cascade_from_trades(
     end_ts = final_ts_ms if final_ts_ms is not None else ordered[-1].ts_ms
     ledger.weekly_rebalance(ts_ms=end_ts, week_id=current_week)
     return ledger
+
+
+# Target book shares for surplus-share cascade (paper Track B compound).
+SHARE_CORE = 0.70
+SHARE_MID = 0.20
+SHARE_SCALP = 0.10
+TARGET_SHARES: dict[SleeveName, float] = {
+    "core": SHARE_CORE,
+    "mid": SHARE_MID,
+    "scalp": SHARE_SCALP,
+}
+
+
+def surplus_target_eur(total_equity_eur: float, name: SleeveName) -> float:
+    return q(float(total_equity_eur) * TARGET_SHARES[name])
+
+
+def CascadeLedger_surplus_share_rebalance(
+    self: CascadeLedger,
+    *,
+    ts_ms: int,
+    week_id: str | None = None,
+    reason: str = "window_end_surplus_share_721",
+) -> list[TransferEvent]:
+    """One-way surplus sweep to target shares 7:2:1 (Scalp→Mid then Mid→Core).
+
+    Exact rule (paper Track B):
+      total = core + mid + scalp equity
+      target_scalp = 0.10 * total; target_mid = 0.20 * total; target_core = 0.70 * total
+      For Scalp then Mid: if equity > target + min_transfer_eur, transfer
+        amount = equity - target (capped by available equity) upward.
+      Never transfers Core→Mid or Mid→Scalp. Never refills a depleted sleeve downward.
+      Core may receive; Core never sends.
+
+    Call after sleeve equities reflect compounded walk ends (or after weekly
+    realized-profit sweeps). Amounts below min_transfer_eur are skipped (fee noise).
+    """
+    wid = week_id or utc_iso_week(ts_ms)
+    done: list[TransferEvent] = []
+    for src_name, dst_name in UPWARD_ORDER:
+        total = self.total_equity_eur()
+        if total <= DEPLETE_EPS_EUR:
+            break
+        src = self.sleeve(src_name)
+        dst = self.sleeve(dst_name)
+        target = surplus_target_eur(total, src_name)
+        surplus = q(src.equity_eur - target)
+        if surplus < self.min_transfer_eur:
+            continue
+        amount = q(min(surplus, max(0.0, src.equity_eur)))
+        if amount < self.min_transfer_eur:
+            continue
+        src.equity_eur = q(src.equity_eur - amount)
+        # Surplus sweep clears pending on the transferred amount (capital left the sleeve).
+        src.realized_profit_pending_eur = q(
+            max(0.0, src.realized_profit_pending_eur - amount)
+        )
+        src.transferred_out_eur = q(src.transferred_out_eur + amount)
+        src.n_transfers_out += 1
+        dst.equity_eur = q(dst.equity_eur + amount)
+        dst.transferred_in_eur = q(dst.transferred_in_eur + amount)
+        dst.n_transfers_in += 1
+        if src.name in ("mid", "scalp") and src.equity_eur <= DEPLETE_EPS_EUR:
+            src.equity_eur = 0.0
+            if not src.halted:
+                src.halted = True
+                src.n_halts += 1
+        ev = TransferEvent(
+            ts_ms=int(ts_ms),
+            week_id=wid,
+            source=src_name,
+            dest=dst_name,
+            amount_eur=amount,
+            reason=reason,
+        )
+        self.transfers.append(ev)
+        done.append(ev)
+    return done
+
+
+# Attach as method (keeps file additive without rewriting class body mid-edit).
+CascadeLedger.surplus_share_rebalance = CascadeLedger_surplus_share_rebalance  # type: ignore[attr-defined]
+
+
+def apply_walk_ends_then_surplus(
+    *,
+    core_end_eur: float,
+    mid_end_eur: float,
+    scalp_end_eur: float,
+    ts_ms: int,
+    min_transfer_eur: float = MIN_TRANSFER_EUR,
+    reason: str = "window_end_surplus_share_721",
+) -> CascadeLedger:
+    """Build ledger from independent compounded walk ends, then surplus-share rebalance.
+
+    Walks already compound within-sleeve (cash recycles; no martingale). Cascade
+    only moves surplus above target share upward. Starting allocation is implicit
+    in the walk starts (140/40/20); this helper snapshots ends then sweeps.
+    """
+    led = CascadeLedger(min_transfer_eur=min_transfer_eur)
+    led.core.equity_eur = q(core_end_eur)
+    led.mid.equity_eur = q(mid_end_eur)
+    led.scalp.equity_eur = q(scalp_end_eur)
+    # Mark pending profit as max(0, end - start) so weekly-style fields stay informative.
+    led.core.realized_profit_pending_eur = q(max(0.0, core_end_eur - CORE_START_EUR))
+    led.mid.realized_profit_pending_eur = q(max(0.0, mid_end_eur - MID_START_EUR))
+    led.scalp.realized_profit_pending_eur = q(max(0.0, scalp_end_eur - SCALP_START_EUR))
+    if mid_end_eur <= DEPLETE_EPS_EUR:
+        led.mid.halted = True
+        led.mid.n_halts = 1
+    if scalp_end_eur <= DEPLETE_EPS_EUR:
+        led.scalp.halted = True
+        led.scalp.n_halts = 1
+    led.surplus_share_rebalance(ts_ms=ts_ms, reason=reason)
+    return led
