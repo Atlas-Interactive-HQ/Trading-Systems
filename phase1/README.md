@@ -59,6 +59,7 @@
 | [104-h1-markout-event-time.md](./104-h1-markout-event-time.md) | H1-MARKOUT fill-conditioned 100ms–10s; event-time H1a; do not rewrite locked 1s H1; no economic PnL yet |
 | [105-portfolio-core-major.md](./105-portfolio-core-major.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN; CASH valid; CORE-MAJOR-v1 later (BTC+ETH), not scored |
 | [106-research-governance-board.md](./106-research-governance-board.md) | Board order A→F; hard invariants; Soft PASS ≠ arm; this PR is step A only |
+| [107-eur200-capital-readiness-2026-09-12.md](./107-eur200-capital-readiness-2026-09-12.md) | €200 capital readiness fail-closed; Soft PASS ≠ arm; HALTED; ≤€20; not_a_forecast; does not collide with P4 #100 |
 
 ## Locked highlights (see 00 for full list)
 
