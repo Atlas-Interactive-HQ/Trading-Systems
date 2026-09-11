@@ -54,6 +54,89 @@ SCALP_R2_HYPOTHESIS_ID = "rise_panel_v1_scalp_r2_dual_thrust_4h_ema1221_regime"
 # Core Donchian C3/C4 STOPPED. CORE-R1 is a new family (lock only; no R1–R7 score here).
 CORE_DONCHIAN_FAMILY_STOPPED = True
 CORE_R1_ID = "rise_panel_v1_core_r1_doge_ema12_30_atr14_trail3_1d_eur140"
+# CORE-R1 scored under accounting_v2 (phase1/97): V2 PASS but promote=False (DEV only).
+CORE_R1_PROMOTED = False
+# Core sleeve on best DEV board = CASH until contiguous SHADOW / portfolio green (phase1/105, #108).
+CORE_DEV_ALLOCATION = "cash"
+CORE_C0_BASELINE_ID = BASELINE_ID  # EMA12/30 1D €140 — baseline reference, not an arm
+
+# Best DEV board research lock (phase1/108). NOT live arm. Soft PASS ≠ arm. HALTED.
+DEV_BOARD_ID = "atlas_dev_board_v1"
+DEV_BOARD: dict[str, object] = {
+    "id": DEV_BOARD_ID,
+    "status": "research_lock_not_live",
+    "live_arm": False,
+    "soft_pass_neq_arm": True,
+    "halted": True,
+    "place_orders": False,
+    "not_a_forecast": True,
+    "default_yaml_untouched": True,
+    "p4a": "screening_only",
+    "shadow_dates_invented": False,
+    "mid": {
+        "role": "primary",
+        "candidate_id": MID_PRIMARY_CANDIDATE_ID,  # Mid #71
+        "label": "mid_71_breakout_ema1221_4h_eur40",
+        "sleeve_eur": 40.0,
+        "bar": "4H",
+        "citation": ("phase1/72", "phase1/72b", "phase1/91", "phase1/93"),
+    },
+    "scalp": {
+        "role": "provisional_dev",
+        "candidate_id": SCALP_PROVISIONAL_DEV_ID,  # S1 Dual Thrust + RVOL>1
+        "label": "scalp_s1_dual_thrust_rvol_gt1_1h_eur20",
+        "sleeve_eur": 20.0,
+        "bar": "1H",
+        "citation": ("phase1/87", "phase1/91", "phase1/93"),
+    },
+    "core": {
+        "role": "cash",
+        "allocation": CORE_DEV_ALLOCATION,
+        "baseline_id": CORE_C0_BASELINE_ID,  # C0 EMA reference only
+        "core_r1_id": CORE_R1_ID,
+        "core_r1_promoted": CORE_R1_PROMOTED,
+        "donchian_family_stopped": CORE_DONCHIAN_FAMILY_STOPPED,
+        "sleeve_eur_nominal": 140.0,  # sleeve size reference — not armed
+        "citation": ("phase1/54", "phase1/91", "phase1/94", "phase1/97", "phase1/105"),
+    },
+    "eliminated_or_not_board": {
+        "mid_m1": "robustness_comparator_only",  # PASS-but-worse vs #71
+        "scalp_r2": "FAIL_eliminated",  # phase1/99
+        "core_c1_c2_donchian": "FAIL_family_stopped",
+        "core_r1": "v2_PASS_DEV_only_not_promoted",
+    },
+}
+
+
+def dev_board_card() -> dict[str, object]:
+    """Frozen best-DEV research board (phase1/108). Not an arm."""
+    mid = dict(DEV_BOARD["mid"])  # type: ignore[arg-type]
+    mid["citation"] = list(mid["citation"])
+    scalp = dict(DEV_BOARD["scalp"])  # type: ignore[arg-type]
+    scalp["citation"] = list(scalp["citation"])
+    core = dict(DEV_BOARD["core"])  # type: ignore[arg-type]
+    core["citation"] = list(core["citation"])
+    return {
+        "id": DEV_BOARD_ID,
+        "status": DEV_BOARD["status"],
+        "live_arm": False,
+        "soft_pass_neq_arm": True,
+        "halted": True,
+        "place_orders": False,
+        "not_a_forecast": True,
+        "default_yaml_untouched": True,
+        "p4a": "screening_only",
+        "do_not_invent_shadow_dates": True,
+        "mid": mid,
+        "scalp": scalp,
+        "core": core,
+        "eliminated_or_not_board": dict(DEV_BOARD["eliminated_or_not_board"]),  # type: ignore[arg-type]
+        "mid_primary_candidate_id": MID_PRIMARY_CANDIDATE_ID,
+        "scalp_provisional_dev_id": SCALP_PROVISIONAL_DEV_ID,
+        "core_c0_baseline_id": CORE_C0_BASELINE_ID,
+        "core_r1_promoted": CORE_R1_PROMOTED,
+        "core_donchian_family_stopped": CORE_DONCHIAN_FAMILY_STOPPED,
+    }
 
 
 @dataclass(frozen=True)

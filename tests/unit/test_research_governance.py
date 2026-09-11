@@ -101,6 +101,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-C2",
         "TL-CORE-R1",
         "TL-SCALP-R2",
+        "TL-DEV-BOARD",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
