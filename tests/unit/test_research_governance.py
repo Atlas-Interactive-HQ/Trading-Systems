@@ -102,12 +102,24 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-CORE-R1",
         "TL-SCALP-R2",
         "TL-DEV-BOARD",
+        "TL-H0",
+        "TL-109",
+        "TL-110",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
     s1 = next(r for r in rows if r.trial_id == "TL-S1")
     assert s1.result["dev_panel_net_delta_eur_cited"] == 1.4637
     assert s1.score_commit.startswith("7f16b72")
+    h0 = next(r for r in rows if r.trial_id == "TL-H0")
+    assert h0.pass_fail == "N/A_health_only"
+    assert h0.result["health_stale_pct_cited"] == 39.22
+    assert h0.result["carried_forward_pct_cited"] == 57.65
+    assert h0.result["no_hft_pnl"] is True
+    board = next(r for r in rows if r.trial_id == "TL-110")
+    assert board.parent_trial == "TL-DEV-BOARD"
+    assert board.parameters["core_allocation"] == "cash"
+    assert board.parameters["hft"] == "wait_p4b"
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

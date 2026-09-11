@@ -50,7 +50,7 @@ Every row carries `not_a_forecast`, `place_orders: false`, `soft_pass_neq_arm`.
 
 `research/trial_ledger.jsonl` backfills **named mainline** trials from existing phase1 docs / PR numbers. It is **not** a complete count of phase1/16–99.
 
-Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **8** after `TL-DEV-BOARD` lock row) as the research-wide N.
+Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **11** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110`) as the research-wide N.
 
 ---
 
@@ -65,7 +65,10 @@ Before any GREEN CANDIDATE declaration, expand the census to every scored hypoth
 | `TL-C2` | PR **#84** · [`89`](./89-rise-panel-core-c2-donchian40-20-ema50-200-1d.md) | `FAIL` (Donchian family stopped) |
 | `TL-CORE-R1` | lock PR **#85** [`94`](./94-core-r1-lock.md) · score PR **#86** [`97`](./97-rise-panel-core-r1-ema-atr-trail-1d.md) | `v2_PASS_DEV_only` — not a promote |
 | `TL-SCALP-R2` | lock PR **#85** [`93`](./93-frozen-mid-scalp-candidates.md) · score PR **#88** [`99`](./99-rise-panel-scalp-r2-dt-4h-regime-1h.md) | `FAIL` |
-| `TL-DEV-BOARD` | [`108`](./108-dev-board-research-lock.md) | `N/A_research_lock_not_a_score` (Mid #71 + S1 + Core CASH) |
+| `TL-DEV-BOARD` | PR **#92** · [`108`](./108-dev-board-research-lock.md) | `N/A_research_lock_not_a_score` (Mid #71 + S1 + Core CASH) |
+| `TL-H0` | PR **#87** · [`98`](./98-h0-health-stale-2026-09-11.md) | `N/A_health_only` — no HFT PnL; health-stale ≈39.2% vs carry ≈57.7% |
+| `TL-109` | [`109`](./109-three-month-program-2026-09-12.md) | `N/A_program_lock_not_a_score` (3-month cadence; no arm) |
+| `TL-110` | [`110`](./110-paper-scoreboard-synthesis-2026-09-12.md) | `N/A_synthesis_not_a_score` (cites #108 board; no new panel) |
 
 Result objects **cite** those notes. They do not restate panel € tables as a new score. Soft PASS ≠ arm.
 
