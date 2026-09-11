@@ -36,7 +36,7 @@ SIZE              fixed normalized margin_unit = 1.0
                   no compounding / no size-up after win or loss
 
 HARD STOP         -20% net margin ROI  (= -1R)
-HARD TP           +100% net margin ROI (= +5R)
+HARD TP           +60% net margin ROI  (= +3R)
 SOFT EXIT         EMA invalidation OR vamp_z crosses 0
                   2-of-3 confirmation
 TIME STOP         60 seconds

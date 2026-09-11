@@ -1,6 +1,6 @@
 {
   "strategy_id": "scalp_hft_v1",
-  "strategy_version": "v1",
+  "strategy_version": "v1.1-tp60",
   "name": "Scalp-HFT v1 / EMA-VAMP",
   "PAPER_ONLY": true,
   "not_a_forecast": true,
@@ -11,7 +11,8 @@
   "design_docs": [
     "phase1/75-scalp-hft-v1-design.md",
     "phase1/76-scalp-hft-v1-rule-card.md",
-    "phase1/77-scalp-hft-v1-eval-plan.md"
+    "phase1/77-scalp-hft-v1-eval-plan.md",
+    "phase1/81-scalp-hft-tp60-lock.md"
   ],
   "intake_brief": "phase1/71-codex-scalp-hft-design-brief.md",
   "sketch": "research/scalp_hft_v1_sketch.py",
@@ -25,7 +26,7 @@
   "git": {
     "commit": null,
     "commit_TODO": "fill with freeze SHA at evaluation start",
-    "branch_intent": "research/scalp-hft-v1-design"
+    "branch_intent": "research/scalp-hft-tp60-lock"
   },
   "signal": {
     "clock_s": 1,
@@ -39,12 +40,18 @@
     "confirm_window": 3
   },
   "exits": {
-    "hard_stop_net_margin_roi": -0.20,
-    "hard_tp_net_margin_roi": 1.00,
+    "hard_stop_net_margin_roi": -0.2,
+    "hard_tp_net_margin_roi": 0.6,
     "edge_decay": "EMA invalidation OR vamp_z crosses 0; 2-of-3",
     "time_stop_s": 60,
     "normal_exit": "maker up to 1s then taker",
-    "cooldown_s": 5
+    "cooldown_s": 5,
+    "r_definition": "1R = 20% of isolated margin per trade",
+    "hard_sl_r": -1.0,
+    "hard_tp_r": 3.0,
+    "risk_reward": "1:3 (SL -1R / TP +3R)",
+    "tp_lock_date": "2026-09-11",
+    "tp_lock_doc": "phase1/81-scalp-hft-tp60-lock.md"
   },
   "sizing": {
     "margin_unit": 1.0,
@@ -76,12 +83,20 @@
     "x_perps_live_from": "2026-04"
   },
   "evaluation": {
-    "windows": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+    "windows": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ],
     "soft_pass": "N/A",
     "layer_a_label": "SYNTHETIC / PROXY EXECUTION",
     "layer_b_required_for_execution_economics": true,
     "metrics_filled": false,
-    "next_gate": "L2 data gate Layer A vs B — fail-closed for VAMP without causal depth"
+    "next_gate": "L2 data gate Layer A vs B \u2014 fail-closed for VAMP without causal depth"
   },
   "forbidden": [
     "martingale",
@@ -91,5 +106,11 @@
     "live_orders",
     "default.yaml_mutation",
     "invented_metrics_tables"
-  ]
+  ],
+  "strategy_version_note": "v1.1-tp60: Hard TP locked to +60% net margin ROI (+3R); SL unchanged \u221220% (\u22121R); 1R=20% isolated margin; Kaje 2026-09-11. PAPER_ONLY.",
+  "constants": {
+    "STOP_ROI": -0.2,
+    "TAKE_ROI": 0.6,
+    "PAPER_ONLY": true
+  }
 }

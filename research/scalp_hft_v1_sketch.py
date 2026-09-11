@@ -31,7 +31,7 @@ ENTRY_TTL_S = 1
 COOLDOWN_S = 5
 
 STOP_ROI = -0.20
-TAKE_ROI = +1.00
+TAKE_ROI = +0.60  # hard TP +60% net margin ROI = +3R (Kaje lock 2026-09-11; was +1.00/+5R)
 SESSION_KILL_R = -2.0
 
 MARGIN_UNIT = 1.0
