@@ -20,6 +20,10 @@ if str(_SRC) not in sys.path:
 
 from atlas.common.config import load_config  # noqa: E402
 from atlas.common.logging import setup_logging  # noqa: E402
+from atlas.paper.rise_panel_cascade_eval import (  # noqa: E402
+    run_cascade_compound_panel,
+    write_report_json as write_cascade_json,
+)
 from atlas.paper.rise_panel_scalp_dual_thrust_1h_eval import (  # noqa: E402
     SCALP_4H_ID,
     SCALP_EMA1221_1H_ID,
@@ -67,6 +71,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--write-md",
         default="phase1/83-rise-panel-scalp-dual-thrust-1h.md",
+    )
+    p.add_argument(
+        "--skip-cascade",
+        action="store_true",
+        help="Even on soft_promote PASS, do not re-run cascade compound",
     )
     p.add_argument(
         "--skip-4h-rescore",
@@ -255,6 +264,37 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps({"wrote": str(path_d63), "deltas_vs_63": deltas63}, indent=2))
 
+    cascade_bundle = None
+    soft = (improve or {}).get("soft_promote") or {}
+    if (
+        improve is not None
+        and bool(soft.get("pass"))
+        and not args.skip_cascade
+        and run_imp
+    ):
+        cascade_bundle = run_cascade_compound_panel(
+            cfg, data_dir=data_dir, pause_s=args.pause_s, scalp_mode="1h_dual_thrust"
+        )
+        path_c = write_cascade_json(
+            cascade_bundle,
+            reports / "rise_panel_v1_cascade_compound_scalp_dual_thrust_1h.json",
+        )
+        print(
+            json.dumps(
+                {
+                    "wrote": str(path_c),
+                    "compound_id": cascade_bundle.get("compound_id"),
+                    "ok": cascade_bundle.get("ok"),
+                    "provisional_scalp": cascade_bundle.get("provisional_scalp"),
+                    "scalp_mode": cascade_bundle.get("scalp_mode"),
+                    "panel_narrative": cascade_bundle.get("panel_narrative"),
+                    "place_orders": False,
+                    "not_a_forecast": True,
+                },
+                indent=2,
+            )
+        )
+
     sha = _git_sha()
     if args.write_md and provisional is not None and improve is not None:
         md = render_results_markdown(
@@ -265,6 +305,7 @@ def main(argv: list[str] | None = None) -> int:
             deltas_vs_55=deltas55,
             deltas_vs_57=deltas57,
             deltas_vs_63=deltas63,
+            cascade_bundle=cascade_bundle,
             sha=sha,
         )
         md_path = Path(args.write_md)

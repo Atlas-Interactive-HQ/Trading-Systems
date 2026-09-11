@@ -67,7 +67,7 @@ Costs: PaperSettings **5+5 bps**; fills **next-open**; `place_orders: false`.
 **Family:** `dual_thrust_n20_k0505_long_flat_1h`  
 **scalp_improve_id:** `rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_1h_eur20`  
 **compare_to:** `rise_panel_v1_scalp_doge_ema12_30_1h_daily_bull_eur20`, `rise_panel_v1_scalp_doge_ema12_30_4h_eur20`, `rise_panel_v1_scalp_doge_ema12_21_1h_eur20`
-**Citation:** Apache-2.0 idea from [je-suis-tm/quant-trading](https://github.com/je-suis-tm/quant-trading) `Dual Thrust backtest.py` — **reimplemented**; do not dump foreign GPL.
+**Formula lock:** Buy = open + k1×(HH−LL); Sell = open − k2×(HH−LL) over prior N (exclusive). Seed N=20 k1=k2=0.5 once.
 
 ### Rule card (LOCKED)
 
@@ -180,6 +180,30 @@ soft_promote **PASS**. Paper only. **Soft PASS ≠ auto-arm** until coordinator 
 - #69 Breakout / #70 Donchian / #73 Breakout+EMA1221 (doc [`80`](./80-rise-panel-core-breakout-ema1221-1d.md)) are soft **FAIL** / not better on panel_net — **do not invent soft PASS**. Noon Core-green for Research = **ops-ready narrative only**.
 
 ---
+
+
+---
+
+## E. Cascade compound (PASS → substitute Scalp, provisional_scalp=false)
+
+Same cascade rules as phase1/55: window-end surplus-share 7:2:1, one-way Scalp→Mid→Core; PaperSettings 5+5 bps; next-open; place_orders false. Core / Mid walks unchanged on this harness path.
+
+- **compound_id:** `rise_panel_v1_cascade_compound_721_scalp_dual_thrust_1h`
+- **provisional_scalp:** `False`
+- **Scalp system:** `rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_1h_eur20` (1H Dual Thrust N=20 k1=k2=0.5)
+- combined net pre-cascade: **478.7850** €
+- per-sleeve net (panel sum): Core **363.9983** · Mid **83.6104** · Scalp **31.1763** €
+
+### Compare to EMA-board panel nets (#55 / #57 / #63)
+
+| Sleeve | #55 (provisional) | #57 (4H) | #63 (EMA12/21) | #83 (Dual Thrust) | Δ vs #55 | Δ vs #57 | Δ vs #63 |
+|--------|------------------:|---------:|---------------:|------------------:|---------:|---------:|---------:|
+| Core | 363.9983 | 363.9983 | 363.9983 | 363.9983 | 0.0000 | 0.0000 | 0.0000 |
+| Mid | 83.6104 | 83.6104 | 83.6104 | 83.6104 | 0.0000 | 0.0000 | 0.0000 |
+| Scalp | 44.7022 | 41.8052 | 29.4160 | 31.1763 | -13.5259 | -10.6289 | 1.7603 |
+| Combined | 492.3109 | 489.4139 | 477.0247 | 478.7850 | -13.5259 | -10.6289 | 1.7603 |
+
+Reports: `data/reports/rise_panel_v1_cascade_compound_scalp_dual_thrust_1h.json`
 
 ## G. What this is not
 
