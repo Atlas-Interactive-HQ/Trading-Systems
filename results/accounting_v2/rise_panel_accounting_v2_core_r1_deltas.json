@@ -1,0 +1,70 @@
+{
+  "accounting_version": "rise_panel_accounting_v2",
+  "compare_to": "rise_panel_v1_core_doge_ema12_30_1d_eur140",
+  "complete_exp_improved": true,
+  "complete_exp_still_negative": true,
+  "completed_exp_gt0_thin": true,
+  "dd_improved": true,
+  "dev_eliminate_only": true,
+  "do_not_start_scalp_r2": true,
+  "eliminate": false,
+  "gate": "rise_panel_accounting_v2",
+  "honesty_is_not_a_gate": true,
+  "honesty_label": "PASS-and-better-completed-exp",
+  "improve_id": "rise_panel_v1_core_r1_doge_ema12_30_atr14_trail3_1d_eur140",
+  "lock_cite": "phase1/94-core-r1-lock.md",
+  "median_completed_round_trips": {
+    "delta": 0.0,
+    "improve": 1.0,
+    "ref": 1.0
+  },
+  "median_expectancy_completed_eur": {
+    "delta": 0.30807591,
+    "improve": -2.64645254,
+    "ref": -2.95452845
+  },
+  "median_time_in_market": {
+    "delta": -0.1248168,
+    "improve": 0.36956522,
+    "ref": 0.49438202
+  },
+  "n_exp_terminal_adj_gt_0": {
+    "delta": -1,
+    "improve": 5,
+    "ref": 6
+  },
+  "n_expectancy_completed_gt_0": {
+    "delta": 0,
+    "improve": 2,
+    "ref": 2
+  },
+  "no_atr_ema_grind": true,
+  "no_donchian": true,
+  "not_a_forecast": true,
+  "note": "Headline PASS/FAIL is rise_panel_accounting_v2 (locked before this score). Honesty label is a research comparison vs C0 on complete-trade expectancy / DD / participation \u2014 not a second gate and not a promote. C0 V2 PASS is one-interval dominated (forced window closes). Soft PASS \u2260 Core-arm. R1\u2013R7 DEV/eliminate-only.",
+  "old_verdict_r1": "FAIL",
+  "panel_net_worse": true,
+  "panel_old_net_return_eur": {
+    "delta": -140.54331724,
+    "improve": 223.45501773,
+    "ref": 363.99833497
+  },
+  "panel_terminal_liquidation_net_eur": {
+    "delta": -140.1032966,
+    "improve": 222.5513687,
+    "ref": 362.6546653
+  },
+  "participation_eliminated": false,
+  "place_orders": false,
+  "promote": false,
+  "promote_as_better": false,
+  "soft_pass_ne_arm": true,
+  "soft_pass_ne_core_arm": true,
+  "v2_forced_closes": 5,
+  "v2_verdict_r1": "PASS",
+  "worst_dd_eur": {
+    "delta": -3.40124879,
+    "improve": 84.59757431,
+    "ref": 87.9988231
+  }
+}
