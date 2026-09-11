@@ -6,6 +6,7 @@
 **Live execution:** forbidden (`place_orders` false; no private WS; no API keys)  
 **Soft PASS:** N/A · Mid **#71** unchanged · Live ≤€20 practice (unrelated to this lane)  
 **Config:** `config/default.yaml` **untouched** (CLI overrides only)  
+**Design lock PR:** [#72](https://github.com/Atlas-Interactive-HQ/Trading-Systems/pull/72)  
 **Companions:** [`75`](./75-scalp-hft-v1-design.md) · [`76`](./76-scalp-hft-v1-rule-card.md) · [`77`](./77-scalp-hft-v1-eval-plan.md) · `research/scalp_hft_v1.lock.json`
 
 **Freeze note:** leave `lock.json` hash TODOs as-is until the **first Layer B scored paper run**. Do not invent PnL. Do **not** start Layer A scored HFT eval from this plan.
