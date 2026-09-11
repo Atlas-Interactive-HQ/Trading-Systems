@@ -3,7 +3,8 @@
 **Stance:** Research / design lock. `not_a_forecast: true`. **NO HFT PnL in this note.**
 **Config:** `config/default.yaml` **untouched**.
 **Live:** HALTED.
-**Depends on:** P1 health semantics ([`92`](./92-hft-staleness-semantics.md)) + P4 liquidity instrument lock ([`95`](./95-hft-liquidity-gate-plan.md)) + multi-day Layer B. **Not ready to score.**
+**Depends on:** P1 health semantics ([`92`](./92-hft-staleness-semantics.md)) + **P4b** 7-day liquidity instrument lock ([`95`](./95-hft-liquidity-gate-plan.md) as amended by [`100`](./100-p4a-screening-p4b-7d.md)) + multi-day Layer B. P4a 24h screening is **not** that lock. **Not ready to score.**
+**After signal study, before economic PnL:** fill-conditioned markout ([`104`](./104-h1-markout-event-time.md)).
 
 ---
 
@@ -57,7 +58,7 @@ This is a **signal** study. A positive mean mid-return is **not** a profitable s
 
 ## Economic PnL — later, and labeled
 
-Only after the signal study is **frozen** may a latency / queue / fee simulator attach economic PnL. Do **not** headline a green signal as a profitable strategy. Soft PASS N/A until that sim exists.
+Only after the signal study is **frozen** **and** H1-MARKOUT is green ([`104`](./104-h1-markout-event-time.md)) may a latency / queue / fee simulator attach economic PnL. Do **not** headline a green signal as a profitable strategy. Soft PASS N/A until that sim exists. Do **not** rewrite the locked 1s H1 clock.
 
 ---
 

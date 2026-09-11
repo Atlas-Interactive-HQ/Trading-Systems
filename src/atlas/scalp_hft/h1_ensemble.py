@@ -84,5 +84,5 @@ def lock_card() -> dict[str, Any]:
         "no_hft_pnl_in_this_module": True,
         "not_a_forecast": True,
         "place_orders": False,
-        "ready_when": "P1 health semantics + P4 liquidity instrument lock + multi-day Layer B",
+        "ready_when": "P1 health semantics + P4b 7d liquidity instrument lock + multi-day Layer B",
     }

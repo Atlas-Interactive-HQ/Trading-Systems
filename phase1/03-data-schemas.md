@@ -294,6 +294,12 @@ Normalized rows should reference raw for dispute / replay.
 
 ---
 
+## 6b. Research trial ledger (phase1/102)
+
+Append-only JSONL under `research/trial_ledger.jsonl`. Schema `research.trial_ledger.v1` / `atlas.research.trial_ledger.TrialRecord`. Fields: `trial_id`, `parent_trial`, `family`, `hypothesis`, `parameters`, `asset`, `timeframe`, `data_seen_before_lock`, `dataset`, `lock_commit`, `score_commit`, `result`, `pass_fail`, `pre_registered`, `post_hoc`, `global_trial_count`, `family_trial_count`. Not an execution stream. Soft PASS ≠ arm. See [`102-trial-ledger.md`](./102-trial-ledger.md).
+
+---
+
 ## 7. Engineering recommendations
 
 - Enforce schemas with Pydantic or Pandera at write boundary.  

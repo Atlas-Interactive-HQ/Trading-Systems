@@ -4,6 +4,8 @@
 **Config:** `config/default.yaml` **untouched**.
 **Live:** HALTED. Public MD only.
 
+**AMENDED by [`100`](./100-p4a-screening-p4b-7d.md) (locked before P4a metric reveal):** the 24h simultaneous capture is **P4a SCREENING ONLY**. Final HFT instrument lock requires **P4b** (7 full calendar days, same three names, same channels, same `METRIC_FIELDS`, no PnL, plus slice stability). Do **not** treat P4a rates as a lock. Do **not** invent capture numbers. No instrument is selected in #100.
+
 A 24h simultaneous capture **cannot run in this PR**. This note is plan + schema + runner sketch. **No invented capture numbers.**
 
 ---
@@ -66,15 +68,15 @@ python scripts/run_okx_public.py --capture --ws-only --duration-sec 86400 \
 
 ## Pre-registered selection rule (before any capture)
 
-Registered **now**, before numbers exist:
+Registered **now**, before numbers exist. **Eligibility (1–5) is unchanged.** [`100`](./100-p4a-screening-p4b-7d.md) assigns it to **P4b 7d + stability**; 24h is P4a screening only.
 
 1. Resolve live BTC/ETH/DOGE X-Perp (fail closed if any missing).
-2. Capture 24h simultaneously.
+2. Capture 24h simultaneously (**P4a screening**). Instrument lock waits for **7 full calendar days** (P4b).
 3. Eligible iff `trades/sec > 0` AND `books5 changes/sec > 0` AND median `book_age_ms ≤ 1000` AND reconnect count is not worse than **2×** the three-name median.
 4. Among eligible: highest `books5_changes_per_sec`; tie-break lower median spread bps, then higher median top-5 depth notional.
 5. If none eligible → **no HFT instrument** (fail closed). Do not default to DOGE because Layer B already exists there.
 
-`select_instrument([])` returns `insufficient_data` — that is the state of this PR.
+`select_instrument([])` returns `insufficient_data`. `p4a_screen` never locks. That is the state of this PR / #100.
 
 ---
 

@@ -3,6 +3,8 @@
 **Stance:** Paper/research. No live orders. No demo orders. No auto-demo. No profitability claim.  
 **Date:** 2026-09-02
 
+**Naming:** this note is Phase B **would-place vs blocked** on already-seen replay windows. It is **not** the contiguous unseen SHADOW holdout in [`101-shadow-contiguous-methodology.md`](./101-shadow-contiguous-methodology.md).
+
 Shadow sits **after** historical replay (Phase A accelerator) and **before** gated micro-demo (Phase C). It applies the locked paper book to the same breakout signals and journals **would-place vs blocked**. It does not place.
 
 ## What it does
