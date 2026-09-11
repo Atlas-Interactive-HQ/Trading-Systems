@@ -9,6 +9,7 @@ from atlas.paper.rise_panel import (
     CORE_BAR,
     MID_BAR_CANDIDATE,
     MID_BASELINE_ID,
+    MID_BREAKOUT_ARCHIVE_ID,
     MID_CANDIDATE_ID,
     MID_EMA_ARCHIVE_ID,
     PANEL_LABEL,
@@ -69,7 +70,8 @@ def test_ids_and_sleeves():
     assert BASELINE_ID == "rise_panel_v1_core_doge_ema12_30_1d_eur140"
     assert MID_CANDIDATE_ID == "rise_panel_v1_mid_doge_ema12_30_4h_eur40"
     assert MID_EMA_ARCHIVE_ID == MID_CANDIDATE_ID
-    assert MID_BASELINE_ID == "rise_panel_v1_mid_doge_breakoutv1_4h_eur40"
+    assert MID_BASELINE_ID == "rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur40"
+    assert MID_BREAKOUT_ARCHIVE_ID == "rise_panel_v1_mid_doge_breakoutv1_4h_eur40"
     assert CORE_START_EUR == 140.0
     assert MID_START_EUR == 40.0
 

@@ -1,12 +1,12 @@
-"""rise_panel_v1 Mid #71 — DOGE 4H BreakoutV1 + EMA12/21 long-regime €40 vs #65.
+"""rise_panel_v1 Mid #72 — RISK-UP: same BreakoutV1+EMA12/21 4H rules as #71, Mid €60.
 
 Research only. not_a_forecast. Never places orders.
 Does NOT mutate config/default.yaml. PaperSettings 5+5 bps; next-open fills.
-BreakoutV1 same as #65, gated by EMA12>EMA21 (force flat / no new long otherwise).
-soft_promote_v1 gate unchanged. Honesty vs Breakout #65 panel_net≈€95.45 —
-promote-as-better only if panel_net higher; else PASS-but-worse / FAIL clearly.
-On PASS+better: Core+Mid book €180 (no Scalp). Soft PASS ≠ Mid-arm.
-Doc: phase1/72-mid-long-strengthen.md (avoid clash with 71-codex-scalp-hft).
+Same rules as #71 (BreakoutV1 4H + EMA12/21 long-regime); Mid sleeve **€60** (1.5× €40).
+Gate soft_promote_v1. Honesty vs #71 @ €40: expect ~1.5× panel if linear —
+report Δ panel, expectancy_after_costs, DD — not just bigger €.
+On PASS: Core €140 + Mid €60 (book €200). Soft PASS ≠ Mid-arm. Live ≤€20.
+Doc: phase1/73-mid-sleeve-riskup.md
 """
 
 from __future__ import annotations
@@ -26,10 +26,11 @@ from atlas.paper.rise_panel import (
     ASSET,
     BASELINE_ID,
     MID_BAR_CANDIDATE,
+    MID_BASELINE_CORE_MID_PANEL_NET_EUR,
+    MID_BASELINE_ID,
+    MID_BASELINE_PANEL_NET_EUR,
     MID_BREAKOUT_ARCHIVE_ID,
-    MID_BREAKOUT_ARCHIVE_CORE_MID_PANEL_NET_EUR,
     MID_BREAKOUT_ARCHIVE_PANEL_NET_EUR,
-    MID_EMA_ARCHIVE_ID,
     PANEL_LABEL,
     RISE_PANEL_V1,
     RiseWindow,
@@ -43,7 +44,6 @@ from atlas.paper.rise_panel import (
 from atlas.paper.rise_panel_eval import run_core_baseline
 from atlas.paper.three_tier_eval import CascadeWindow, fetch_bars
 from atlas.paper.types import Bar, q
-from atlas.strategy.mid_doge_breakout_4h import MidDogeBreakout4hV1
 from atlas.strategy.mid_doge_breakout_ema1221_4h import (
     ATR_PERIOD,
     BAR,
@@ -58,36 +58,31 @@ from atlas.strategy.mid_doge_breakout_ema1221_4h import (
 FAST = EMA_FAST
 SLOW = EMA_SLOW
 
-SOURCE = "rise_panel_v1_mid_breakout_ema1221_71"
+SOURCE = "rise_panel_v1_mid_sleeve_riskup_72"
 WARMUP_PAD_4H_DAYS = 10
 
-# NEW formal Mid baseline = Breakout #65 (promoted). EMA = archive only.
-MID_BREAKOUT_BASELINE_ID = MID_BREAKOUT_ARCHIVE_ID  # #65 archive after #71 promote
-MID_IMPROVE_ID = "rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur40"
-CORE_MID_BOOK_EUR = CORE_START_EUR + MID_START_EUR  # 180
-CORE_MID_BOOK_ID = "rise_panel_v1_core_mid_book_180_mid_breakout_ema1221_4h"
+# #71 is NEW formal Mid baseline (promote). #65 Breakout = archive only.
+MID_71_BASELINE_ID = MID_BASELINE_ID  # rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur40
+MID_RISKUP_ID = "rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur60"
+MID_SLEEVE_EUR40 = MID_START_EUR  # 40.0 — #71 sleeve
+MID_SLEEVE_EUR60 = 60.0  # 1.5× €40 risk-up
+SIZE_MULT = MID_SLEEVE_EUR60 / MID_SLEEVE_EUR40  # 1.5
+CORE_MID_BOOK_EUR = CORE_START_EUR + MID_SLEEVE_EUR60  # 200
+CORE_MID_BOOK_ID = "rise_panel_v1_core_mid_book_200_mid_breakout_ema1221_eur60"
 
 CORE_55_PANEL_NET = 363.9983
-MID_65_PANEL_NET = MID_BREAKOUT_ARCHIVE_PANEL_NET_EUR  # ≈95.4483
-CORE_MID_65_PANEL_NET = MID_BREAKOUT_ARCHIVE_CORE_MID_PANEL_NET_EUR  # ≈459.4466
-MID_EMA_ARCHIVE_PANEL_NET = 83.6104
+MID_71_PANEL_NET = MID_BASELINE_PANEL_NET_EUR  # ≈97.2663
+CORE_MID_71_PANEL_NET = MID_BASELINE_CORE_MID_PANEL_NET_EUR  # ≈461.2647
+MID_65_ARCHIVE_PANEL_NET = MID_BREAKOUT_ARCHIVE_PANEL_NET_EUR  # ≈95.4483
 
-MID_BREAKOUT_SNAPSHOT_65 = {
-    "median_trades": 6.0,
-    "n_exp_gt_0": 5,
-    "panel_net_eur": 95.4483,
-    "median_expectancy_eur": 2.4647,
-    "verdict": "PASS",
-    "note": "phase1/65 Mid 4H BreakoutV1 soft PASS; NEW formal Mid baseline (Kaje promote)",
-}
-
-MID_EMA_ARCHIVE_SNAPSHOT = {
+MID_71_SNAPSHOT = {
     "median_trades": 7.0,
-    "n_exp_gt_0": 6,
-    "panel_net_eur": 83.6104,
-    "median_expectancy_eur": 2.0928,
+    "n_exp_gt_0": 5,
+    "panel_net_eur": 97.2663,
+    "median_expectancy_eur": 2.1531,
+    "worst_dd_eur": 21.8963,
     "verdict": "PASS",
-    "note": "phase1/54 Mid 4H EMA — ARCHIVE reference only after #65 promote",
+    "note": "phase1/72 Mid #71 BreakoutV1+EMA12/21 4H €40 — NEW formal Mid baseline (Kaje promote)",
 }
 
 
@@ -199,6 +194,7 @@ def _run_panel(
     candidate_id: str,
     strategy_label: str,
     family: str,
+    sleeve_eur: float,
     pause_s: float = 0.12,
     rest_base: str = OKX_REST,
     apply_soft_promote: bool = True,
@@ -222,7 +218,7 @@ def _run_panel(
                 bars=bars,
                 window=w,
                 strategy=strategy_factory(),
-                equity=MID_START_EUR,
+                equity=float(sleeve_eur),
                 fee_rate=fee_rate,
                 slippage_bps=slip,
                 bar=MID_BAR_CANDIDATE,
@@ -238,14 +234,14 @@ def _run_panel(
     out: dict[str, Any] = {
         "ok": all(r.get("ok") for r in rows),
         "candidate_id": candidate_id,
-        "mid_baseline_id": MID_BREAKOUT_BASELINE_ID,
-        "mid_ema_archive_id": MID_EMA_ARCHIVE_ID,
+        "mid_baseline_id": MID_71_BASELINE_ID,
+        "mid_breakout_archive_id": MID_BREAKOUT_ARCHIVE_ID,
         "panel": PANEL_LABEL,
         "asset": ASSET,
         "bar": BAR,
         "family": family,
         "strategy": strategy_label,
-        "sleeve_eur": MID_START_EUR,
+        "sleeve_eur": float(sleeve_eur),
         "costs": {"fee_rate": fee_rate, "slippage_bps": slip, "note": "PaperSettings 5+5 bps"},
         "fill": "next_open",
         "windows": justification_rows(),
@@ -256,11 +252,13 @@ def _run_panel(
         "not_a_forecast": True,
         "source": SOURCE,
         "ts_ms": utc_ms(),
-        "compare_to_mid_baseline": MID_BREAKOUT_BASELINE_ID,
+        "compare_to_mid_baseline": MID_71_BASELINE_ID,
         "ema_fast": FAST,
         "ema_slow": SLOW,
         "daily_bull": False,
         "rsi_filter": False,
+        "size_up": True,
+        "size_mult_vs_mid40": SIZE_MULT,
     }
     if soft is not None:
         out["soft_promote_gate"] = SOFT_PROMOTE_GATE
@@ -269,44 +267,14 @@ def _run_panel(
     return out
 
 
-def run_mid_breakout_baseline(
+def run_mid_71_baseline_eur40(
     cfg: Any,
     *,
     data_dir: Path,
     pause_s: float = 0.12,
     rest_base: str = OKX_REST,
 ) -> dict[str, Any]:
-    """Re-score NEW Mid formal baseline BreakoutV1 4H on rise_panel_v1 (€40)."""
-
-    def factory() -> MidDogeBreakout4hV1:
-        return MidDogeBreakout4hV1()
-
-    out = _run_panel(
-        cfg,
-        data_dir=data_dir,
-        strategy_factory=factory,
-        arm="mid_breakoutv1_4h",
-        candidate_id=MID_BREAKOUT_BASELINE_ID,
-        strategy_label="breakoutv1_lb16_atr14_long_flat",
-        family="breakout_v1_long_flat_4h",
-        pause_s=pause_s,
-        rest_base=rest_base,
-        apply_soft_promote=True,
-    )
-    out["role"] = "mid_baseline"
-    out["mid_baseline_id"] = MID_BREAKOUT_BASELINE_ID
-    out["promote_note"] = "NEW formal Mid baseline after #65 soft PASS promote (Kaje lock)"
-    return out
-
-
-def run_mid_breakout_ema1221_4h(
-    cfg: Any,
-    *,
-    data_dir: Path,
-    pause_s: float = 0.12,
-    rest_base: str = OKX_REST,
-) -> dict[str, Any]:
-    """Mid BreakoutV1 + EMA12/21 long-regime 4H on SAME locked 7 — candidate #71."""
+    """Re-score NEW Mid formal baseline #71 Breakout+EMA1221 4H on rise_panel_v1 (€40)."""
 
     def factory() -> MidDogeBreakoutEma1221V1:
         return MidDogeBreakoutEma1221V1()
@@ -315,18 +283,55 @@ def run_mid_breakout_ema1221_4h(
         cfg,
         data_dir=data_dir,
         strategy_factory=factory,
-        arm="mid_breakout_ema1221_4h",
-        candidate_id=MID_IMPROVE_ID,
+        arm="mid_breakout_ema1221_4h_eur40",
+        candidate_id=MID_71_BASELINE_ID,
         strategy_label=(
             f"breakoutv1_lb{LOOKBACK}_atr{ATR_PERIOD}_ema{EMA_FAST}_{EMA_SLOW}_long_regime"
         ),
         family=FAMILY,
+        sleeve_eur=MID_SLEEVE_EUR40,
         pause_s=pause_s,
         rest_base=rest_base,
         apply_soft_promote=True,
     )
-    out["role"] = "mid_improve"
-    out["mid_improve_id"] = MID_IMPROVE_ID
+    out["role"] = "mid_baseline"
+    out["mid_baseline_id"] = MID_71_BASELINE_ID
+    out["promote_note"] = (
+        "NEW formal Mid baseline after #71 soft PASS promote (Kaje lock). "
+        "#65 Breakout = archive only."
+    )
+    return out
+
+
+def run_mid_riskup_eur60(
+    cfg: Any,
+    *,
+    data_dir: Path,
+    pause_s: float = 0.12,
+    rest_base: str = OKX_REST,
+) -> dict[str, Any]:
+    """Mid #72 RISK-UP: same #71 rules, Mid sleeve €60 (1.5×)."""
+
+    def factory() -> MidDogeBreakoutEma1221V1:
+        return MidDogeBreakoutEma1221V1()
+
+    out = _run_panel(
+        cfg,
+        data_dir=data_dir,
+        strategy_factory=factory,
+        arm="mid_breakout_ema1221_4h_eur60",
+        candidate_id=MID_RISKUP_ID,
+        strategy_label=(
+            f"breakoutv1_lb{LOOKBACK}_atr{ATR_PERIOD}_ema{EMA_FAST}_{EMA_SLOW}_long_regime_eur60"
+        ),
+        family=FAMILY,
+        sleeve_eur=MID_SLEEVE_EUR60,
+        pause_s=pause_s,
+        rest_base=rest_base,
+        apply_soft_promote=True,
+    )
+    out["role"] = "mid_riskup"
+    out["mid_riskup_id"] = MID_RISKUP_ID
     out["family"] = FAMILY
     out["ema_fast"] = EMA_FAST
     out["ema_slow"] = EMA_SLOW
@@ -334,17 +339,16 @@ def run_mid_breakout_ema1221_4h(
     out["atr_period"] = ATR_PERIOD
     out["min_atr_frac"] = MIN_ATR_FRAC
     out["reuse_note"] = (
-        "BreakoutV1 via mid_doge_breakout_ema1221_4h; Mid #71 = #65 Breakout + "
-        "EMA12>EMA21 long-regime gate (force flat / no new long when EMA12≤EMA21). "
-        "Same Mid €40 sleeve. Not RSI; not size-up."
+        "Same MidDogeBreakoutEma1221V1 rules as #71; Mid sleeve €60 = 1.5× €40. "
+        "Not a rule change. Not RSI. Soft PASS ≠ Mid-arm."
     )
     return out
 
 
-def deltas_vs_mid_baseline(baseline: dict[str, Any], improve: dict[str, Any]) -> dict[str, Any]:
-    """Panel metric deltas: Breakout+EMA1221 Mid − Mid Breakout #65 (NOT vs Core)."""
+def deltas_vs_mid_71(baseline: dict[str, Any], riskup: dict[str, Any]) -> dict[str, Any]:
+    """Panel metric deltas: Mid €60 risk-up − Mid #71 €40 (NOT vs Core)."""
     b = baseline.get("summary") or {}
-    i = improve.get("summary") or {}
+    i = riskup.get("summary") or {}
 
     def _d(key: str) -> float | None:
         bv, iv = b.get(key), i.get(key)
@@ -353,28 +357,73 @@ def deltas_vs_mid_baseline(baseline: dict[str, Any], improve: dict[str, Any]) ->
         return q(float(iv) - float(bv))
 
     d_net = _d("panel_net_eur")
-    promote_as_better = d_net is not None and float(d_net) > 0
+    b_net = b.get("panel_net_eur")
+    i_net = i.get("panel_net_eur")
+    b_exp = b.get("median_expectancy_eur")
+    i_exp = i.get("median_expectancy_eur")
+    b_dd = b.get("worst_dd_eur")
+    i_dd = i.get("worst_dd_eur")
+
+    linear_panel = q(float(b_net) * SIZE_MULT) if b_net is not None else None
+    linear_exp = q(float(b_exp) * SIZE_MULT) if b_exp is not None else None
+    linear_dd = q(float(b_dd) * SIZE_MULT) if b_dd is not None else None
+    panel_ratio_vs_linear = (
+        q(float(i_net) / float(linear_panel))
+        if i_net is not None and linear_panel not in (None, 0, 0.0)
+        else None
+    )
+    exp_ratio_vs_linear = (
+        q(float(i_exp) / float(linear_exp))
+        if i_exp is not None and linear_exp not in (None, 0, 0.0)
+        else None
+    )
+    dd_ratio_vs_linear = (
+        q(float(i_dd) / float(linear_dd))
+        if i_dd is not None and linear_dd not in (None, 0, 0.0)
+        else None
+    )
+
+    # Bigger € alone is expected from size — promote-as-better requires soft PASS
+    # AND panel at/above linear expectation (not just > #71 €40 panel).
+    promote_as_better = (
+        d_net is not None
+        and float(d_net) > 0
+        and panel_ratio_vs_linear is not None
+        and float(panel_ratio_vs_linear) >= 0.95  # within ~5% of linear
+    )
     return {
-        "compare_to": MID_BREAKOUT_BASELINE_ID,
-        "improve_id": MID_IMPROVE_ID,
+        "compare_to": MID_71_BASELINE_ID,
+        "riskup_id": MID_RISKUP_ID,
+        "size_mult": SIZE_MULT,
         "median_expectancy_eur": {
-            "baseline": b.get("median_expectancy_eur"),
-            "improve": i.get("median_expectancy_eur"),
+            "baseline_eur40": b.get("median_expectancy_eur"),
+            "riskup_eur60": i.get("median_expectancy_eur"),
             "delta": _d("median_expectancy_eur"),
+            "linear_1_5x": linear_exp,
+            "ratio_vs_linear": exp_ratio_vs_linear,
         },
         "panel_net_eur": {
-            "baseline": b.get("panel_net_eur"),
-            "improve": i.get("panel_net_eur"),
+            "baseline_eur40": b.get("panel_net_eur"),
+            "riskup_eur60": i.get("panel_net_eur"),
             "delta": d_net,
+            "linear_1_5x": linear_panel,
+            "ratio_vs_linear": panel_ratio_vs_linear,
+        },
+        "worst_dd_eur": {
+            "baseline_eur40": b.get("worst_dd_eur"),
+            "riskup_eur60": i.get("worst_dd_eur"),
+            "delta": _d("worst_dd_eur"),
+            "linear_1_5x": linear_dd,
+            "ratio_vs_linear": dd_ratio_vs_linear,
         },
         "median_trades": {
-            "baseline": b.get("median_trades"),
-            "improve": i.get("median_trades"),
+            "baseline_eur40": b.get("median_trades"),
+            "riskup_eur60": i.get("median_trades"),
             "delta": _d("median_trades"),
         },
         "n_exp_gt_0": {
-            "baseline": b.get("n_exp_gt_0"),
-            "improve": i.get("n_exp_gt_0"),
+            "baseline_eur40": b.get("n_exp_gt_0"),
+            "riskup_eur60": i.get("n_exp_gt_0"),
             "delta": (
                 None
                 if b.get("n_exp_gt_0") is None or i.get("n_exp_gt_0") is None
@@ -383,59 +432,15 @@ def deltas_vs_mid_baseline(baseline: dict[str, Any], improve: dict[str, Any]) ->
         },
         "promote_as_better": promote_as_better,
         "honesty_rule": (
-            "promote-as-better only if panel_net higher than Breakout #65; "
-            "else PASS-but-worse / FAIL clearly"
+            "expect ~1.5× panel / expectancy / DD if linear; report Δ and ratios — "
+            "not just bigger €. Soft PASS ≠ Mid-arm."
         ),
         "not_a_forecast": True,
         "place_orders": False,
     }
 
 
-def deltas_vs_ema_archive(improve: dict[str, Any]) -> dict[str, Any]:
-    """Optional honesty: Breakout+EMA1221 Mid − archived EMA12/30 Mid snapshot."""
-    i = improve.get("summary") or {}
-    snap = MID_EMA_ARCHIVE_SNAPSHOT
-
-    def _d(key: str, snap_key: str) -> float | None:
-        iv = i.get(key)
-        if iv is None:
-            return None
-        return q(float(iv) - float(snap[snap_key]))
-
-    return {
-        "compare_to": MID_EMA_ARCHIVE_ID,
-        "improve_id": MID_IMPROVE_ID,
-        "note": "optional honesty vs archived EMA Mid (not current Mid baseline)",
-        "median_expectancy_eur": {
-            "ema_archive": snap["median_expectancy_eur"],
-            "improve": i.get("median_expectancy_eur"),
-            "delta": _d("median_expectancy_eur", "median_expectancy_eur"),
-        },
-        "panel_net_eur": {
-            "ema_archive": snap["panel_net_eur"],
-            "improve": i.get("panel_net_eur"),
-            "delta": _d("panel_net_eur", "panel_net_eur"),
-        },
-        "median_trades": {
-            "ema_archive": snap["median_trades"],
-            "improve": i.get("median_trades"),
-            "delta": _d("median_trades", "median_trades"),
-        },
-        "n_exp_gt_0": {
-            "ema_archive": snap["n_exp_gt_0"],
-            "improve": i.get("n_exp_gt_0"),
-            "delta": (
-                None
-                if i.get("n_exp_gt_0") is None
-                else int(i["n_exp_gt_0"]) - int(snap["n_exp_gt_0"])
-            ),
-        },
-        "not_a_forecast": True,
-        "place_orders": False,
-    }
-
-
-def run_core_mid_book(
+def run_core_mid_book_200(
     cfg: Any,
     *,
     data_dir: Path,
@@ -444,10 +449,9 @@ def run_core_mid_book(
     rest_base: str = OKX_REST,
     force: bool = False,
 ) -> dict[str, Any]:
-    """Core €140 1D EMA + this Mid €40 Breakout+EMA1221 — book €180, NO Scalp sleeve.
+    """Core €140 1D EMA + this Mid €60 Breakout+EMA1221 — book €200, NO Scalp sleeve.
 
-    Cascade book only when soft PASS AND panel_net better than Breakout (or force).
-    Honest Δ vs Breakout Core+Mid €459.45.
+    Cascade book when soft PASS (or force). Honest Δ vs prior Core+Mid Mid€40 ≈€461.26.
     """
     core = run_core_baseline(cfg, data_dir=data_dir, pause_s=pause_s, rest_base=rest_base)
     cs = core.get("summary") or {}
@@ -460,13 +464,14 @@ def run_core_mid_book(
         "book_id": CORE_MID_BOOK_ID,
         "book_start_eur": CORE_MID_BOOK_EUR,
         "core_id": BASELINE_ID,
-        "mid_id": MID_IMPROVE_ID,
+        "mid_id": MID_RISKUP_ID,
         "scalp": None,
         "no_scalp": True,
         "force_informational": force,
         "note": (
             "Core+Mid only (bot cascade/arming path). Scalp = Kaje manual — "
-            "no Scalp sleeve invented. Independent sleeve panel nets summed."
+            "no Scalp sleeve invented. Independent sleeve panel nets summed. "
+            "Book €200 = Core €140 + Mid €60 (risk-up)."
         ),
         "core": {
             "panel_net_eur": cs.get("panel_net_eur"),
@@ -481,19 +486,20 @@ def run_core_mid_book(
             "n_exp_gt_0": ms.get("n_exp_gt_0"),
             "soft_promote": mid_bundle.get("soft_promote"),
             "summary": ms,
+            "sleeve_eur": MID_SLEEVE_EUR60,
         },
         "panel_sleeve_nets_eur": {
             "core": q(core_net),
             "mid": q(mid_net),
             "combined_core_mid": combined,
         },
-        "vs_65_core_mid_breakout": {
-            "core_65": CORE_55_PANEL_NET,
-            "mid_65": MID_65_PANEL_NET,
-            "combined_65": CORE_MID_65_PANEL_NET,
+        "vs_71_core_mid_eur40": {
+            "core_71": CORE_55_PANEL_NET,
+            "mid_71": MID_71_PANEL_NET,
+            "combined_71": CORE_MID_71_PANEL_NET,
             "core_delta": q(core_net - CORE_55_PANEL_NET),
-            "mid_delta": q(mid_net - MID_65_PANEL_NET),
-            "combined_delta": q(combined - CORE_MID_65_PANEL_NET),
+            "mid_delta": q(mid_net - MID_71_PANEL_NET),
+            "combined_delta": q(combined - CORE_MID_71_PANEL_NET),
         },
         "place_orders": False,
         "not_a_forecast": True,
@@ -518,38 +524,34 @@ def _fmt(v: Any, digits: int = 4) -> str:
 
 def render_results_markdown(
     baseline: dict[str, Any],
-    improve: dict[str, Any],
+    riskup: dict[str, Any],
     *,
     deltas: dict[str, Any] | None = None,
-    deltas_ema: dict[str, Any] | None = None,
     core_mid_book: dict[str, Any] | None = None,
 ) -> str:
-    """Full phase1/72 doc with lock + scored results (+ Core+Mid book if promote)."""
+    """Full phase1/73 doc with lock + scored results (+ Core+Mid €200 book if PASS)."""
     if deltas is None:
-        deltas = deltas_vs_mid_baseline(baseline, improve)
-    if deltas_ema is None:
-        deltas_ema = deltas_vs_ema_archive(improve)
-    soft = improve.get("soft_promote") or {}
+        deltas = deltas_vs_mid_71(baseline, riskup)
+    soft = riskup.get("soft_promote") or {}
     soft_pass = str(soft.get("verdict", "")).upper() == "PASS"
     bs = baseline.get("summary") or {}
-    ms = improve.get("summary") or {}
+    ms = riskup.get("summary") or {}
     soft_b = baseline.get("soft_promote") or bs.get("soft_promote") or {}
     d_net = (deltas.get("panel_net_eur") or {}).get("delta")
-    panel_better = d_net is not None and float(d_net) > 0
-    panel_worse = d_net is not None and float(d_net) < 0
-    promote_as_better = soft_pass and panel_better
-    if soft_pass and panel_worse:
-        honesty_label = "PASS-but-worse"
-    elif soft_pass and panel_better:
-        honesty_label = "PASS-and-better (promote-as-better eligible)"
+    ratio = (deltas.get("panel_net_eur") or {}).get("ratio_vs_linear")
+    panel_better = bool(deltas.get("promote_as_better"))
+    if soft_pass and panel_better:
+        honesty_label = "PASS-and-near-linear (promote-as-better eligible)"
+    elif soft_pass and d_net is not None and float(d_net) > 0:
+        honesty_label = "PASS-but-sublinear (bigger € expected; quality/ratio honesty)"
     elif soft_pass:
-        honesty_label = "PASS (panel_net ≈ baseline)"
+        honesty_label = "PASS (panel_net not larger than #71 — unexpected for 1.5× size)"
     else:
         honesty_label = "FAIL"
 
     lines: list[str] = []
     lines.append(
-        "# 72 — Mid #71 long-strengthen: DOGE **4H BreakoutV1 + EMA12/21** (€40)"
+        "# 73 — Mid #72 sleeve RISK-UP: DOGE **4H BreakoutV1 + EMA12/21** (€60)"
     )
     lines.append("")
     lines.append(
@@ -565,14 +567,14 @@ def render_results_markdown(
         "R1–R7 dates (DO NOT change)."
     )
     lines.append(
-        "**Parent sleeves:** Core €140 / Mid €40 / Scalp €20 "
-        "([`38-eur200-three-stream-confirmation.md`](./38-eur200-three-stream-confirmation.md))"
+        "**Parent sleeves (book):** Core €140 / Mid **€60** risk-up / Scalp €20 reserved "
+        "(bot path still Core+Mid only — Scalp = Kaje manual)."
     )
     lines.append(
-        "**Compare:** Mid Breakout baseline [`65-rise-panel-mid-breakoutv1-4h.md`]"
-        "(./65-rise-panel-mid-breakoutv1-4h.md). Gate soft_promote_v1 vs #65. "
-        "BreakoutV1 **+ EMA12/21 long-regime filter**. **No** RSI. **No** size-up. "
-        "Research Mid **#71**; doc file **72** (avoid clash with Codex HFT brief)."
+        "**Compare:** Mid #71 baseline [`72-mid-long-strengthen.md`](./72-mid-long-strengthen.md) "
+        "/ promote [`72b-mid-breakout-ema1221-promote.md`](./72b-mid-breakout-ema1221-promote.md). "
+        "Gate soft_promote_v1 vs #71 @ €40. **Same rules** as #71; Mid sleeve **€60** (1.5×). "
+        "Breakout #65 = **archive only**."
     )
     lines.append("")
     lines.append("---")
@@ -596,38 +598,39 @@ def render_results_markdown(
     )
     lines.append("")
     lines.append(
-        "**Honesty vs Breakout #65:** promote-as-better **only if** `panel_net` higher "
-        f"than ≈€{MID_65_PANEL_NET:.2f}; else **PASS-but-worse** / **FAIL** clearly."
+        "**Honesty vs #71 €40:** expect ~**1.5×** panel / expectancy / DD if linear; "
+        "report Δ and ratios — **not** just bigger €."
     )
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("## A. LOCKED Mid baseline (Breakout #65 — compare target)")
+    lines.append("## A. LOCKED Mid baseline (#71 — compare target)")
     lines.append("")
-    lines.append(f"**mid_baseline_id:** `{MID_BREAKOUT_BASELINE_ID}`  ")
+    lines.append(f"**mid_baseline_id:** `{MID_71_BASELINE_ID}`  ")
     lines.append(
-        "(soft_promote **PASS**, promoted #65 — see [`65b-mid-breakout-promote.md`]"
-        "(./65b-mid-breakout-promote.md))"
-    )
-    lines.append("")
-    lines.append(
-        "- Rule: BreakoutV1 lookback 16 + ATR quiet; channel exit. Never short."
-    )
-    lines.append("- Bar: DOGE-USDT **4H**. Sleeve: Mid **€40**.")
-    lines.append(
-        "- Compare target for this trial: **Mid vs Mid-Breakout-baseline** (NOT vs Core €140)."
-    )
-    lines.append(
-        f"- Snapshot (#65): panel_net≈**€{_fmt(MID_BREAKOUT_SNAPSHOT_65['panel_net_eur'])}** · "
-        f"median_trades=**{_fmt(MID_BREAKOUT_SNAPSHOT_65['median_trades'], 1)}** · "
-        f"exp>0 **{MID_BREAKOUT_SNAPSHOT_65['n_exp_gt_0']}**/7."
-    )
-    lines.append(
-        f"- EMA Mid archive (`{MID_EMA_ARCHIVE_ID}`): panel_net≈**€{_fmt(MID_EMA_ARCHIVE_PANEL_NET)}** "
-        "— **not** current Mid baseline (12/30, not this 12/21 trial)."
+        "(soft_promote **PASS**, promoted #71 — see [`72b-mid-breakout-ema1221-promote.md`]"
+        "(./72b-mid-breakout-ema1221-promote.md))"
     )
     lines.append("")
-    lines.append("### Mid Breakout baseline per window (re-scored)")
+    lines.append(
+        "- Rule: BreakoutV1 lookback 16 + ATR quiet + EMA12>EMA21 long-regime. Never short."
+    )
+    lines.append("- Bar: DOGE-USDT **4H**. Sleeve: Mid **€40** (baseline).")
+    lines.append(
+        "- Compare target for this trial: **Mid €60 vs Mid #71 €40** (NOT vs Core €140)."
+    )
+    lines.append(
+        f"- Snapshot (#71): panel_net≈**€{_fmt(MID_71_SNAPSHOT['panel_net_eur'])}** · "
+        f"median_trades=**{_fmt(MID_71_SNAPSHOT['median_trades'], 1)}** · "
+        f"exp>0 **{MID_71_SNAPSHOT['n_exp_gt_0']}**/7 · "
+        f"worst DD≈**€{_fmt(MID_71_SNAPSHOT['worst_dd_eur'])}**."
+    )
+    lines.append(
+        f"- Breakout #65 archive (`{MID_BREAKOUT_ARCHIVE_ID}`): "
+        f"panel_net≈**€{_fmt(MID_65_ARCHIVE_PANEL_NET)}** — **not** current Mid baseline."
+    )
+    lines.append("")
+    lines.append("### Mid #71 €40 baseline per window (re-scored)")
     lines.append("")
     lines.append(
         "| Id | n_trades | expectancy €/trade | net € | max DD € | TIM | BH net € | BH max DD € |"
@@ -644,7 +647,7 @@ def render_results_markdown(
             f"{_fmt(r.get('bh_max_dd_eur'))} |"
         )
     lines.append("")
-    lines.append("**Panel summary (Mid Breakout baseline):**")
+    lines.append("**Panel summary (Mid #71 €40 baseline):**")
     lines.append(
         f"- windows with exp>0: **{bs.get('n_exp_gt_0')}**/7 · "
         f"net>0: **{bs.get('n_net_gt_0')}**/7"
@@ -662,32 +665,26 @@ def render_results_markdown(
     lines.append("## B. LOCKED Mid family (BEFORE scoring)")
     lines.append("")
     lines.append(
-        "**ONE family only — NOT grinding lookback / EMA / ATR / TF / costs. No RSI. No size-up. "
-        "Do not re-grind plain Breakout / EMA12/21 / RSI MR / Donchian.**"
+        "**ONE family only — NOT grinding lookback / EMA / ATR / TF / costs. No RSI. "
+        "Only sleeve size change €40→€60. Same BreakoutV1 + EMA12/21 long-regime as #71.**"
     )
     lines.append("")
     lines.append(f"**Family:** `{FAMILY}`  ")
-    lines.append(f"**mid_improve_id:** `{MID_IMPROVE_ID}`  ")
-    lines.append(
-        f"**compare_to:** `{MID_BREAKOUT_BASELINE_ID}` (primary); optional archive `{MID_EMA_ARCHIVE_ID}`"
-    )
+    lines.append(f"**mid_riskup_id:** `{MID_RISKUP_ID}`  ")
+    lines.append(f"**compare_to:** `{MID_71_BASELINE_ID}` (primary); archive `{MID_BREAKOUT_ARCHIVE_ID}`")
     lines.append(
         f"**Canonical:** BreakoutV1 lookback **{LOOKBACK}** + ATR quiet, gated by "
-        f"EMA(**{FAST}**/**{SLOW}**). Decision bar **4H**. **No** RSI. Same Mid €40 as #65."
+        f"EMA(**{FAST}**/**{SLOW}**). Decision bar **4H**. **No** RSI. Mid **€60** = 1.5× #71 €40."
     )
     lines.append("")
     lines.append("### Rule card (LOCKED)")
     lines.append("")
-    lines.append(
-        "- Asset / bar: spot **DOGE-USDT** research MD, decision bar **4H**."
-    )
+    lines.append("- Asset / bar: spot **DOGE-USDT** research MD, decision bar **4H**.")
     lines.append(
         f"- BreakoutV1: lookback **{LOOKBACK}**, ATR SMA **{ATR_PERIOD}**, "
-        f"min_atr_frac **{MIN_ATR_FRAC}** (same as #65)."
+        f"min_atr_frac **{MIN_ATR_FRAC}** (same as #71/#65)."
     )
-    lines.append(
-        f"- EMA long-regime: fast **{FAST}** / slow **{SLOW}** (NOT 12/30)."
-    )
+    lines.append(f"- EMA long-regime: fast **{FAST}** / slow **{SLOW}** (NOT 12/30).")
     lines.append(
         "- **Long entry:** BreakoutV1 break-up + ATR quiet **AND** EMA12 > EMA21. Long only."
     )
@@ -696,13 +693,12 @@ def render_results_markdown(
         "(force flat / no new long). Never short."
     )
     lines.append(
-        "- **No** RSI. **No** size-up (Mid €40 same as #65). "
-        "Distinct from plain Breakout #65, plain EMA12/21 #67, RSI MR #66."
+        "- **No** RSI. **Size-up only:** Mid sleeve **€60** (was €40). Rules identical to #71."
     )
     lines.append("- `oneh_filter: off` (decision TF is already 4H).")
     lines.append("- Insufficient history → flat. Quiet ATR → no new long.")
     lines.append(
-        "- Fill: signal close → next open. Size: full Mid sleeve €40 when long."
+        "- Fill: signal close → next open. Size: full Mid sleeve **€60** when long."
     )
     lines.append("- Costs: PaperSettings 5+5 bps.")
     lines.append(
@@ -712,38 +708,35 @@ def render_results_markdown(
     lines.append("### Why this family")
     lines.append("")
     lines.append(
-        "Mid #65 BreakoutV1 4H is the formal Mid baseline (panel≈€95.45, already L/F). "
-        "This trial **strengthens long bias quality** with an EMA12/21 long-regime filter "
-        "— not a size-up, not RSI. Same €40 sleeve for clean Δ vs #65."
+        "Mid #71 BreakoutV1+EMA12/21 4H is the formal Mid baseline (panel≈€97.27). "
+        "This trial **risks up the Mid sleeve** to €60 (1.5×) with **identical rules** — "
+        "honesty requires linearity check, not celebrating bigger € alone."
     )
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("## C. Harness")
     lines.append("")
-    lines.append("- Script: `scripts/run_rise_panel_mid_breakout_ema1221_4h_eval.py`")
-    lines.append("- Module: `atlas.paper.rise_panel_mid_breakout_ema1221_4h_eval`")
+    lines.append("- Script: `scripts/run_rise_panel_mid_sleeve_riskup_72_eval.py`")
+    lines.append("- Module: `atlas.paper.rise_panel_mid_sleeve_riskup_72_eval`")
     lines.append(
         "- Strategy: `atlas.strategy.mid_doge_breakout_ema1221_4h` "
-        "(BreakoutV1 + EMA12/21 long-regime; Mid #71)"
+        "(same as Mid #71; sleeve €60 in harness only)"
     )
     lines.append(
         "- Reuse: `walk_long_flat`, `soft_promote_score`, locked `RISE_PANEL_V1` windows; "
-        "Core+Mid book €180 on PASS+better only (no Scalp)"
+        "Core+Mid book €200 on PASS (no Scalp)"
     )
-    lines.append("- Unit tests: `tests/unit/test_rise_panel_mid_breakout_ema1221_4h.py`")
-    lines.append(
-        "- Doc path: `phase1/72-mid-long-strengthen.md` "
-        "(Mid lock #71; avoid clash with `71-codex-scalp-hft-design-brief.md`)"
-    )
+    lines.append("- Unit tests: `tests/unit/test_rise_panel_mid_sleeve_riskup_72.py`")
+    lines.append("- Doc path: `phase1/73-mid-sleeve-riskup.md`")
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("## D. Results — Mid BreakoutV1 + EMA12/21 4H €40 on same 7")
+    lines.append("## D. Results — Mid BreakoutV1 + EMA12/21 4H €60 on same 7")
     lines.append("")
-    lines.append(f"**mid_improve_id:** `{MID_IMPROVE_ID}`")
+    lines.append(f"**mid_riskup_id:** `{MID_RISKUP_ID}`")
     lines.append("")
-    lines.append("### Improve per window")
+    lines.append("### Risk-up per window")
     lines.append("")
     lines.append(
         "| Id | n_trades | expectancy €/trade | net € | max DD € | TIM | BH net € | BH max DD € |"
@@ -751,7 +744,7 @@ def render_results_markdown(
     lines.append(
         "|----|---------:|-------------------:|------:|---------:|----:|---------:|------------:|"
     )
-    for r in improve.get("rows") or []:
+    for r in riskup.get("rows") or []:
         wid = r.get("window_id", "?")
         lines.append(
             f"| {wid} | {r.get('n_trades', 0)} | {_fmt(r.get('expectancy_after_costs_eur'))} | "
@@ -760,7 +753,7 @@ def render_results_markdown(
             f"{_fmt(r.get('bh_max_dd_eur'))} |"
         )
     lines.append("")
-    lines.append("**Panel summary (Mid Breakout + EMA12/21 4H):**")
+    lines.append("**Panel summary (Mid Breakout + EMA12/21 4H €60):**")
     lines.append(
         f"- windows with exp>0: **{ms.get('n_exp_gt_0')}**/7 · "
         f"net>0: **{ms.get('n_net_gt_0')}**/7"
@@ -771,7 +764,7 @@ def render_results_markdown(
     lines.append(f"- worst DD €: **{_fmt(ms.get('worst_dd_eur'))}**")
     lines.append("")
     lines.append(
-        f"### Soft promote (Mid Breakout + EMA12/21): **{soft.get('verdict', '—')}** (`{SOFT_PROMOTE_GATE}`)"
+        f"### Soft promote (Mid €60 risk-up): **{soft.get('verdict', '—')}** (`{SOFT_PROMOTE_GATE}`)"
     )
     lines.append("")
     lines.append(
@@ -787,124 +780,91 @@ def render_results_markdown(
     )
     lines.append(f"- note: {SOFT_PROMOTE_NOTE}")
     lines.append("")
-    lines.append(f"### Honesty label vs Breakout #65: **{honesty_label}**")
+    lines.append(f"### Honesty label vs #71 €40: **{honesty_label}**")
     lines.append("")
-    lines.append("### Honesty deltas vs Mid Breakout #65 baseline (Breakout+EMA1221 − Breakout)")
-    lines.append("")
-    lines.append(
-        "| Metric | Mid Breakout 4H €40 (#65) | Mid Breakout+EMA1221 4H €40 | Δ |"
-    )
-    lines.append("|--------|--------------------------:|--------------------:|--:|")
-    lines.append(
-        f"| median exp € | {_fmt((deltas.get('median_expectancy_eur') or {}).get('baseline'))} | "
-        f"{_fmt((deltas.get('median_expectancy_eur') or {}).get('improve'))} | "
-        f"{_fmt((deltas.get('median_expectancy_eur') or {}).get('delta'))} |"
-    )
-    lines.append(
-        f"| panel net € | {_fmt((deltas.get('panel_net_eur') or {}).get('baseline'))} | "
-        f"{_fmt((deltas.get('panel_net_eur') or {}).get('improve'))} | "
-        f"{_fmt((deltas.get('panel_net_eur') or {}).get('delta'))} |"
-    )
-    lines.append(
-        f"| median_trades | {_fmt((deltas.get('median_trades') or {}).get('baseline'), 1)} | "
-        f"{_fmt((deltas.get('median_trades') or {}).get('improve'), 1)} | "
-        f"{_fmt((deltas.get('median_trades') or {}).get('delta'), 1)} |"
-    )
-    lines.append(
-        f"| n exp>0 / 7 | {(deltas.get('n_exp_gt_0') or {}).get('baseline')} | "
-        f"{(deltas.get('n_exp_gt_0') or {}).get('improve')} | "
-        f"{(deltas.get('n_exp_gt_0') or {}).get('delta')} |"
-    )
-    lines.append(
-        f"| soft promote | {soft_b.get('verdict', '—')} | **{soft.get('verdict', '—')}** | — |"
-    )
-    lines.append("")
-    lines.append("### Honesty deltas vs EMA12/30 Mid archive (optional; Breakout+EMA1221 − EMA12/30)")
+    lines.append("### Honesty deltas vs Mid #71 €40 (risk-up − baseline) + linearity")
     lines.append("")
     lines.append(
-        "| Metric | Mid EMA12/30 4H €40 (archive) | Mid Breakout+EMA1221 4H €40 | Δ |"
+        "| Metric | Mid #71 €40 | Mid #72 €60 | Δ | linear 1.5× | ratio vs linear |"
     )
-    lines.append("|--------|------------------------------:|--------------------:|--:|")
+    lines.append("|--------|------------:|------------:|--:|------------:|----------------:|")
+    pn = deltas.get("panel_net_eur") or {}
+    ex = deltas.get("median_expectancy_eur") or {}
+    dd = deltas.get("worst_dd_eur") or {}
+    mt = deltas.get("median_trades") or {}
+    ne = deltas.get("n_exp_gt_0") or {}
     lines.append(
-        f"| median exp € | {_fmt((deltas_ema.get('median_expectancy_eur') or {}).get('ema_archive'))} | "
-        f"{_fmt((deltas_ema.get('median_expectancy_eur') or {}).get('improve'))} | "
-        f"{_fmt((deltas_ema.get('median_expectancy_eur') or {}).get('delta'))} |"
-    )
-    lines.append(
-        f"| panel net € | {_fmt((deltas_ema.get('panel_net_eur') or {}).get('ema_archive'))} | "
-        f"{_fmt((deltas_ema.get('panel_net_eur') or {}).get('improve'))} | "
-        f"{_fmt((deltas_ema.get('panel_net_eur') or {}).get('delta'))} |"
-    )
-    lines.append(
-        f"| median_trades | {_fmt((deltas_ema.get('median_trades') or {}).get('ema_archive'), 1)} | "
-        f"{_fmt((deltas_ema.get('median_trades') or {}).get('improve'), 1)} | "
-        f"{_fmt((deltas_ema.get('median_trades') or {}).get('delta'), 1)} |"
+        f"| panel net € | {_fmt(pn.get('baseline_eur40'))} | {_fmt(pn.get('riskup_eur60'))} | "
+        f"{_fmt(pn.get('delta'))} | {_fmt(pn.get('linear_1_5x'))} | {_fmt(pn.get('ratio_vs_linear'))} |"
     )
     lines.append(
-        f"| n exp>0 / 7 | {(deltas_ema.get('n_exp_gt_0') or {}).get('ema_archive')} | "
-        f"{(deltas_ema.get('n_exp_gt_0') or {}).get('improve')} | "
-        f"{(deltas_ema.get('n_exp_gt_0') or {}).get('delta')} |"
+        f"| median exp €/trade | {_fmt(ex.get('baseline_eur40'))} | {_fmt(ex.get('riskup_eur60'))} | "
+        f"{_fmt(ex.get('delta'))} | {_fmt(ex.get('linear_1_5x'))} | {_fmt(ex.get('ratio_vs_linear'))} |"
     )
-    lines.append("| soft promote | PASS (archive) | "
-                 f"**{soft.get('verdict', '—')}** | — |")
+    lines.append(
+        f"| worst DD € | {_fmt(dd.get('baseline_eur40'))} | {_fmt(dd.get('riskup_eur60'))} | "
+        f"{_fmt(dd.get('delta'))} | {_fmt(dd.get('linear_1_5x'))} | {_fmt(dd.get('ratio_vs_linear'))} |"
+    )
+    lines.append(
+        f"| median_trades | {_fmt(mt.get('baseline_eur40'), 1)} | {_fmt(mt.get('riskup_eur60'), 1)} | "
+        f"{_fmt(mt.get('delta'), 1)} | — | — |"
+    )
+    lines.append(
+        f"| n exp>0 / 7 | {ne.get('baseline_eur40')} | {ne.get('riskup_eur60')} | "
+        f"{ne.get('delta')} | — | — |"
+    )
+    lines.append(
+        f"| soft promote | {soft_b.get('verdict', '—')} | **{soft.get('verdict', '—')}** | — | — | — |"
+    )
+    lines.append("")
+    lines.append(
+        f"Linearity note: size_mult={SIZE_MULT:.1f}×; panel ratio vs linear ≈ **{_fmt(ratio)}** "
+        "(1.0 = exact linear)."
+    )
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("## E. Cascade / Core+Mid book")
     lines.append("")
 
-    if promote_as_better and core_mid_book is not None:
+    if soft_pass and core_mid_book is not None:
         nets = core_mid_book.get("panel_sleeve_nets_eur") or {}
-        vs = core_mid_book.get("vs_65_core_mid_breakout") or {}
+        vs = core_mid_book.get("vs_71_core_mid_eur40") or {}
         lines.append(
             "Bot cascade/arming path = **Core + Mid only**. Scalp = Kaje manual — "
-            "**no Scalp sleeve**. Book start **€180** (Core €140 + Mid €40). "
-            "PASS **and** panel_net better than Breakout → cascade recorded."
+            "**no Scalp sleeve**. Book start **€200** (Core €140 + Mid €60). "
+            "soft_promote **PASS** → cascade recorded."
         )
         lines.append("")
         lines.append(f"- **book_id:** `{CORE_MID_BOOK_ID}`")
         lines.append(f"- **book_start_eur:** **{int(CORE_MID_BOOK_EUR)}**")
         lines.append(f"- **core_id:** `{BASELINE_ID}` (1D EMA12/30)")
-        lines.append(f"- **mid_id:** `{MID_IMPROVE_ID}` (4H Breakout+EMA1221)")
+        lines.append(f"- **mid_id:** `{MID_RISKUP_ID}` (4H Breakout+EMA1221 €60)")
         lines.append("- **scalp:** none (`no_scalp=true`)")
         lines.append(
             f"- per-sleeve panel net: Core **{_fmt(nets.get('core'))}** · "
             f"Mid **{_fmt(nets.get('mid'))}** · Core+Mid **{_fmt(nets.get('combined_core_mid'))}** €"
         )
         lines.append("")
-        lines.append("### Honesty Δ vs Breakout Core+Mid (#65)")
+        lines.append("### Honesty Δ vs prior Core+Mid with Mid €40 (#71 book ≈€461.26)")
         lines.append("")
-        lines.append("| Sleeve | #65 Core+Mid (Breakout Mid) | #71 Core+Mid (this Mid) | Δ |")
-        lines.append("|--------|----------------------------:|------------------------:|--:|")
+        lines.append("| Sleeve | #71 Core+Mid (Mid €40) | #72 Core+Mid (Mid €60) | Δ |")
+        lines.append("|--------|-----------------------:|-----------------------:|--:|")
         lines.append(
-            f"| Core | {_fmt(vs.get('core_65'))} | {_fmt(nets.get('core'))} | "
+            f"| Core | {_fmt(vs.get('core_71'))} | {_fmt(nets.get('core'))} | "
             f"{_fmt(vs.get('core_delta'))} |"
         )
         lines.append(
-            f"| Mid | {_fmt(vs.get('mid_65'))} | {_fmt(nets.get('mid'))} | "
+            f"| Mid | {_fmt(vs.get('mid_71'))} | {_fmt(nets.get('mid'))} | "
             f"{_fmt(vs.get('mid_delta'))} |"
         )
         lines.append(
-            f"| Core+Mid | {_fmt(vs.get('combined_65'))} | {_fmt(nets.get('combined_core_mid'))} | "
+            f"| Core+Mid | {_fmt(vs.get('combined_71'))} | {_fmt(nets.get('combined_core_mid'))} | "
             f"{_fmt(vs.get('combined_delta'))} |"
         )
         lines.append("")
-        lines.append("Reports: `data/reports/rise_panel_v1_core_mid_book_mid_breakout_ema1221_71.json`")
-    elif soft_pass and not panel_better:
-        lines.append(
-            f"**No promote claim.** Soft {honesty_label} vs Breakout — cascade skipped "
-            "(optional informational only; not run as promote path)."
-        )
-        if core_mid_book is not None:
-            nets = core_mid_book.get("panel_sleeve_nets_eur") or {}
-            vs = core_mid_book.get("vs_65_core_mid_breakout") or {}
-            lines.append("")
-            lines.append(
-                f"Informational Core+Mid (force): combined **{_fmt(nets.get('combined_core_mid'))}** € "
-                f"(Δ vs Breakout Core+Mid {_fmt(vs.get('combined_delta'))})."
-            )
-            lines.append("Reports: `data/reports/rise_panel_v1_core_mid_book_mid_breakout_ema1221_71.json`")
-    else:
+        lines.append("Reports: `data/reports/rise_panel_v1_core_mid_book_mid_breakout_ema1221_72_eur60.json`")
+    elif not soft_pass:
         lines.append(
             "**FAIL** soft_promote — no promote claim; cascade skipped."
         )
@@ -913,26 +873,29 @@ def render_results_markdown(
             lines.append(
                 f"Informational Core+Mid only: combined **{_fmt(nets.get('combined_core_mid'))}** €."
             )
+    else:
+        lines.append(
+            "soft PASS but Core+Mid book not run (skipped)."
+        )
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("## What this is not")
     lines.append("")
     lines.append("- Not a lookback / EMA / ATR / TF / cost grind.")
-    lines.append("- Not RSI MR (#66) or RSI filter.")
-    lines.append("- Not plain BreakoutV1 alone (#65) — this adds EMA12/21 regime.")
-    lines.append("- Not plain Mid EMA12/21 (#67) — Breakout stays the signal.")
-    lines.append("- Not Donchian 20/10 (#64) or Mid EMA12/30 archive.")
-    lines.append("- Not a size-up / risk-up of the Mid €40 sleeve.")
-    lines.append("- Not Scalp HFT / Codex lane (do not implement HFT).")
+    lines.append("- Not a rule change vs #71 — **sleeve size only** (€40→€60).")
+    lines.append("- Not RSI MR (#66) or plain Breakout #65 (archive) or plain EMA12/21 (#67).")
+    lines.append("- Not a claim that bigger € alone proves better edge (linearity honesty required).")
+    lines.append("- Not Scalp HFT / Codex lane.")
     lines.append("- Not a change to R1–R7 window dates (phase1/54 lock).")
     lines.append("- Not a rewrite of `core_style_return` A∧B on phase1/38.")
     lines.append("- Not a live / Phase C recommendation. Not `ga live €200`.")
     lines.append("- Not Mid-arming / Scalp-arming. Soft PASS ≠ arm. Live ≤€20.")
     lines.append("- Not a Scalp sleeve (bot path Core+Mid only).")
     lines.append("- Not a claim that past rise windows forecast the next bull.")
+    lines.append("- Not a change to `config/default.yaml`.")
     lines.append("")
     lines.append("`not_a_forecast: true`. `place_orders: false`.")
     lines.append("")
-    _ = (RISE_PANEL_V1, promote_as_better)
+    _ = (RISE_PANEL_V1, honesty_label)
     return "\n".join(lines)

@@ -1,5 +1,8 @@
 # 72 — Mid #71 long-strengthen: DOGE **4H BreakoutV1 + EMA12/21** (€40)
 
+> **PROMOTE (Kaje):** Mid formal baseline → `#71` `rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur40` (panel≈€97.2663). Breakout #65 = **archive reference only**. Soft PASS ≠ Mid-arm / live. See [`72b-mid-breakout-ema1221-promote.md`](./72b-mid-breakout-ema1221-promote.md). `MID_BASELINE_ID` updated in `atlas.paper.rise_panel`. `default.yaml` untouched.
+
+
 **Stance:** Research. `not_a_forecast: true`. Never places orders. Do not headline PnL.
 **Config:** `config/default.yaml` **untouched**.
 **Live:** DOGE ≤€20; no `ga live €200`; bot cascade/arming = **Core + Mid only**; Scalp = Kaje manual — do not propose Scalp-arm. Soft PASS ≠ Mid-arm.
