@@ -35,3 +35,7 @@ htmlcov/
 venv/
 okx-eea-*.json
 **/okx-eea-*.json
+
+# Scalp-HFT Layer B derived samples (regenerate via replay script)
+results/scalp_hft_v1/layer_b_samples/*
+!results/scalp_hft_v1/layer_b_samples/.gitkeep
