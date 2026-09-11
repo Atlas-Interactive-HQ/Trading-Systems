@@ -7,6 +7,7 @@ import pytest
 from atlas.paper.cascade import CORE_START_EUR, MID_START_EUR
 from atlas.paper.rise_panel import (
     MID_BASELINE_ID,
+    MID_BREAKOUT_ARCHIVE_ID,
     MID_CANDIDATE_ID,
     MID_EMA_ARCHIVE_ID,
     PANEL_LABEL,
@@ -46,8 +47,9 @@ def _bar(i: int, c: float) -> Bar:
 
 
 def test_ids_and_sleeve_locked():
-    assert MID_BREAKOUT_BASELINE_ID == MID_BASELINE_ID
-    assert MID_BASELINE_ID == "rise_panel_v1_mid_doge_breakoutv1_4h_eur40"
+    assert MID_BREAKOUT_BASELINE_ID == MID_BREAKOUT_ARCHIVE_ID
+    assert MID_BREAKOUT_ARCHIVE_ID == "rise_panel_v1_mid_doge_breakoutv1_4h_eur40"
+    assert MID_BASELINE_ID == "rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur40"
     assert MID_EMA_ARCHIVE_ID == MID_CANDIDATE_ID
     assert MID_EMA_ARCHIVE_ID == "rise_panel_v1_mid_doge_ema12_30_4h_eur40"
     assert MID_IMPROVE_ID == "rise_panel_v1_mid_doge_macd12269_4h_eur40"
