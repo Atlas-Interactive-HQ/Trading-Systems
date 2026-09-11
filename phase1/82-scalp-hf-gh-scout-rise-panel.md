@@ -1,4 +1,4 @@
-# 81 — Scalp HF/GH scout → rise_panel_v1 paper shortlist
+# 82 — Scalp HF/GH scout → rise_panel_v1 paper shortlist
 
 **Role:** Atlas | TS Research paper scout  
 **Stance:** Research only. `not_a_forecast: true`. No live orders. No invented PnL / Soft PASS / FAIL scores.  
@@ -7,6 +7,7 @@
 **Panel:** [`54-rise-panel-v1.md`](./54-rise-panel-v1.md) — **locked** R1–R7 (do **not** rewrite windows).  
 **Label:** `scalp_hf_gh_scout_rise_panel_v0`  
 **Date:** 2026-09-11 (Europe/Amsterdam)
+**Note:** File number **#82** (phase1/81 is Scalp-HFT TP+60 lock).
 
 > **This note is NOT a scored paper.** Soft PASS = **N/A**.  
 > Next step = coordinator `soft_promote` paper locks **only after** Kaje/coordinator picks from this shortlist.
