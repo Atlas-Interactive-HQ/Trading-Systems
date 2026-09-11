@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Replay Layer B OKX books5 JSONL → 1s VAMP-5 feature samples (PAPER_ONLY).
 
-Default output: data/derived/okx_eea/{date}/vamp1s_<instId>.csv
-(phase1/78 §6 / phase1/79). No trading, no PnL, no live OMS.
-Does not touch config/default.yaml. Does not freeze lock.json.
+Default output: results/scalp_hft_v1/layer_b_samples/vamp1s_<inst>_<date>.{csv,parquet}
+(Optional --derived also writes data/derived/okx_eea/{date}/ per phase1/78 §6.)
+No trading, no PnL, no live OMS. Does not touch config/default.yaml.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from atlas.scalp_hft.vamp import (  # noqa: E402
 
 DEFAULT_INST = "DOGE-USD_UM_XPERP-310404"
 DEMO_ORDER_INST = "DOGE-USD_UM_XPERP-310516"
+RESULTS_OUT = ROOT / "results" / "scalp_hft_v1" / "layer_b_samples"
 DERIVED_ROOT = ROOT / "data" / "derived" / "okx_eea"
 
 
@@ -47,8 +48,8 @@ def _discover_books5(raw_root: Path, date: str | None) -> list[Path]:
 
 
 def _default_out_dir(date_tag: str | None) -> Path:
-    day = date_tag or "unknown"
-    return DERIVED_ROOT / day
+    _ = date_tag
+    return RESULTS_OUT
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -86,12 +87,17 @@ def main(argv: list[str] | None = None) -> int:
         "--out-dir",
         type=Path,
         default=None,
-        help="output directory (default: data/derived/okx_eea/{date})",
+        help="output directory (default: results/scalp_hft_v1/layer_b_samples)",
+    )
+    ap.add_argument(
+        "--also-derived",
+        action="store_true",
+        help="also write under data/derived/okx_eea/{date}/ (phase1/78 path)",
     )
     ap.add_argument(
         "--stem",
         default=None,
-        help="output filename stem (default vamp1s_<instId>)",
+        help="output filename stem (default vamp1s_<inst>_<date>)",
     )
     ap.add_argument(
         "--no-fill-gaps",
@@ -179,10 +185,16 @@ def main(argv: list[str] | None = None) -> int:
         parent = inputs[0].parent.name
         date_tag = parent if len(parent) == 10 and parent[4] == "-" else "smoke"
     out_dir = args.out_dir or _default_out_dir(date_tag)
-    stem = args.stem or f"vamp1s_{args.inst_id}"
+    stem = args.stem or f"vamp1s_{args.inst_id}_{date_tag or 'replay'}"
     formats = [f.strip() for f in args.formats.split(",") if f.strip()]
 
     written = write_samples(samples, out_dir, stem=stem, formats=formats)
+    written_all = {"primary": {k: str(v) for k, v in written.items()}}
+    if args.also_derived:
+        derived_dir = DERIVED_ROOT / (date_tag or "unknown")
+        derived_stem = f"vamp1s_{args.inst_id}"
+        written_d = write_samples(samples, derived_dir, stem=derived_stem, formats=formats)
+        written_all["derived"] = {k: str(v) for k, v in written_d.items()}
     gap = summarize_samples(samples)
 
     summary = {
@@ -199,7 +211,10 @@ def main(argv: list[str] | None = None) -> int:
         "inputs": [str(p) for p in inputs],
         "ingest": ingest.to_dict(),
         "gaps": gap.to_dict(),
-        "written": {k: str(v) for k, v in written.items()},
+        "n_samples_1s": gap.n_samples_1s,
+        "n_vamp_valid": gap.n_vamp_valid,
+        "n_vamp_z_valid": gap.n_vamp_z_valid,
+        "written": written_all,
         "out_dir": str(out_dir),
         "lock_freeze": False,
         "scored_paper": False,
