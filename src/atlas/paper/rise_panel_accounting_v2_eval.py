@@ -356,13 +356,50 @@ def render_old_vs_v2_markdown(audit: dict[str, Any]) -> str:
         "**Config:** `config/default.yaml` **untouched**.",
         "**Live:** DOGE ≤€20 **HALTED**. Soft PASS ≠ arm. **This audit does not promote.**",
         f"**Accounting:** `{ACCOUNTING_VERSION}` (additive; historical keys preserved).",
+        "**Audit:** [`90`](./90-evaluation-integrity-audit.md).",
         "",
         "Gate `rise_panel_accounting_v2` was locked **before** this re-score. "
         "It is **not** a rewrite of `soft_promote_v1`. Do not create green by changing the gate after seeing results.",
         "",
+        "Numbers below are **measured** from `scripts/run_rise_panel_accounting_v2_eval.py` "
+        "(OKX EEA public `history-candles`, PaperSettings 5+5 bps, next-open fills). "
+        "OLD `net_return` / `n_trades` / expectancy reproduce the historical phase1 tables.",
+        "",
         "---",
         "",
+        "## How to read (do not promote)",
+        "",
+        "- A V2 **PASS** is **not** a GREEN CANDIDATE and **not** a promote.",
+        "- Core C0 / C1 can flip FAIL→PASS because a forced window close turns an "
+        "open hold (`n_trades=0`) into `n_terminal_trips=1` with terminal-MTM expectancy. "
+        "That is **one-interval dominated**, not complete-trade edge.",
+        "- Prefer `expectancy_completed_eur` + `completed_round_trips` when asking "
+        "whether the strategy actually finished trades.",
+        "- Δ net is almost entirely the missing terminal sell fee/slip (~few cents to ~€0.24).",
+        "- Mid M1 remains the robustness comparator (more exp>0 windows historically, "
+        "lower median exp / panel). Not a post-hoc swap for #71.",
+        "",
+        "| Candidate | OLD soft | V2 gate | OLD panel € | V2 term € | OLD exp>0 | V2 exp>0 | forced |",
+        "|-----------|:--------:|:-------:|------------:|----------:|----------:|---------:|-------:|",
     ]
+    for b in audit.get("candidates") or []:
+        old_s = b.get("old_summary") or {}
+        v2_s = b.get("v2_summary") or {}
+        old_soft = b.get("soft_promote_v1_unchanged") or {}
+        v2g = b.get("accounting_v2") or {}
+        lines.append(
+            f"| {b.get('candidate_key')} | {old_soft.get('verdict')} | {v2g.get('verdict')} | "
+            f"{_fmt(old_s.get('panel_net_eur'))} | {_fmt(v2_s.get('panel_terminal_liquidation_net_eur'))} | "
+            f"{old_s.get('n_exp_gt_0')} | {v2_s.get('n_exp_terminal_adj_gt_0')} | "
+            f"{v2_s.get('n_forced_window_close')}/7 |"
+        )
+    lines.extend(
+        [
+        "",
+        "---",
+        "",
+        ]
+    )
     for b in audit.get("candidates") or []:
         lines.append(f"## {b.get('candidate_key')} — `{b.get('candidate_id')}`")
         lines.append("")
@@ -437,6 +474,9 @@ def render_old_vs_v2_markdown(audit: dict[str, Any]) -> str:
             "- R1–R7 remain DEV/eliminate-only. Next Mid score = unseen SHADOW only.",
             "- Do not change `rise_panel_accounting_v2` after seeing these numbers.",
             "- Historical `soft_promote_v1` artifacts are **not** rewritten.",
+            "- CORE-R1 and SCALP-R2 are **not** in this table (lock only).",
+            "- Core C0 V2 PASS (7/7 forced closes) and C1 V2 PASS (5/7 forced) are "
+            "**not** complete-trade expectancy proofs. C2 remains FAIL on both gates.",
             "",
             "`not_a_forecast: true`. `place_orders: false`.",
             "",

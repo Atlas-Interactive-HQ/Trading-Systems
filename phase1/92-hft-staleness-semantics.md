@@ -41,7 +41,7 @@ Trading health = `health_stale OR ts_rewind OR reconnect_in_second`.
 python scripts/run_hft_h0_health.py
 ```
 
-If `data/raw/okx_eea/**/ws_books5.jsonl` is absent (typical on a clean agent box; raw is gitignored): the script exits 2 with `insufficient_data` and **does not invent** `n_health_stale` / reconnect counts. Historical 79/85 tables stay as written.
+**This PR's H0 re-run (2026-09-11 agent box):** `python scripts/run_hft_h0_health.py` exited 2 with `insufficient_data` — no `data/raw/okx_eea/**/ws_books5.jsonl` (raw is gitignored). **No invented** `n_health_stale` / reconnect counts. Historical 79/85 tables stay as written.
 
 When a real capture is present, report `n_carried_forward` vs `n_health_stale` vs `n_trading_unhealthy` under `results/accounting_v2/h0_health_only.json`. Still **no** HFT PnL.
 
