@@ -15,6 +15,7 @@ Before any scored run:
 1. Read exact R1–R7 definitions from `54-rise-panel-v1.md`
 2. Compute/store rise_panel_v1 **manifest hash** into lock file
 3. Freeze strategy parameters (EMA 12/21, VAMP-5, z=±1.0 seed, exits)
+   - Hard exits locked 2026-09-11: SL −20% (−1R) / TP **+60% (+3R)** net margin ROI — not +100%/+5R (see [`81`](./81-scalp-hft-tp60-lock.md))
 4. Freeze code commit SHA
 5. Freeze fee assumptions + effective date
 6. Freeze execution-model version (latency / queue assumptions)

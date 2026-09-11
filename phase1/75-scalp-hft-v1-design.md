@@ -12,7 +12,7 @@
 
 **Numbering note:** Mid already used `phase1/72*`, `73-mid-sleeve-riskup.md`. Scalp-HFT design therefore lands at **75 / 76 / 77** (not Codex paste’s provisional 72–74 paths).
 
-**Companions:** [`76-scalp-hft-v1-rule-card.md`](./76-scalp-hft-v1-rule-card.md) · [`77-scalp-hft-v1-eval-plan.md`](./77-scalp-hft-v1-eval-plan.md) · `research/scalp_hft_v1_sketch.py` · `research/scalp_hft_v1.lock.json`
+**Companions:** [`76-scalp-hft-v1-rule-card.md`](./76-scalp-hft-v1-rule-card.md) · [`77-scalp-hft-v1-eval-plan.md`](./77-scalp-hft-v1-eval-plan.md) · [`81-scalp-hft-tp60-lock.md`](./81-scalp-hft-tp60-lock.md) · `research/scalp_hft_v1_sketch.py` · `research/scalp_hft_v1.lock.json`
 
 ---
 
@@ -70,20 +70,21 @@ For microstructure strategies this is not a detail — it may be the main invali
 
 ---
 
-## 3. 20% SL / 100% TP lock (net margin ROI)
+## 3. 20% SL / 60% TP lock (net margin ROI)
 
 Defined on **net return on isolated margin**:
 
 - Hard Stop: `net_margin_ROI <= -20%`
-- Hard Take Profit: `net_margin_ROI >= +100%`
+- Hard Take Profit: `net_margin_ROI >= +60%`
 
 **Net** = mark-to-market PnL − entry fees − exit fees (or estimated exit fees) − slippage − funding.
 
-At 10×, before costs, roughly: −20% margin ROI ≈ −2% underlying; +100% ≈ +10% underlying.
+At 10×, before costs, roughly: −20% margin ROI ≈ −2% underlying; +60% ≈ +6% underlying.
 
-**Design decision:** +100% TP is the **outer hard win bound**, not the normal scalp exit. A scalp that needs ~+10% underlying for a “normal” exit is no longer a scalp. Prefer closing when microstructure edge dies.
+**Design decision:** +60% TP is the **outer hard win bound**, not the normal scalp exit. Prefer closing when microstructure edge dies (edge-decay exit). Hard TP remains an outer bound only.
 
-Define: **1R = 20% of isolated margin per trade** → Hard SL = −1R, Hard TP = +5R.
+Define: **1R = 20% of isolated margin per trade** → Hard SL = −1R, Hard TP = +3R (1:3 R:R).  
+**Kaje lock 2026-09-11:** “TP 1/3 dus 20 tot 60” = SL −20% / TP +60% where 1R = 20% isolated margin. Prior outer bound was +100% / +5R (superseded by this lock; see [`81-scalp-hft-tp60-lock.md`](./81-scalp-hft-tp60-lock.md)).
 
 ---
 
@@ -176,7 +177,7 @@ If std is zero/invalid: `vamp_z = INVALID` → **NO TRADE**.
 
 1. **System kill** — integrity/risk fault → simulated immediate flatten → `HALTED`
 2. **Hard SL** — `net_margin_ROI <= -20%` → immediate simulated taker exit
-3. **Hard TP** — `net_margin_ROI >= +100%` → immediate close
+3. **Hard TP** — `net_margin_ROI >= +60%` → immediate close
 4. **Edge-decay exit** — LONG: `EMA12 <= EMA21` OR `vamp_z <= 0` (SHORT mirrored); require 2-of-3; try post-only maker exit ≤1s, then taker flatten if still open
 5. **Time stop** — `max_hold = 60 seconds` → close regardless of PnL
 
