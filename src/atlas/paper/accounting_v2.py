@@ -87,10 +87,15 @@ def compute_accounting_v2(
 
     Does not mutate cash/qty. Does not emit strategy signals.
     When qty==0, terminal liquidation == realized (no forced close).
+
+    ``qty`` is **signed**: >0 long, <0 short (research synthetic short), 0 flat.
+    Long terminal = sell slip+fee (unchanged). Short terminal = buy-to-cover slip+fee.
     """
     realized = q(realized_net_eur)
     trips = int(completed_round_trips)
-    open_pos = float(qty) > 0.0
+    qty_f = float(qty)
+    abs_qty = abs(qty_f)
+    open_pos = abs_qty > 0.0
     if not open_pos or mark_close is None or mark_close <= 0:
         return {
             "accounting_version": ACCOUNTING_VERSION,
@@ -106,13 +111,24 @@ def compute_accounting_v2(
             "expectancy_terminal_adjusted_eur": _expectancy(realized, trips),
         }
 
-    # Unrealized MTM at last close, no exit costs (matches historical mark math).
-    unrealized = q(float(qty) * (float(mark_close) - float(entry_px)) - float(entry_fee))
-    sell_px = apply_slippage(float(mark_close), "sell", float(slippage_bps))
-    sell_fee = fee_on_notional(float(qty) * sell_px, float(fee_rate))
-    # Cost of selling vs marking at last.close: qty*(close − sell_px) + sell_fee.
-    exit_cost = q(float(qty) * float(mark_close) - (float(qty) * sell_px - sell_fee))
-    liq_equity = q(float(cash) + float(qty) * sell_px - sell_fee)
+    close = float(mark_close)
+    if qty_f > 0.0:
+        # Long: unrealized MTM at last close, no exit costs (historical mark math).
+        unrealized = q(abs_qty * (close - float(entry_px)) - float(entry_fee))
+        sell_px = apply_slippage(close, "sell", float(slippage_bps))
+        sell_fee = fee_on_notional(abs_qty * sell_px, float(fee_rate))
+        # Cost of selling vs marking at last.close: qty*(close − sell_px) + sell_fee.
+        exit_cost = q(abs_qty * close - (abs_qty * sell_px - sell_fee))
+        liq_equity = q(float(cash) + abs_qty * sell_px - sell_fee)
+    else:
+        # Short: MTM = entry − close (profit when price falls); cover with buy slip+fee.
+        unrealized = q(abs_qty * (float(entry_px) - close) - float(entry_fee))
+        buy_px = apply_slippage(close, "buy", float(slippage_bps))
+        buy_fee = fee_on_notional(abs_qty * buy_px, float(fee_rate))
+        # Cost of covering vs marking at last.close: abs_qty*(buy_px − close) + buy_fee.
+        exit_cost = q(abs_qty * (buy_px - close) + buy_fee)
+        liq_equity = q(float(cash) - abs_qty * buy_px - buy_fee)
+
     terminal_net = q(liq_equity - float(start_equity_eur))
     n_term = trips + 1
     return {
