@@ -28,6 +28,17 @@ log = logging.getLogger("atlas.collectors.okx_eea")
 
 WS_DOCS = "https://my.okx.com/docs-v5/en/#overview-websocket-overview"
 
+# Layer B paper capture — DOGE X-Perp public MD (not demo order instId 310516).
+# Evidence: README "Public vs demo X-Perp instId"; config okx.doge_demo.xperp.md_inst_id;
+# live GET /api/v5/public/instruments?instType=FUTURES (ruleType=xperp, state=live).
+LAYER_B_DOGE_XPERP_MD_INST = "DOGE-USD_UM_XPERP-310404"
+
+# Public WS channels for Scalp-HFT Layer B forward capture.
+LAYER_B_WS_CHANNELS = ("books5", "trades", "mark-price", "funding-rate")
+
+# Classic SWAP aliases are NOT X-Perp — refuse as Layer B primary unless --allow-proxy-swap.
+LAYER_B_PROXY_SWAP_INSTS = frozenset({"DOGE-USDT-SWAP", "DOGE-USD-SWAP"})
+
 
 class OkxEeaPublicCollector:
     def __init__(self, cfg: AppConfig, venue_key: str = "okx_eea") -> None:
@@ -203,30 +214,146 @@ class OkxEeaPublicCollector:
         log.info("okx REST poll finished: %s", summary)
         return summary
 
-    async def run_ws_stub(self, duration_sec: float = 15.0) -> dict[str, Any]:
-        """Optional public WS for books5 / trades.
+    @staticmethod
+    def resolve_capture_inst_ids(
+        inst_ids: list[str] | None,
+        *,
+        allow_proxy_swap: bool = False,
+    ) -> list[str]:
+        """Resolve Layer B capture instruments (fail-closed).
 
-        Subscribe schema per OKX v5 public WS docs:
-        {"op":"subscribe","args":[{"channel":"trades","instId":"BTC-USDT-SWAP"}, ...]}
-        Docs: https://my.okx.com/docs-v5/en/
+        Default primary: DOGE X-Perp public MD ``DOGE-USD_UM_XPERP-310404``.
+        Classic SWAP ids require ``allow_proxy_swap`` and are labeled non-X-Perp.
+        Unknown / empty / USDC-SWAP-looking ids refuse.
+        """
+        raw = [s.strip() for s in (inst_ids or []) if s and str(s).strip()]
+        if not raw:
+            return [LAYER_B_DOGE_XPERP_MD_INST]
+        out: list[str] = []
+        for iid in raw:
+            upper = iid.upper()
+            if upper == "DOGE-USDC-SWAP":
+                raise ValueError(
+                    "instId DOGE-USDC-SWAP does not exist on OKX EEA public MD "
+                    "(HTTP code 51001). Use DOGE-USD_UM_XPERP-310404 for Layer B X-Perp, "
+                    "or DOGE-USDT-SWAP only with --allow-proxy-swap (not X-Perp)."
+                )
+            if iid in LAYER_B_PROXY_SWAP_INSTS and not allow_proxy_swap:
+                raise ValueError(
+                    f"instId {iid!r} is classic SWAP, not OKX EEA X-Perp. "
+                    f"Layer B primary is {LAYER_B_DOGE_XPERP_MD_INST!r}. "
+                    "Pass --allow-proxy-swap only for explicit SYNTHETIC/PROXY capture."
+                )
+            if "XPERP" in upper and "310516" in upper:
+                raise ValueError(
+                    f"instId {iid!r} is the demo *order* listing. "
+                    f"Public MD uses {LAYER_B_DOGE_XPERP_MD_INST!r} (see README)."
+                )
+            out.append(iid)
+        # de-dupe preserve order
+        return list(dict.fromkeys(out))
+
+    def verify_public_inst_ids(self, inst_ids: list[str]) -> dict[str, Any]:
+        """Fail-closed REST probe: each instId must return ticker code=0."""
+        refuse_if_secrets_present(self.cfg)
+        results: dict[str, Any] = {}
+        with httpx.Client(headers={"User-Agent": "atlas-trading/0.1 public-md"}) as client:
+            for inst in inst_ids:
+                try:
+                    data = self._get(client, "/api/v5/market/ticker", {"instId": inst})
+                except httpx.HTTPStatusError as exc:
+                    raise RuntimeError(
+                        f"Public ticker probe failed for {inst!r}: HTTP {exc.response.status_code}"
+                    ) from exc
+                code = str(data.get("code", ""))
+                rows = data.get("data") or []
+                if code != "0" or not rows:
+                    raise RuntimeError(
+                        f"Fail-closed: public ticker unavailable for {inst!r} "
+                        f"(code={code!r}, rows={len(rows)}). Refusing capture."
+                    )
+                results[inst] = {
+                    "code": code,
+                    "last": (rows[0] or {}).get("last") if isinstance(rows[0], dict) else None,
+                    "instType": (rows[0] or {}).get("instType") if isinstance(rows[0], dict) else None,
+                }
+                log.info("verified public MD instId=%s type=%s last=%s", inst, results[inst]["instType"], results[inst]["last"])
+        return results
+
+    @staticmethod
+    def _build_ws_args(
+        symbols: list[str],
+        channels: list[str],
+    ) -> list[dict[str, str]]:
+        args: list[dict[str, str]] = []
+        for inst in symbols:
+            for ch in channels:
+                args.append({"channel": ch, "instId": inst})
+        return args
+
+    async def run_ws_stub(self, duration_sec: float = 15.0) -> dict[str, Any]:
+        """Backward-compatible short WS smoke (books5 / trades / bbo-tbt on config symbols)."""
+        symbols = list(self.vcfg.symbols) or ["BTC-USDT-SWAP"]
+        return await self.run_ws_capture(
+            duration_sec=duration_sec,
+            inst_ids=symbols,
+            channels=["trades", "bbo-tbt", "books5"],
+            verify_inst=False,
+            rest_sidecar=False,
+        )
+
+    async def run_ws_capture(
+        self,
+        duration_sec: float = 60.0,
+        *,
+        inst_ids: list[str] | None = None,
+        channels: list[str] | None = None,
+        verify_inst: bool = True,
+        allow_proxy_swap: bool = False,
+        rest_sidecar: bool = True,
+        rest_sidecar_sec: float = 30.0,
+    ) -> dict[str, Any]:
+        """Continuous public WS capture → data/raw/okx_eea/{UTC-date}/ws_*.jsonl.
+
+        PAPER / public only. No private WS, no order endpoints, no API keys.
+        Day rotation is handled by JsonlRawWriter (partition by receive_ts UTC date).
         """
         refuse_if_secrets_present(self.cfg)
         try:
             import websockets  # type: ignore
         except ImportError:
-            log.warning("websockets not installed; skipping WS stub")
+            log.warning("websockets not installed; skipping WS capture")
             return {"ws": "skipped", "reason": "no_websockets"}
 
-        log.info("OKX WS stub; docs: %s", WS_DOCS)
+        symbols = self.resolve_capture_inst_ids(inst_ids, allow_proxy_swap=allow_proxy_swap)
+        chans = list(channels) if channels else list(LAYER_B_WS_CHANNELS)
+        for ch in chans:
+            if not ch or "/" in ch or " " in ch:
+                raise ValueError(f"invalid WS channel name: {ch!r}")
+
+        verified: dict[str, Any] | None = None
+        if verify_inst:
+            verified = self.verify_public_inst_ids(symbols)
+
+        log.info(
+            "OKX Layer B WS capture; docs=%s inst=%s channels=%s duration_sec=%s",
+            WS_DOCS,
+            symbols,
+            chans,
+            duration_sec,
+        )
         stop_at = time.monotonic() + max(0.0, duration_sec)
         attempt = 0
         frames = 0
-        symbols = list(self.vcfg.symbols) or ["BTC-USDT-SWAP"]
-        args = []
-        for inst in symbols:
-            args.append({"channel": "trades", "instId": inst})
-            args.append({"channel": "bbo-tbt", "instId": inst})
-            args.append({"channel": "books5", "instId": inst})
+        by_channel: dict[str, int] = {}
+        seq_health: dict[str, Any] = {
+            "books5_seq_samples": 0,
+            "books5_seq_non_monotonic": 0,
+            "last_books5_seq": {},
+        }
+        args = self._build_ws_args(symbols, chans)
+        started = utc_ms()
+        last_rest = 0.0
 
         while time.monotonic() < stop_at:
             try:
@@ -242,6 +369,63 @@ class OkxEeaPublicCollector:
                     await ws.send(json.dumps(sub))
                     self._write("ws_subscribe", sub, transport="ws")
                     while time.monotonic() < stop_at:
+                        # Optional low-rate REST mark/funding sidecar (public).
+                        if rest_sidecar and (time.monotonic() - last_rest) >= max(5.0, rest_sidecar_sec):
+                            try:
+                                with httpx.Client(
+                                    headers={"User-Agent": "atlas-trading/0.1 public-md"}
+                                ) as client:
+                                    for inst in symbols:
+                                        try:
+                                            mark = self._get(
+                                                client,
+                                                "/api/v5/public/mark-price",
+                                                {"instId": inst},
+                                            )
+                                            for row in mark.get("data") or []:
+                                                if isinstance(row, dict):
+                                                    self._write(
+                                                        "mark_price",
+                                                        row,
+                                                        exchange_ts=parse_exchange_ts_ms(row.get("ts")),
+                                                        instrument=inst,
+                                                        transport="rest",
+                                                    )
+                                        except httpx.HTTPStatusError as exc:
+                                            log.warning(
+                                                "sidecar mark-price %s HTTP %s",
+                                                inst,
+                                                exc.response.status_code,
+                                            )
+                                        try:
+                                            fund = self._get(
+                                                client,
+                                                "/api/v5/public/funding-rate",
+                                                {"instId": inst},
+                                            )
+                                            for row in fund.get("data") or []:
+                                                if isinstance(row, dict):
+                                                    self._write(
+                                                        "funding_rate",
+                                                        row,
+                                                        exchange_ts=parse_exchange_ts_ms(
+                                                            row.get("fundingTime")
+                                                            or row.get("ts")
+                                                            or row.get("nextFundingTime")
+                                                        ),
+                                                        instrument=inst,
+                                                        transport="rest",
+                                                    )
+                                        except httpx.HTTPStatusError as exc:
+                                            log.warning(
+                                                "sidecar funding-rate %s HTTP %s",
+                                                inst,
+                                                exc.response.status_code,
+                                            )
+                            except Exception as exc:  # noqa: BLE001
+                                log.warning("REST sidecar error: %s", exc)
+                            last_rest = time.monotonic()
+
                         timeout = max(0.1, stop_at - time.monotonic())
                         try:
                             raw = await asyncio.wait_for(ws.recv(), timeout=timeout)
@@ -262,24 +446,31 @@ class OkxEeaPublicCollector:
                                 instrument = arg.get("instId")
                                 if ch:
                                     channel = f"ws_{ch}"
-                            # seq gap if present
                             data_rows = msg.get("data")
                             if isinstance(data_rows, list) and data_rows:
                                 first = data_rows[0]
                                 if isinstance(first, dict):
                                     ex_ts = parse_exchange_ts_ms(first.get("ts"))
-                                    # seqId is exchange-global across book feeds. books5/bbo-tbt
-                                    # are thinned snapshots — apparent skips are normal, not gaps.
-                                    # Contiguous gap detection belongs on books-l2-tbt (TODO if needed).
+                                    # seqId: books5/bbo-tbt are thinned — skips are normal.
+                                    # Contiguous gap detection only on full L2-tbt channels.
                                     # Docs: https://my.okx.com/docs-v5/en/
                                     seq_val = first.get("seqId")
                                     ch_name = arg.get("channel") if isinstance(arg, dict) else None
+                                    if isinstance(seq_val, int) and ch_name == "books5":
+                                        key = instrument or ""
+                                        seq_health["books5_seq_samples"] += 1
+                                        last = seq_health["last_books5_seq"].get(key)
+                                        if last is not None and seq_val < last:
+                                            seq_health["books5_seq_non_monotonic"] += 1
+                                        seq_health["last_books5_seq"][key] = seq_val
                                     if isinstance(seq_val, int) and ch_name in {
                                         "books-l2-tbt",
                                         "books50-l2-tbt",
                                     }:
                                         stream_key = f"{ch_name}:{instrument or ''}"
-                                        gap = self.seq.observe_venue_seq(seq_val, stream_key=stream_key)
+                                        gap = self.seq.observe_venue_seq(
+                                            seq_val, stream_key=stream_key
+                                        )
                                         if gap:
                                             self._write(
                                                 "sequence_gap",
@@ -291,6 +482,14 @@ class OkxEeaPublicCollector:
                                             )
                             if msg.get("event") == "error":
                                 log.warning("OKX WS error event: %s", msg)
+                                self._write(
+                                    "ws_error",
+                                    msg,
+                                    transport="ws",
+                                    is_gap=True,
+                                    gap_reason="ws_error_event",
+                                    instrument=instrument,
+                                )
                         self.writer.write_dict(
                             channel=channel,
                             payload=msg,
@@ -303,6 +502,7 @@ class OkxEeaPublicCollector:
                             schema_version=self.cfg.schema_version_raw,
                         )
                         frames += 1
+                        by_channel[channel] = by_channel.get(channel, 0) + 1
             except Exception as exc:  # noqa: BLE001
                 log.warning("OKX WS disconnect/error (attempt=%s): %s", attempt, exc)
                 self._write(
@@ -316,14 +516,64 @@ class OkxEeaPublicCollector:
                     break
                 sleep_backoff(attempt, base=1.0, cap=15.0)
                 attempt += 1
-        summary = {"ws_frames": frames, "gap_count": self.seq.gap_count, "run_id": self.run_id}
-        log.info("okx WS stub finished: %s", summary)
+
+        summary = {
+            "mode": "ws_capture",
+            "paper_only": True,
+            "ws_frames": frames,
+            "by_channel": by_channel,
+            "inst_ids": symbols,
+            "channels": chans,
+            "gap_count": self.seq.gap_count,
+            "seq_health": {
+                "books5_seq_samples": seq_health["books5_seq_samples"],
+                "books5_seq_non_monotonic": seq_health["books5_seq_non_monotonic"],
+            },
+            "verified": verified,
+            "run_id": self.run_id,
+            "started_ms": started,
+            "ended_ms": utc_ms(),
+            "data_dir": str(self.writer.data_dir),
+        }
+        log.info("okx WS capture finished: %s", summary)
         return summary
 
-    def run(self, duration_sec: float = 60.0, enable_ws: bool = False) -> dict[str, Any]:
+    def run(
+        self,
+        duration_sec: float = 60.0,
+        enable_ws: bool = False,
+        *,
+        ws_capture: bool = False,
+        inst_ids: list[str] | None = None,
+        channels: list[str] | None = None,
+        allow_proxy_swap: bool = False,
+        ws_only: bool = False,
+    ) -> dict[str, Any]:
+        if ws_capture or ws_only:
+            ws_summary = asyncio.run(
+                self.run_ws_capture(
+                    duration_sec=duration_sec,
+                    inst_ids=inst_ids,
+                    channels=channels,
+                    allow_proxy_swap=allow_proxy_swap,
+                    verify_inst=True,
+                    rest_sidecar=True,
+                )
+            )
+            return {"rest": {"ws_only": True} if ws_only else {"skipped": True}, "ws": ws_summary}
+
         rest_summary = self.run_rest_poll(duration_sec=duration_sec)
         ws_summary: dict[str, Any] = {"ws": "disabled"}
         if enable_ws:
             ws_dur = min(15.0, max(5.0, duration_sec / 2))
-            ws_summary = asyncio.run(self.run_ws_stub(duration_sec=ws_dur))
+            symbols = list(self.vcfg.symbols) or ["BTC-USDT-SWAP"]
+            ws_summary = asyncio.run(
+                self.run_ws_capture(
+                    duration_sec=ws_dur,
+                    inst_ids=symbols,
+                    channels=["trades", "bbo-tbt", "books5"],
+                    verify_inst=False,
+                    rest_sidecar=False,
+                )
+            )
         return {"rest": rest_summary, "ws": ws_summary}
