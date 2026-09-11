@@ -19,8 +19,11 @@ VAMP_LEVELS = 5
 VAMP_Z_WINDOW = 60
 EMA_FAST = 12
 EMA_SLOW = 21
+# phase1/75 KILL_LATENCY: exchange data >1s behind decision → no entry.
+HEALTH_STALE_MS = 1000
 
 # Schema: feature metrics only (no PnL / fills / expectancy).
+# book_stale is a LEGACY alias of carried_forward (not health_stale).
 SAMPLE_COLUMNS: tuple[str, ...] = (
     "ts_s",
     "inst_id",
@@ -36,6 +39,11 @@ SAMPLE_COLUMNS: tuple[str, ...] = (
     "n_bid_levels",
     "n_ask_levels",
     "vamp_valid",
+    "carried_forward",
+    "book_age_ms",
+    "health_stale",
+    "last_book_ts_ms",
+    "ts_rewind",
 )
 
 
@@ -57,10 +65,15 @@ class Vamp1sSample:
     ema21: Optional[float]
     best_bid: Optional[float]
     best_ask: Optional[float]
-    book_stale: bool
+    book_stale: bool  # LEGACY alias of carried_forward — NOT health_stale
     n_bid_levels: int
     n_ask_levels: int
     vamp_valid: bool
+    carried_forward: bool = False
+    book_age_ms: Optional[int] = None
+    health_stale: bool = False
+    last_book_ts_ms: Optional[int] = None
+    ts_rewind: bool = False
 
     def to_row(self) -> dict[str, Any]:
         return {k: getattr(self, k) for k in SAMPLE_COLUMNS}
@@ -112,10 +125,15 @@ class ReplayGapStats:
     n_samples_1s: int = 0
     n_seconds_with_update: int = 0
     n_seconds_stale_carry: int = 0
+    n_carried_forward: int = 0
+    n_health_stale: int = 0
+    n_ts_rewind: int = 0
     n_vamp_valid: int = 0
     n_vamp_z_valid: int = 0
     n_ema12_ready: int = 0
     n_ema21_ready: int = 0
+    book_age_ms_min: Optional[int] = None
+    book_age_ms_max: Optional[int] = None
     ts_s_first: Optional[int] = None
     ts_s_last: Optional[int] = None
     span_seconds: Optional[int] = None
@@ -125,16 +143,27 @@ class ReplayGapStats:
             "n_samples_1s": self.n_samples_1s,
             "n_seconds_with_update": self.n_seconds_with_update,
             "n_seconds_stale_carry": self.n_seconds_stale_carry,
+            "n_carried_forward": self.n_carried_forward,
+            "n_health_stale": self.n_health_stale,
+            "n_ts_rewind": self.n_ts_rewind,
             "n_vamp_valid": self.n_vamp_valid,
             "n_vamp_z_valid": self.n_vamp_z_valid,
             "n_ema12_ready": self.n_ema12_ready,
             "n_ema21_ready": self.n_ema21_ready,
+            "book_age_ms_min": self.book_age_ms_min,
+            "book_age_ms_max": self.book_age_ms_max,
+            "health_stale_threshold_ms": HEALTH_STALE_MS,
             "ts_s_first": self.ts_s_first,
             "ts_s_last": self.ts_s_last,
             "span_seconds": self.span_seconds,
             "stale_policy": (
-                "empty seconds between first/last carry forward last book; "
-                "book_stale=True (fail-closed for trade; never invent depth)"
+                "empty seconds between first/last carry forward last book "
+                "(carried_forward=True; book_stale is a legacy alias of that). "
+                "book_age_ms = decision_ts_ms(ts_s*1000) − last valid books5 exchange ts. "
+                f"health_stale = book_age_ms > {HEALTH_STALE_MS}. "
+                "Trading health uses health_stale + reconnect + timestamp continuity "
+                "— NOT carried_forward alone. Never invent depth. "
+                "books5 seqId skips are NOT missing packets."
             ),
         }
 
@@ -376,12 +405,19 @@ def summarize_samples(samples: Sequence[Vamp1sSample]) -> ReplayGapStats:
     if not samples:
         return out
     out.n_samples_1s = len(samples)
-    out.n_seconds_with_update = sum(1 for s in samples if not s.book_stale)
-    out.n_seconds_stale_carry = sum(1 for s in samples if s.book_stale)
+    out.n_seconds_with_update = sum(1 for s in samples if not s.carried_forward)
+    out.n_seconds_stale_carry = sum(1 for s in samples if s.carried_forward)
+    out.n_carried_forward = out.n_seconds_stale_carry
+    out.n_health_stale = sum(1 for s in samples if s.health_stale)
+    out.n_ts_rewind = sum(1 for s in samples if s.ts_rewind)
     out.n_vamp_valid = sum(1 for s in samples if s.vamp_valid)
     out.n_vamp_z_valid = sum(1 for s in samples if s.vamp_z is not None)
     out.n_ema12_ready = sum(1 for s in samples if s.ema12 is not None)
     out.n_ema21_ready = sum(1 for s in samples if s.ema21 is not None)
+    ages = [s.book_age_ms for s in samples if s.book_age_ms is not None]
+    if ages:
+        out.book_age_ms_min = min(ages)
+        out.book_age_ms_max = max(ages)
     out.ts_s_first = samples[0].ts_s
     out.ts_s_last = samples[-1].ts_s
     out.span_seconds = out.ts_s_last - out.ts_s_first + 1
@@ -409,8 +445,11 @@ def replay_books5_to_1s(
     For each closed second ``t``, the last book observed with
     ``floor(ts_ms/1000) == t`` is used when present. If
     ``fill_missing_seconds`` is True, empty seconds between the first and
-    last observed second carry forward the last book and set
-    ``book_stale=True`` (never invent depth).
+    last observed second carry forward the last book (feature continuity)
+    and set ``carried_forward=True`` (legacy ``book_stale`` alias).
+
+    Trading health uses ``health_stale`` (book_age_ms > HEALTH_STALE_MS),
+    not carried_forward alone. books5 seqId skips are not missing packets.
     """
     assert PAPER_ONLY is True
 
@@ -435,7 +474,10 @@ def replay_books5_to_1s(
     first_sec = min(by_sec)
     last_sec = max(by_sec)
 
-    def emit_for_second(sec: int, book_state: _BookState, stale: bool) -> Vamp1sSample:
+    last_seen_book_ts: Optional[int] = None
+
+    def emit_for_second(sec: int, book_state: _BookState, carried: bool) -> Vamp1sSample:
+        nonlocal last_seen_book_ts
         book = book_state.book
         n_bid = len(book.bids)
         n_ask = len(book.asks)
@@ -464,6 +506,12 @@ def replay_books5_to_1s(
             e21 = ema21.update(mid)
         if edge is not None and math.isfinite(edge):
             z = zscore.update(edge)
+        last_book_ts = int(book_state.last_update_ts_ms)
+        decision_ts_ms = int(sec) * 1000
+        book_age_ms = max(0, decision_ts_ms - last_book_ts)
+        health_stale = book_age_ms > HEALTH_STALE_MS
+        ts_rewind = last_seen_book_ts is not None and last_book_ts < last_seen_book_ts
+        last_seen_book_ts = last_book_ts
         return Vamp1sSample(
             ts_s=sec,
             inst_id=book_state.inst_id,
@@ -475,10 +523,15 @@ def replay_books5_to_1s(
             ema21=e21,
             best_bid=best_bid,
             best_ask=best_ask,
-            book_stale=stale,
+            book_stale=carried,  # legacy alias of carried_forward
             n_bid_levels=n_bid,
             n_ask_levels=n_ask,
             vamp_valid=vamp_valid,
+            carried_forward=carried,
+            book_age_ms=book_age_ms,
+            health_stale=health_stale,
+            last_book_ts_ms=last_book_ts,
+            ts_rewind=ts_rewind,
         )
 
     if fill_missing_seconds:
@@ -492,9 +545,9 @@ def replay_books5_to_1s(
             # Last update within the closed second wins.
             ts_ms, inst, book = updates[-1]
             state = _BookState(book=book, inst_id=inst, last_update_ts_ms=ts_ms)
-            samples.append(emit_for_second(sec, state, stale=False))
+            samples.append(emit_for_second(sec, state, carried=False))
         elif state is not None:
-            samples.append(emit_for_second(sec, state, stale=True))
+            samples.append(emit_for_second(sec, state, carried=True))
     return samples
 
 

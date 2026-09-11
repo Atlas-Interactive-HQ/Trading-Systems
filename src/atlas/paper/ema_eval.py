@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from atlas.oms.spot_demo import redact_record
+from atlas.paper.accounting_v2 import attach_accounting_v2, compute_accounting_v2, last_in_window_bar
 from atlas.paper.engine import PaperSettings
 from atlas.paper.eval import SPLIT_FRAC, chronological_split
 from atlas.paper.fills import apply_slippage, fee_on_notional
@@ -143,7 +144,8 @@ def walk_long_flat(
     else:
         mark = cash
     net_ret = q(mark - start)
-    return {
+    # Historical keys stay byte-stable for old artifacts. v2 is additive only.
+    out = {
         "start_equity_eur": start,
         "end_equity_eur": q(mark),
         "net_return_eur": net_ret,
@@ -162,6 +164,25 @@ def walk_long_flat(
         "not_a_forecast": True,
         "place_orders": False,
     }
+    last_in = last_in_window_bar(
+        bars, trade_start_ms=trade_start_ms, trade_end_ms=trade_end_ms
+    )
+    mark_close = float(last_in.close) if last_in is not None else (
+        float(bars[-1].close) if bars else None
+    )
+    v2 = compute_accounting_v2(
+        start_equity_eur=start,
+        cash=cash,
+        qty=qty,
+        entry_px=entry_px,
+        entry_fee=entry_fee,
+        realized_net_eur=realized_net,
+        completed_round_trips=n_trades,
+        mark_close=mark_close,
+        fee_rate=settings.fee_rate,
+        slippage_bps=settings.slippage_bps,
+    )
+    return attach_accounting_v2(out, v2)
 
 
 def buy_and_hold(

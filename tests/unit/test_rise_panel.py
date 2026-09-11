@@ -7,13 +7,22 @@ from atlas.paper.rise_panel import (
     ASSET,
     BASELINE_ID,
     CORE_BAR,
+    CORE_DONCHIAN_FAMILY_STOPPED,
+    CORE_R1_ID,
     MID_BAR_CANDIDATE,
     MID_BASELINE_ID,
     MID_BREAKOUT_ARCHIVE_ID,
     MID_CANDIDATE_ID,
     MID_EMA_ARCHIVE_ID,
+    MID_M1_COMPARATOR_ID,
+    MID_M1_ROLE,
+    MID_NEXT_SCORE,
+    MID_PRIMARY_CANDIDATE_ID,
     PANEL_LABEL,
     RISE_PANEL_V1,
+    SCALP_PROVISIONAL_DEV_ID,
+    SCALP_R2_HYPOTHESIS_ID,
+    SCALP_S0_ID,
     SOFT_PROMOTE_GATE,
     SOFT_PROMOTE_MEDIAN_TRADES_MIN,
     SOFT_PROMOTE_MIN_EXP_POS,
@@ -74,6 +83,18 @@ def test_ids_and_sleeves():
     assert MID_BREAKOUT_ARCHIVE_ID == "rise_panel_v1_mid_doge_breakoutv1_4h_eur40"
     assert CORE_START_EUR == 140.0
     assert MID_START_EUR == 40.0
+
+
+def test_p2_p3_freeze_constants():
+    assert MID_PRIMARY_CANDIDATE_ID == MID_BASELINE_ID
+    assert MID_M1_COMPARATOR_ID.endswith("adx14_gt20_4h_eur40")
+    assert MID_M1_ROLE == "robustness_comparator_only"
+    assert MID_NEXT_SCORE == "unseen_SHADOW_only"
+    assert SCALP_PROVISIONAL_DEV_ID.endswith("rvol_gt1_1h_eur20")
+    assert SCALP_S0_ID.endswith("k0505_1h_eur20")
+    assert SCALP_R2_HYPOTHESIS_ID == "rise_panel_v1_scalp_r2_dual_thrust_4h_ema1221_regime"
+    assert CORE_DONCHIAN_FAMILY_STOPPED is True
+    assert CORE_R1_ID == "rise_panel_v1_core_r1_doge_ema12_30_atr14_trail3_1d_eur140"
 
 
 def test_soft_promote_pass():
