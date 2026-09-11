@@ -1,0 +1,95 @@
+{
+  "strategy_id": "scalp_hft_v1",
+  "strategy_version": "v1",
+  "name": "Scalp-HFT v1 / EMA-VAMP",
+  "PAPER_ONLY": true,
+  "not_a_forecast": true,
+  "live_execution": false,
+  "default_yaml_untouched": true,
+  "lane": "scalp",
+  "separate_from_core_mid": true,
+  "design_docs": [
+    "phase1/75-scalp-hft-v1-design.md",
+    "phase1/76-scalp-hft-v1-rule-card.md",
+    "phase1/77-scalp-hft-v1-eval-plan.md"
+  ],
+  "intake_brief": "phase1/71-codex-scalp-hft-design-brief.md",
+  "sketch": "research/scalp_hft_v1_sketch.py",
+  "results_dir": "results/scalp_hft_v1",
+  "panel": {
+    "id": "rise_panel_v1",
+    "authority_doc": "phase1/54-rise-panel-v1.md",
+    "manifest_hash": null,
+    "manifest_hash_TODO": "compute from locked panel definition before first scored run"
+  },
+  "git": {
+    "commit": null,
+    "commit_TODO": "fill with freeze SHA at evaluation start",
+    "branch_intent": "research/scalp-hft-v1-design"
+  },
+  "signal": {
+    "clock_s": 1,
+    "ema_fast": 12,
+    "ema_slow": 21,
+    "vamp_depth_levels": 5,
+    "vamp_z_window_s": 60,
+    "entry_z_threshold": 1.0,
+    "entry_z_note": "pre-registered seed; do not tune on R1-R7",
+    "confirm_n": 2,
+    "confirm_window": 3
+  },
+  "exits": {
+    "hard_stop_net_margin_roi": -0.20,
+    "hard_tp_net_margin_roi": 1.00,
+    "edge_decay": "EMA invalidation OR vamp_z crosses 0; 2-of-3",
+    "time_stop_s": 60,
+    "normal_exit": "maker up to 1s then taker",
+    "cooldown_s": 5
+  },
+  "sizing": {
+    "margin_unit": 1.0,
+    "compounding_in_R_windows": false,
+    "max_open_positions": 1,
+    "margin_mode": "isolated",
+    "leverage_abs_cap": 10,
+    "leverage_rule": "highest verified allowed else NO TRADE"
+  },
+  "execution_model": {
+    "version": null,
+    "version_TODO": "freeze before R1-R7 scored run",
+    "entry": "post_only_bbo_ttl_1s_no_chase",
+    "latency_model": "TODO",
+    "queue_model": "conservative_cancellations_no_free_progress",
+    "fill_touch_only_forbidden": true
+  },
+  "fees": {
+    "venue": "OKX_EEA_XPerp",
+    "maker_bps": 2.0,
+    "taker_bps": 5.0,
+    "effective_date": null,
+    "effective_date_TODO": "verify against OKX fee schedule at freeze",
+    "assumptions_doc": "phase1/75-scalp-hft-v1-design.md#fee-hurdle"
+  },
+  "okx_product_spec": {
+    "snapshot_date": null,
+    "snapshot_date_TODO": "record date of contract/leverage/fee verification",
+    "x_perps_live_from": "2026-04"
+  },
+  "evaluation": {
+    "windows": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+    "soft_pass": "N/A",
+    "layer_a_label": "SYNTHETIC / PROXY EXECUTION",
+    "layer_b_required_for_execution_economics": true,
+    "metrics_filled": false,
+    "next_gate": "L2 data gate Layer A vs B — fail-closed for VAMP without causal depth"
+  },
+  "forbidden": [
+    "martingale",
+    "pyramiding",
+    "average_down",
+    "R1-R7_threshold_tuning",
+    "live_orders",
+    "default.yaml_mutation",
+    "invented_metrics_tables"
+  ]
+}
