@@ -50,6 +50,7 @@
 | [95-hft-liquidity-gate-plan.md](./95-hft-liquidity-gate-plan.md) | 24h BTC+ETH+DOGE X-Perp liquidity gate plan/schema; no invented numbers |
 | [96-hft-h1-ensemble-lock.md](./96-hft-h1-ensemble-lock.md) | H1 equal-weight micro_score lock; signal-only first; no economic PnL yet |
 | [97-rise-panel-core-r1-ema-atr-trail-1d.md](./97-rise-panel-core-r1-ema-atr-trail-1d.md) | CORE-R1 first score (EMA12/30 + ATR14×3.0 trail) under accounting_v2 vs C0; DEV/eliminate-only; Soft PASS ≠ arm |
+| [98-h0-health-stale-2026-09-11.md](./98-h0-health-stale-2026-09-11.md) | H0 health-stale stamp on 2026-09-11 Layer B corpus; cite 85/92; Soft PASS N/A; no HFT PnL; not SCALP-R2 |
 
 ## Locked highlights (see 00 for full list)
 

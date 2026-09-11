@@ -1,0 +1,73 @@
+{
+  "disclaimer": "Health-only. book_stale/carried_forward is feature continuity. Trading health uses health_stale + reconnect + ts continuity. seqId skips are not missing packets. No HFT PnL.",
+  "gap": {
+    "book_age_ms_max": 665493,
+    "book_age_ms_min": 0,
+    "health_stale_threshold_ms": 1000,
+    "n_carried_forward": 8711,
+    "n_ema12_ready": 15098,
+    "n_ema21_ready": 15089,
+    "n_health_stale": 5926,
+    "n_samples_1s": 15109,
+    "n_seconds_stale_carry": 8711,
+    "n_seconds_with_update": 6398,
+    "n_ts_rewind": 0,
+    "n_vamp_valid": 15109,
+    "n_vamp_z_valid": 14442,
+    "span_seconds": 15109,
+    "stale_policy": "empty seconds between first/last carry forward last book (carried_forward=True; book_stale is a legacy alias of that). book_age_ms = decision_ts_ms(ts_s*1000) \u2212 last valid books5 exchange ts. health_stale = book_age_ms > 1000. Trading health uses health_stale + reconnect + timestamp continuity \u2014 NOT carried_forward alone. Never invent depth. books5 seqId skips are NOT missing packets.",
+    "ts_s_first": 1789102161,
+    "ts_s_last": 1789117269
+  },
+  "health": {
+    "health_stale_threshold_ms": 1000,
+    "health_uses_carried_forward_alone": false,
+    "n_carried_forward": 8711,
+    "n_health_stale": 5926,
+    "n_reconnect": 2,
+    "n_samples": 15109,
+    "n_trading_unhealthy": 5926,
+    "n_ts_rewind": 0,
+    "no_hft_pnl": true,
+    "not_a_forecast": true,
+    "place_orders": false,
+    "reconnect_seconds": [
+      1789112505,
+      1789113532
+    ],
+    "seq_id_skips_are_not_missing_packets": true
+  },
+  "historical_79_85_not_rewritten": true,
+  "ingest": {
+    "inst_ids": [
+      "DOGE-USD_UM_XPERP-310404"
+    ],
+    "local_seq_non_monotonic": 26,
+    "n_book_events": 12113,
+    "n_data_frames": 12113,
+    "n_json_errors": 0,
+    "n_lines": 12118,
+    "n_parse_skips": 0,
+    "n_subscribe_or_control": 5,
+    "seq_id_non_monotonic": 0,
+    "seq_id_note": "books5 seqId may skip (thinned snapshots); not treated as hard gaps",
+    "seq_id_samples": 12113,
+    "seq_id_skips": 10040,
+    "ts_ms_max": 1789117269904,
+    "ts_ms_min": 1789102161307
+  },
+  "inputs": [
+    "/workspace/trading-system/data/raw/okx_eea/2026-09-11/ws_books5.jsonl"
+  ],
+  "insufficient_data": false,
+  "n_carried_forward": 8711,
+  "n_health_stale": 5926,
+  "n_reconnect": 2,
+  "n_samples_1s": 15109,
+  "n_trading_unhealthy": 5926,
+  "n_ts_rewind": 0,
+  "no_hft_pnl": true,
+  "not_a_forecast": true,
+  "ok": true,
+  "place_orders": false
+}
