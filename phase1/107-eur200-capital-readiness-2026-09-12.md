@@ -119,3 +119,19 @@ Soft PASS ≠ arm · not_a_forecast
 **Go recommendation:** Deposit OK as capital prep. **No live sleeve arm** until B2–B7 cleared per doctrine. Highest Mid/Scalp remain **candidates**, not armed strategies.
 
 `not_a_forecast`
+
+## Addendum — €240 parked + 3m paper→validate (2026-09-12)
+
+Kaje: **~€240 USDC parked** on venue. **No live-arm.** Soft PASS ≠ arm holds. `phase1/107` still governs.
+
+| Item | Lock |
+|------|------|
+| Parked capital | ~€240 — capital prep only, not sleeve arm |
+| Live POSTs | **HALTED** · tiny ≤€20 until `ga live €200` + session-ja + sleeve picks |
+| Soft PASS ≠ arm | Absolute |
+| Research window | **~3 months** paper → validate; **document all** |
+| Mid #71 / Scalp S1 | Candidates only — not SHADOW/edge-vs-luck → no arm |
+| Core | Cash OK until validated |
+| HFT | P4a/P4b doctrine — no instrument lock yet |
+
+`not_a_forecast`
