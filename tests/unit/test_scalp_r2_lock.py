@@ -50,15 +50,15 @@ def test_rejects_rvol_and_k_grind():
         ScalpDogeDualThrustRvol4hRegime1hV1(
             ScalpR2DualThrustRvol4hRegimeParams(k1=0.6)
         )
-    with pytest.raises(ValueError, match="R1–R7"):
-        ScalpDogeDualThrustRvol4hRegime1hV1(
-            ScalpR2DualThrustRvol4hRegimeParams(score_on_r1_r7=True)
-        )
+    # score_on_r1_r7 retained; scoring allowed only via walk_long_short
+    ScalpDogeDualThrustRvol4hRegime1hV1(
+        ScalpR2DualThrustRvol4hRegimeParams(score_on_r1_r7=True)
+    )
 
 
 def test_desired_state_refuses_walk_long_flat():
     s = ScalpDogeDualThrustRvol4hRegime1hV1()
-    with pytest.raises(RuntimeError, match="lock-only"):
+    with pytest.raises(RuntimeError, match="walk_long_flat"):
         s.desired_state([_bar(i, 1.0) for i in range(5)])
 
 

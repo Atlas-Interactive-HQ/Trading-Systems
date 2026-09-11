@@ -1,8 +1,8 @@
-"""SCALP-R2 lock — Dual Thrust + RVOL + 4H EMA12/21 regime (phase1/93).
+"""SCALP-R2 — Dual Thrust + RVOL + 4H EMA12/21 regime (phase1/93 lock; phase1/99 score).
 
-Lock / design only. **Do not score on R1–R7 in this PR.**
-This family is long **and** short. ``walk_long_flat`` cannot score it
-(raises on ``short``). Register before any score. Not a threshold rescue of S1.
+Long **and** short. Score only via ``walk_long_short`` + ``desired_state_ls``.
+``walk_long_flat`` / ``desired_state`` refuse (would silently drop shorts).
+Not a threshold rescue of S1. No RVOL 1.25/1.5 grind. Soft PASS ≠ arm.
 """
 
 from __future__ import annotations
@@ -56,24 +56,41 @@ def last_closed_regime_bar(
 
 def regime_side_at(h4: Sequence[Bar], decision: Bar) -> Regime:
     """4H EMA12/21: long_only if 12>21, short_only if 12<21, else flat."""
-    last = last_closed_regime_bar(h4, decision)
-    if last is None:
-        return "flat"
-    # Use all 4H bars up to and including `last` (causal).
-    hist = [b for b in h4 if b.ts_close_ms <= last.ts_close_ms]
-    closes = [float(b.close) for b in hist]
-    if len(closes) < REGIME_SLOW:
-        return "flat"
+    series = regime_series_for_decisions(h4, [decision])
+    return series[0] if series else "flat"
+
+
+def regime_series_for_decisions(h4: Sequence[Bar], decisions: Sequence[Bar]) -> list[Regime]:
+    """Causal 4H EMA12/21 regime for each decision bar — one EMA pass + two-pointer map."""
+    closed = [b for b in h4 if b.closed]
+    if not decisions:
+        return []
+    if not closed:
+        return ["flat"] * len(decisions)
+    closes = [float(b.close) for b in closed]
     fast = ema_series(closes, REGIME_FAST)
     slow = ema_series(closes, REGIME_SLOW)
-    f, s = fast[-1], slow[-1]
-    if f is None or s is None:
-        return "flat"
-    if float(f) > float(s):
-        return "long_only"
-    if float(f) < float(s):
-        return "short_only"
-    return "flat"
+    regimes_at_4h: list[Regime] = []
+    for i in range(len(closed)):
+        if i + 1 < REGIME_SLOW:
+            regimes_at_4h.append("flat")
+            continue
+        f, s = fast[i], slow[i]
+        if f is None or s is None:
+            regimes_at_4h.append("flat")
+        elif float(f) > float(s):
+            regimes_at_4h.append("long_only")
+        elif float(f) < float(s):
+            regimes_at_4h.append("short_only")
+        else:
+            regimes_at_4h.append("flat")
+    out: list[Regime] = []
+    j = -1
+    for d in decisions:
+        while j + 1 < len(closed) and closed[j + 1].ts_close_ms <= d.ts_close_ms:
+            j += 1
+        out.append("flat" if j < 0 else regimes_at_4h[j])
+    return out
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +119,8 @@ class ScalpDogeDualThrustRvol4hRegime1hV1:
     Exit: opposite DT boundary OR 4H regime reversal.
     Max one position; no pyramid / avg / martingale.
 
-    Lock only — ``desired_state`` raises so ``walk_long_flat`` cannot score it.
+    ``desired_state`` raises so ``walk_long_flat`` cannot score it.
+    Use ``desired_state_ls`` + ``walk_long_short``.
     """
 
     def __init__(self, params: ScalpR2DualThrustRvol4hRegimeParams | None = None) -> None:
@@ -122,11 +140,8 @@ class ScalpDogeDualThrustRvol4hRegime1hV1:
             raise ValueError("no pyramid / average-down / martingale")
         if p.max_positions != 1:
             raise ValueError("max one position")
-        if p.score_on_r1_r7:
-            raise ValueError(
-                "do not score SCALP-R2 on R1–R7 until lock is committed "
-                "and a long/short walker exists"
-            )
+        # score_on_r1_r7 retained for lock docs; scoring is allowed only through
+        # walk_long_short (desired_state still raises). Soft PASS ≠ arm.
         self._inner = DualThrustLongFlatV1(
             DualThrustParams(lookback=p.dt_n, k1=p.k1, k2=p.k2)
         )
@@ -147,39 +162,39 @@ class ScalpDogeDualThrustRvol4hRegime1hV1:
         return max(self._inner.warmup_bars(), int(self.params.rvol_n), REGIME_SLOW)
 
     def desired_state(self, bars: Sequence[Bar]) -> str:
-        """Intentionally unusable by walk_long_flat.
-
-        SCALP-R2 is long/short and needs a 4H overlay. Scoring on R1–R7 is
-        forbidden until a long/short walker exists and this lock is committed.
-        """
+        """Intentionally unusable by walk_long_flat (would drop shorts)."""
         raise RuntimeError(
-            "SCALP-R2 is lock-only: needs a long/short walker + 4H overlay. "
-            "Do not score on R1–R7 via walk_long_flat. "
-            "Use desired_state_ls(h1, h4) in a future scorer."
+            "SCALP-R2 is long/short: do not score via walk_long_flat. "
+            "Use desired_state_ls(h1, h4) with walk_long_short."
         )
 
-    def desired_state_ls(
+    def states_ls_series(
         self,
         h1: Sequence[Bar],
         h4: Sequence[Bar],
-    ) -> Position:
-        """Path-dependent long/short/flat. Research lock; not a panel score."""
+    ) -> list[Position]:
+        """One-pass path-dependent long/short/flat series (O(n) regime + DT)."""
         p = self.params
-        state: Position = "flat"
-        if not h1:
-            return "flat"
+        n = len(h1)
+        if n == 0:
+            return []
         rvols = rvol_series(h1, p.rvol_n)
-        for i in range(len(h1)):
-            hist = h1[: i + 1]
-            last = hist[-1]
+        regimes = regime_series_for_decisions(h4, h1)
+        out: list[Position] = []
+        state: Position = "flat"
+        for i in range(n):
+            last = h1[i]
             if not last.closed:
+                out.append(state)
                 continue
+            hist = h1[: i + 1]
             ranges = self._inner.ranges_at(hist)
             if ranges is None:
+                out.append(state)
                 continue
             buy, sell = ranges
             rvol = rvols[i]
-            regime = regime_side_at(h4, last)
+            regime = regimes[i]
             close = float(last.close)
             if state == "long":
                 if regime != "long_only" or close < sell:
@@ -189,19 +204,21 @@ class ScalpDogeDualThrustRvol4hRegime1hV1:
                     state = "flat"
             else:
                 rvol_ok = rvol is not None and float(rvol) > float(p.rvol_min)
-                if (
-                    regime == "long_only"
-                    and close > buy
-                    and rvol_ok
-                ):
+                if regime == "long_only" and close > buy and rvol_ok:
                     state = "long"
-                elif (
-                    regime == "short_only"
-                    and close < sell
-                    and rvol_ok
-                ):
+                elif regime == "short_only" and close < sell and rvol_ok:
                     state = "short"
-        return state
+            out.append(state)
+        return out
+
+    def desired_state_ls(
+        self,
+        h1: Sequence[Bar],
+        h4: Sequence[Bar],
+    ) -> Position:
+        """Path-dependent long/short/flat for walk_long_short."""
+        series = self.states_ls_series(h1, h4)
+        return series[-1] if series else "flat"
 
 
 __all__ = [
@@ -220,5 +237,6 @@ __all__ = [
     "SLEEVE",
     "ScalpDogeDualThrustRvol4hRegime1hV1",
     "ScalpR2DualThrustRvol4hRegimeParams",
+    "regime_series_for_decisions",
     "regime_side_at",
 ]

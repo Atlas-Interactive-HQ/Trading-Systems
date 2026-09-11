@@ -1,0 +1,69 @@
+{
+  "accounting_version": "rise_panel_accounting_v2",
+  "compare_to": "rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_rvol_gt1_1h_eur20",
+  "compare_to_s0": "rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_1h_eur20",
+  "complete_exp_improved": false,
+  "dev_eliminate_only": true,
+  "eliminate": true,
+  "gate": "rise_panel_accounting_v2",
+  "honesty_is_not_a_gate": true,
+  "honesty_label": "FAIL",
+  "honesty_vs": "S1 / #83 accounting_v2 path",
+  "improve_id": "rise_panel_v1_scalp_r2_dual_thrust_4h_ema1221_regime",
+  "lock_cite": "phase1/93-frozen-mid-scalp-candidates.md",
+  "median_completed_round_trips": {
+    "delta": 5.0,
+    "improve": 13.0,
+    "ref": 8.0
+  },
+  "median_expectancy_completed_eur": {
+    "delta": -0.1317281,
+    "improve": 0.07689639,
+    "ref": 0.20862449
+  },
+  "median_time_in_market": {
+    "delta": -0.04569299,
+    "improve": 0.44972826,
+    "ref": 0.49542125
+  },
+  "n_exp_terminal_adj_gt_0": {
+    "delta": -2,
+    "improve": 4,
+    "ref": 6
+  },
+  "n_expectancy_completed_gt_0": {
+    "delta": -2,
+    "improve": 4,
+    "ref": 6
+  },
+  "no_rvol_grind": true,
+  "not_a_forecast": true,
+  "note": "Headline PASS/FAIL is rise_panel_accounting_v2 (locked before this score). Honesty label is a research comparison vs S1 \u2014 not a second gate and not a promote. Soft PASS \u2260 Scalp-arm. R1\u2013R7 DEV/eliminate-only. Shorts counted via walk_long_short.",
+  "old_verdict_r2": "FAIL",
+  "panel_old_net_return_eur": {
+    "delta": -20.47205251,
+    "improve": 12.16790295,
+    "ref": 32.63995546
+  },
+  "panel_term_better": false,
+  "panel_terminal_liquidation_net_eur": {
+    "delta": -20.50993253,
+    "improve": 12.05314054,
+    "ref": 32.56307307
+  },
+  "participation_eliminated": false,
+  "place_orders": false,
+  "promote": false,
+  "promote_as_better": false,
+  "soft_pass_ne_arm": true,
+  "soft_pass_ne_scalp_arm": true,
+  "sum_n_long_entries_r2": 46,
+  "sum_n_short_entries_r2": 39,
+  "v2_verdict_r2": "FAIL",
+  "walker": "walk_long_short",
+  "worst_dd_eur": {
+    "delta": -1.68006654,
+    "improve": 12.14145462,
+    "ref": 13.82152116
+  }
+}
