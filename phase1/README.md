@@ -42,6 +42,13 @@
 | [31-ema-persist2-entry.md](./31-ema-persist2-entry.md) | EMA 12/30 asymmetric persist-2 entry on BTC-USDT 1D vs locked 12/30; PASS/FAIL docs only; observer stays 12/30 |
 
 | [46-scalp-doge-breakout-bull.md](./46-scalp-doge-breakout-bull.md) | Scalp DOGE 15m BreakoutV1 long-only + daily EMA bull; core_style_return dual-window; €20; not a forecast |
+| [90-evaluation-integrity-audit.md](./90-evaluation-integrity-audit.md) | P0: walker mixes MTM `net_return` with completed-only trades/expectancy; audit does not promote |
+| [91-rise-panel-accounting-v2.md](./91-rise-panel-accounting-v2.md) | Evaluator-v2 + OLD vs V2 re-score of unchanged C0/#71/M1/#83/S1/C1/C2; gate locked before score |
+| [92-hft-staleness-semantics.md](./92-hft-staleness-semantics.md) | P1: `carried_forward` ≠ `health_stale`; H0 health-only; no HFT PnL; 79/85 not rewritten |
+| [93-frozen-mid-scalp-candidates.md](./93-frozen-mid-scalp-candidates.md) | Freeze Mid #71 primary + S1 provisional DEV; SCALP-R2 lock (no R1–R7 score) |
+| [94-core-r1-lock.md](./94-core-r1-lock.md) | CORE-R1 EMA12/30 + ATR14×3.0 trail lock; Donchian C3/C4 STOPPED; no score yet |
+| [95-hft-liquidity-gate-plan.md](./95-hft-liquidity-gate-plan.md) | 24h BTC+ETH+DOGE X-Perp liquidity gate plan/schema; no invented numbers |
+| [96-hft-h1-ensemble-lock.md](./96-hft-h1-ensemble-lock.md) | H1 equal-weight micro_score lock; signal-only first; no economic PnL yet |
 
 ## Locked highlights (see 00 for full list)
 

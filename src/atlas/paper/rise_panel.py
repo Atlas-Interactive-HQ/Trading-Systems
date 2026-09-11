@@ -42,6 +42,19 @@ MID_BASELINE_ID = "rise_panel_v1_mid_doge_breakoutv1_ema1221_long_4h_eur40"
 MID_BASELINE_PANEL_NET_EUR = 97.2663  # #71 scored panel_net (promote lock)
 MID_BASELINE_CORE_MID_PANEL_NET_EUR = 461.2647  # Core €140 + Mid Breakout+EMA1221 €40
 
+# P2 freeze (integrity sprint). Next Mid score = unseen SHADOW only. No M2–M4 on R1–R7.
+MID_PRIMARY_CANDIDATE_ID = MID_BASELINE_ID  # #71 frozen primary
+MID_M1_COMPARATOR_ID = "rise_panel_v1_mid_doge_breakoutv1_ema1221_adx14_gt20_4h_eur40"
+MID_M1_ROLE = "robustness_comparator_only"
+MID_NEXT_SCORE = "unseen_SHADOW_only"
+# Scalp S1 frozen as provisional DEV candidate. No RVOL 1.25/1.5 grind on R1–R7.
+SCALP_PROVISIONAL_DEV_ID = "rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_rvol_gt1_1h_eur20"
+SCALP_S0_ID = "rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_1h_eur20"
+SCALP_R2_HYPOTHESIS_ID = "rise_panel_v1_scalp_r2_dual_thrust_4h_ema1221_regime"
+# Core Donchian C3/C4 STOPPED. CORE-R1 is a new family (lock only; no R1–R7 score here).
+CORE_DONCHIAN_FAMILY_STOPPED = True
+CORE_R1_ID = "rise_panel_v1_core_r1_doge_ema12_30_atr14_trail3_1d_eur140"
+
 
 @dataclass(frozen=True)
 class RiseWindow:

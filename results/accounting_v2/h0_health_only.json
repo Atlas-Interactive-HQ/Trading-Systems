@@ -1,0 +1,9 @@
+{
+  "error": "no ws_books5.jsonl under data/raw/okx_eea/ \u2014 cannot re-run H0. Do not invent health counts. Historical 79/85 numbers stay as-is.",
+  "fail_closed": true,
+  "insufficient_data": true,
+  "no_hft_pnl": true,
+  "not_a_forecast": true,
+  "ok": false,
+  "place_orders": false
+}
