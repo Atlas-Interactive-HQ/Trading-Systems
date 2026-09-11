@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Sketch runner for the 24h BTC+ETH+DOGE EEA X-Perp liquidity gate.
+"""Sketch runner for the BTC+ETH+DOGE EEA X-Perp liquidity gate.
 
-Does NOT invent capture numbers. A real 24h simultaneous capture is out of
-scope for this PR. This script:
+P4a (24h) is SCREENING ONLY and must not lock an instrument (phase1/100).
+P4b (7 full calendar days + slice stability) is the only lock path.
+
+Does NOT invent capture numbers. This script:
 
 1. Prints the locked plan + metric schema.
 2. Optionally resolves live X-Perp instIds from public instruments (network).
-3. Refuses to emit a selected instrument without a real 24h capture.
+3. Refuses to emit a selected instrument (P4a screen + empty P4b).
 
 NO strategy PnL. not_a_forecast. config/default.yaml untouched.
 """
@@ -28,8 +30,11 @@ from atlas.scalp_hft.liquidity_gate import (  # noqa: E402
     LIQUIDITY_GATE_BASES,
     LiquidityGatePlan,
     empty_metrics_row,
+    empty_p4b_report,
+    p4a_screen,
     resolve_liquidity_inst_ids,
     select_instrument,
+    select_instrument_p4b,
 )
 
 
@@ -70,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
         "resolved": None,
         "metrics": [empty_metrics_row(b).to_dict() for b in LIQUIDITY_GATE_BASES],
         "selection": select_instrument([]),
+        "p4a_screen": p4a_screen([]),
+        "p4b_reports": [empty_p4b_report(b) for b in LIQUIDITY_GATE_BASES],
+        "p4b_selection": select_instrument_p4b([]),
         "capture_ran": False,
         "do_not_invent_capture_numbers": True,
         "no_strategy_pnl": True,

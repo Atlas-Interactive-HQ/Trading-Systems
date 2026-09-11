@@ -32,6 +32,7 @@ def test_micro_score_equal_weight_no_optimize():
     assert card["signal_only_first"] is True
     assert card["economic_pnl_before_signal_study_frozen"] is False
     assert card["no_hft_pnl_in_this_module"] is True
+    assert "P4b" in card["ready_when"]
 
 
 def test_h1_side_requires_health_and_confirmation():

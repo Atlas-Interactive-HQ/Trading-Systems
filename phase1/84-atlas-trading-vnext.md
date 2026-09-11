@@ -113,11 +113,10 @@ Run HFT rungs only **after Layer B corpus** exists (causal OKX L2 / books + trad
 ## 4. Eval doctrine (HARD)
 
 1. **R1–R7 = DEV only.** May **eliminate** hypotheses. **Cannot prove** general profitability (rise-character panel bias).
-2. **After freeze — shadow / stress sets (dates TODO lock):**
-   - **S1–S3** = rise (similar character; define later)
-   - **F1–F3** = flat / chop
-   - **D1–D3** = decline / bear
-   - **TODO lock:** do **not** invent calendar dates in this doc. Lock dates in a follow-up phase1 note **before** any scored shadow run.
+2. **After freeze — SHADOW (amended by [`101`](./101-shadow-contiguous-methodology.md)):**
+   - **Data-selection rule:** one **contiguous chronological** unseen interval after a contamination audit. **REJECT** hand-picked rise/chop/down windows as the way data enters.
+   - **S1–S3 / F1–F3 / D1–D3** labels may be used for **analysis after** that interval is locked — never to choose which days enter.
+   - **TODO lock:** do **not** invent calendar dates in this doc or in #101. Lock dates in a follow-up phase1 note **after** the audit, **before** any scored SHADOW run. If no clean block remains → forward paper IS the SHADOW.
 3. **Walk-forward** chronological unseen after DEV freeze.
 4. **Paper forward** realtime observer after walk-forward (still `place_orders: false` unless separate live gate).
 5. **Metrics required** (report all; do not cherry-pick):
@@ -211,7 +210,7 @@ Do not reorder to chase panel_net. Do not skip honesty rungs.
 
 - Hyperparameter search / grid / Bayesian / “try a few seeds and keep the winner.”
 - Post-hoc selection of the best € rung after seeing all scores.
-- Inventing shadow window dates (S/F/D) in this lock.
+- Inventing shadow window dates (S/F/D) in this lock. Hand-picked rise/chop/down as the SHADOW **selection** rule is rejected ([`101`](./101-shadow-contiguous-methodology.md)).
 - Inventing PnL numbers in this lock or in follow-up PRs without measured runs.
 - Arming Mid / Scalp / HFT from Soft PASS.
 - Touching `config/default.yaml`.

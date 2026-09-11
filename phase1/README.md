@@ -52,6 +52,13 @@
 | [97-rise-panel-core-r1-ema-atr-trail-1d.md](./97-rise-panel-core-r1-ema-atr-trail-1d.md) | CORE-R1 first score (EMA12/30 + ATR14×3.0 trail) under accounting_v2 vs C0; DEV/eliminate-only; Soft PASS ≠ arm |
 | [98-h0-health-stale-2026-09-11.md](./98-h0-health-stale-2026-09-11.md) | H0 health-stale stamp on 2026-09-11 Layer B corpus; cite 85/92; Soft PASS N/A; no HFT PnL; not SCALP-R2 |
 | [99-rise-panel-scalp-r2-dt-4h-regime-1h.md](./99-rise-panel-scalp-r2-dt-4h-regime-1h.md) | SCALP-R2 first score (DT+RVOL+4H EMA12/21) via walk_long_short under accounting_v2; v2 FAIL eliminate; Soft PASS ≠ arm |
+| [100-p4a-screening-p4b-7d.md](./100-p4a-screening-p4b-7d.md) | P4a 24h = screening only; P4b 7d + slice stability is the HFT instrument lock; no invented numbers; amends #95 |
+| [101-shadow-contiguous-methodology.md](./101-shadow-contiguous-methodology.md) | SHADOW = one contiguous unseen interval after contamination audit; reject hand-picked rise/chop/down selection; dates TODO |
+| [102-trial-ledger.md](./102-trial-ledger.md) | Trial ledger schema + starter mainline rows; multiplicity / DSR-PBO conceptual; no invented deflated Sharpe |
+| [103-edge-vs-luck-stress.md](./103-edge-vs-luck-stress.md) | Placebo / block-bootstrap + stress matrix for #71 / S1 after SHADOW; registered, not scored; S1 Δ small |
+| [104-h1-markout-event-time.md](./104-h1-markout-event-time.md) | H1-MARKOUT fill-conditioned 100ms–10s; event-time H1a; do not rewrite locked 1s H1; no economic PnL yet |
+| [105-portfolio-core-major.md](./105-portfolio-core-major.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN; CASH valid; CORE-MAJOR-v1 later (BTC+ETH), not scored |
+| [106-research-governance-board.md](./106-research-governance-board.md) | Board order A→F; hard invariants; Soft PASS ≠ arm; this PR is step A only |
 
 ## Locked highlights (see 00 for full list)
 
