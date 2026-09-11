@@ -7,8 +7,13 @@ from atlas.paper.rise_panel import (
     ASSET,
     BASELINE_ID,
     CORE_BAR,
+    CORE_C0_BASELINE_ID,
+    CORE_DEV_ALLOCATION,
     CORE_DONCHIAN_FAMILY_STOPPED,
     CORE_R1_ID,
+    CORE_R1_PROMOTED,
+    DEV_BOARD,
+    DEV_BOARD_ID,
     MID_BAR_CANDIDATE,
     MID_BASELINE_ID,
     MID_BREAKOUT_ARCHIVE_ID,
@@ -26,6 +31,7 @@ from atlas.paper.rise_panel import (
     SOFT_PROMOTE_GATE,
     SOFT_PROMOTE_MEDIAN_TRADES_MIN,
     SOFT_PROMOTE_MIN_EXP_POS,
+    dev_board_card,
     justification_rows,
     panel_summary_table,
     panel_windows,
@@ -95,6 +101,33 @@ def test_p2_p3_freeze_constants():
     assert SCALP_R2_HYPOTHESIS_ID == "rise_panel_v1_scalp_r2_dual_thrust_4h_ema1221_regime"
     assert CORE_DONCHIAN_FAMILY_STOPPED is True
     assert CORE_R1_ID == "rise_panel_v1_core_r1_doge_ema12_30_atr14_trail3_1d_eur140"
+    assert CORE_R1_PROMOTED is False
+    assert CORE_DEV_ALLOCATION == "cash"
+    assert CORE_C0_BASELINE_ID == BASELINE_ID
+
+
+def test_dev_board_research_lock():
+    assert DEV_BOARD_ID == "atlas_dev_board_v1"
+    assert DEV_BOARD["live_arm"] is False
+    assert DEV_BOARD["soft_pass_neq_arm"] is True
+    assert DEV_BOARD["halted"] is True
+    assert DEV_BOARD["p4a"] == "screening_only"
+    assert DEV_BOARD["shadow_dates_invented"] is False
+    assert DEV_BOARD["mid"]["candidate_id"] == MID_PRIMARY_CANDIDATE_ID
+    assert DEV_BOARD["mid"]["sleeve_eur"] == 40.0
+    assert DEV_BOARD["scalp"]["candidate_id"] == SCALP_PROVISIONAL_DEV_ID
+    assert DEV_BOARD["scalp"]["sleeve_eur"] == 20.0
+    assert DEV_BOARD["core"]["allocation"] == "cash"
+    assert DEV_BOARD["core"]["core_r1_promoted"] is False
+    assert DEV_BOARD["core"]["donchian_family_stopped"] is True
+    card = dev_board_card()
+    assert card["live_arm"] is False
+    assert card["place_orders"] is False
+    assert card["not_a_forecast"] is True
+    assert card["do_not_invent_shadow_dates"] is True
+    assert card["mid_primary_candidate_id"] == MID_PRIMARY_CANDIDATE_ID
+    assert card["scalp_provisional_dev_id"] == SCALP_PROVISIONAL_DEV_ID
+    assert card["core"]["role"] == "cash"
 
 
 def test_soft_promote_pass():
