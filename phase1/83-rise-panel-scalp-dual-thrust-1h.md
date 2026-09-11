@@ -95,7 +95,7 @@ Scout #82 ranked Dual Thrust as a distinct candle family vs Donchian #61 / Break
 - Reuse: `walk_long_flat`, `soft_promote_score`, locked `RISE_PANEL_V1`; patterns from #61/#62
 - Unit tests: `tests/unit/test_rise_panel_scalp_dual_thrust_1h.py`
 - Branch: `research/rise-panel-scalp-dual-thrust-83`
-- SHA: `74bde4449d9a46e8f710cb5021273ef0ae27cbe6`
+- SHA: `e25fa5cf912bc64cdfc1da8b2d23ab1e8c66d996`
 
 ---
 
