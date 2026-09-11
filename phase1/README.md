@@ -60,6 +60,9 @@
 | [105-portfolio-core-major.md](./105-portfolio-core-major.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN; CASH valid; CORE-MAJOR-v1 later (BTC+ETH), not scored |
 | [106-research-governance-board.md](./106-research-governance-board.md) | Board order A→F; hard invariants; Soft PASS ≠ arm; this PR is step A only |
 | [107-eur200-capital-readiness-2026-09-12.md](./107-eur200-capital-readiness-2026-09-12.md) | €200 capital readiness fail-closed; Soft PASS ≠ arm; HALTED; ≤€20; not_a_forecast; does not collide with P4 #100 |
+| [108-dev-board-research-lock.md](./108-dev-board-research-lock.md) | Best DEV board lock: Mid #71 primary + Scalp S1 provisional + Core CASH; research only; Soft PASS ≠ arm |
+| [109-three-month-program-2026-09-12.md](./109-three-month-program-2026-09-12.md) | 3-month board (Europe/Amsterdam): parked ~€240 HOLD; P4a screen→P4b→SHADOW→edge-vs-luck; quiet ops; no live from Soft PASS |
+| [110-paper-scoreboard-synthesis-2026-09-12.md](./110-paper-scoreboard-synthesis-2026-09-12.md) | Honest cite of measured paper tests; aligns with #108 DEV board; no invented PnL; not live-arm |
 
 ## Locked highlights (see 00 for full list)
 
