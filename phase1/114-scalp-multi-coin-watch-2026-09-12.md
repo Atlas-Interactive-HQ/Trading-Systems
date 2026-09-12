@@ -109,6 +109,7 @@ Research later may rank a name **only** after a later Ops re-verify. Ranking met
 | [`111`](./111-sl-fill-release-human-ping.md) | SL fill / release ping still applies once that stream is armed. A watchlist **≠** a ping **≠** an arm. |
 | [`07`](./07-venue-preflight-notes.md) / [`08`](./08-self-learning-paper-path.md) / [`09`](./09-handoff-grok-cli.md) | Catalogue vs demo-tradable split; PEPE deferred. |
 | [`105`](./105-portfolio-core-major.md) / [`106`](./106-research-governance-board.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN. Soft PASS ≠ arm. |
+| [`115`](./115-public-md-scalp-method.md) | Public-MD Scalp **paper method** (already on main). Not a second watch lock. Public MD ≠ demo route ≠ arm. |
 
 ---
 
