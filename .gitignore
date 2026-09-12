@@ -42,3 +42,5 @@ results/scalp_hft_v1/layer_b_samples/*
 
 # Public-MD #123 1m candle caches (regenerate via scripts/_fetch_public_md_123_1m.py)
 results/public_md_123_cache/
+# Public-MD #124 15m candle cache (regenerate via scripts/_fetch_public_md_124_15m.py)
+results/public_md_124_cache/
