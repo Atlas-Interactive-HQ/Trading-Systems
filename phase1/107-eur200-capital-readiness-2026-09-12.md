@@ -185,11 +185,12 @@ See [`116`](./116-kaje-capital-intent-2026-09-12.md). `not_a_forecast`
 
 | Item | Lock |
 |------|------|
-| Gate | **PEPE LIVE** — not a generic any-coin arm |
-| Ops honesty | **`LIVE_CLEAR_BOTH`** on **live** key: **PEPE-USDC** + **PEPE-USD_UM_XPERP-310404** (2026-09-12) |
+| Gate | **PEPE LIVE** — PEPE ★ first |
+| Ops LIVE queue | **PEPE ★ → PUMP → TRUMP → WIF** — all **`LIVE_CLEAR_BOTH`** on **live** key (2026-09-12) |
+| TRUMP lev | Exchange max **50×** — **policy ≤10× isolated** |
 | `settleCcy` | **USDC on acct — confirm before place** |
-| DEMO_BLOCK | **Still on** (demo key). ≠ invent live. ≠ lift because live-clear |
-| No POST until | **121** (2020 measured edge) **+ PEPE re-score + session-ja** |
+| DEMO_BLOCK | **Unchanged** (demo key). ≠ invent live. ≠ lift because live-clear |
+| No POST until | **121** (2020 measured edge) **+ instrument re-score** (PEPE ★ first) **+ session-ja** |
 | Soft PASS | **≠ Scalp-arm** |
 | Caps if later armed | Scalp **≤10%** book (**~€24** of **~€103 USDC residual** stamp) · **≤10× isolated** · 5% kill · no martingale |
 

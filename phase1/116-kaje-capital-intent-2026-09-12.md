@@ -161,4 +161,4 @@ Do **not** invent a Scalp `instId`, expectancy, or ranked coin pick.
 
 Kaje + Risk ACK **2026-09-12**. This capital / intent lock is **unchanged** (Core filled · Mid #71 conditional / flat · Soft PASS ≠ Scalp-arm).
 
-[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE**. Ops honesty: **`LIVE_CLEAR_BOTH`** live key **PEPE-USDC** + **PEPE-USD_UM_XPERP-310404**; **`settleCcy` USDC on acct — confirm before place.** **DEMO_BLOCK still.** **No POST** until **121 + PEPE re-score + session-ja**. Soft PASS ≠ Scalp-arm. `not_a_forecast`.
+[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE** plus Ops **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** (all **`LIVE_CLEAR_BOTH`**). **TRUMP** exchange max **50×** / **policy ≤10×**. **DEMO_BLOCK unchanged.** **No POST** until **121 + instrument re-score + session-ja**. Soft PASS ≠ Scalp-arm. `not_a_forecast`.

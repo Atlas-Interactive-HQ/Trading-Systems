@@ -234,20 +234,32 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.parameters["reserved_backtest_note"] == 121
     assert tl120.parameters["no_post_until"] == [
         "phase1/121_2020_measured_edge",
-        "pepe_rescore",
+        "instrument_rescore_pepe_star_first",
         "session-ja",
     ]
     assert tl120.parameters["majors_2020_role"] == "backtest_research_required_before_pepe_post"
     assert tl120.parameters["first_scalp_live_uses_121_winner_as_locked_family"] is True
     assert tl120.parameters["live_instrument"] == "PEPE"
+    assert tl120.parameters["live_queue"] == ["PEPE", "PUMP", "TRUMP", "WIF"]
+    assert tl120.parameters["live_queue_star"] == "PEPE"
+    assert tl120.parameters["live_queue_all_live_clear_both"] is True
     assert tl120.parameters["pepe_spot"] == "PEPE-USDC"
     assert tl120.parameters["pepe_xperp_md"] == "PEPE-USD_UM_XPERP-310404"
+    assert tl120.parameters["pump_spot"] == "PUMP-USDC"
+    assert tl120.parameters["pump_xperp_md"] == "PUMP-USD_UM_XPERP-310404"
+    assert tl120.parameters["trump_spot"] == "TRUMP-USDC"
+    assert tl120.parameters["trump_xperp_md"] == "TRUMP-USD_UM_XPERP-310704"
+    assert tl120.parameters["trump_exchange_max_leverage"] == 50.0
+    assert tl120.parameters["trump_policy_leverage_ceiling_isolated"] == 10.0
+    assert tl120.parameters["wif_spot"] == "WIF-USDC"
+    assert tl120.parameters["wif_xperp_md"] == "WIF-USD_UM_XPERP-310815"
     assert tl120.parameters["pepe_live_clear_both_verified"] is True
     assert tl120.parameters["pepe_live_clear_both_key"] == "live"
     assert tl120.parameters["pepe_live_clear_both_neq_arm"] is True
     assert tl120.parameters["settle_ccy_usdc_on_acct"] is True
     assert tl120.parameters["settle_ccy_confirm_before_place"] is True
     assert tl120.parameters["demo_block_still"] is True
+    assert tl120.parameters["demo_block_unchanged"] is True
     assert tl120.parameters["demo_block_neq_invent_live"] is True
     assert tl120.parameters["session_ja_required"] is True
     assert tl120.parameters["sleeve_list_required"] is True
@@ -265,7 +277,12 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.asset == "PEPE-USDC"
     assert tl120.result["pepe_live_clear_both_verified"] is True
     assert tl120.result["pepe_live_clear_both_neq_arm"] is True
+    assert tl120.result["live_queue"] == ["PEPE", "PUMP", "TRUMP", "WIF"]
+    assert tl120.result["live_queue_star"] == "PEPE"
+    assert tl120.result["trump_exchange_max_leverage"] == 50.0
+    assert tl120.result["trump_policy_leverage_ceiling_isolated"] == 10.0
     assert tl120.result["demo_block_still"] is True
+    assert tl120.result["demo_block_unchanged"] is True
     assert tl120.result["settle_ccy_confirm_before_place"] is True
     assert tl120.result["invented_pnl"] is False
     assert tl120.result["invented_121_winner"] is False
