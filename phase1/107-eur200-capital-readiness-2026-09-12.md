@@ -31,7 +31,7 @@
 |--------|--------|-------|
 | Total | **~€200 USDC** | Deposit intent only — Ops/Kaje execute |
 | Spot (sleeve A) | **~€150** (3) | DOGE-USDC spot preferred for Mid/long practice |
-| Perp (sleeve B) | **~€50** (1) | Isolated ≤**2×**; hard lev check else NO TRADE |
+| Perp (sleeve B) | **~€50** (1) | Isolated ≤**2×** in this original lock; **superseded as ceiling** by Mid ≤**5×** / Scalp ≤**10×** (addendum 2026-09-12, docs only) — hard lev check else NO TRADE |
 | Ratio | **3:1** spot:perp equity | Rebalance **propose only** — day-1 / first live: **no auto sweep** |
 | Core sleeve | **cash OK** | Until a Core edge is validated under current doctrine |
 | Tiny practice | ≤€20 | Remains hard code/cap until `ga live €200` |
@@ -68,7 +68,7 @@ Per-trade risk: 1–2% of **armed** sleeve equity. Day kill: **5%** of day-start
 ### D. Abort / red lines
 
 - Soft PASS / DEV panel treated as live-arm without SHADOW+ja.
-- Lev >2× isolated (or >10 HFT lane) without verify → NO TRADE.
+- Lev above sleeve ceiling without verify → NO TRADE (Kaje 2026-09-12: Mid ≤5× iso, Scalp ≤10× iso, Core hold 1×; HFT lane still ≤10 only if later armed — today HALTED).
 - Sum notionals > armed policy or >€20 without `ga live €200`.
 - Any POST while HALTED / missing session-ja.
 
@@ -80,10 +80,11 @@ Per-trade risk: 1–2% of **armed** sleeve equity. Day kill: **5%** of day-start
 €200 CAPITAL READINESS  |  2026-09-12  |  Atlas TS Risk
 ========================================================
 Deposit  : ~€200 USDC (human) — bots do not transfer
-Split    : ~€150 spot : ~€50 perp (3:1)  · perp ≤2× iso
-Core     : CASH OK until validated edge
+Split    : ~€150 spot : ~€50 perp (3:1 historical) · see 113 for 6:3:1
+Lev      : Mid ≤5× iso · Scalp ≤10× iso · Core hold 1× (Kaje 2026-09-12)
+Core     : BTC spot hold policy (113) — not a Core-arm
 Mid #71  : DEV paper — Soft PASS ≠ arm — HALTED
-Scalp S1 : DEV paper — Soft PASS ≠ arm — HALTED
+Scalp    : PEPE target (113); S1 DOGE was provisional — HALTED
 HFT      : P4a screen only — no instrument — HALTED
 Tiny     : ≤€20 until Kaje "ga live €200"
 Kill     : 5% day-start · no martingale · no auto sweep
@@ -135,3 +136,23 @@ Kaje: **~€240 USDC parked** on venue. **No live-arm.** Soft PASS ≠ arm holds
 | HFT | P4a/P4b doctrine — no instrument lock yet |
 
 `not_a_forecast`
+
+## Addendum — leverage ceilings Mid ≤5× / Scalp ≤10× (Kaje clear 2026-09-12)
+
+**Docs only.** Does **not** arm. Does **not** edit `config/default.yaml`. Soft PASS ≠ arm.
+
+Kaje clear **2026-09-12**: sleeve leverage **ceilings** (isolated where used):
+
+| Sleeve | Ceiling | Notes |
+|--------|---------|-------|
+| Core / long | **No leverage** | [`113`](./113-kaje-architecture-2026-09-12.md) BTC **spot hold** — 1× only |
+| Mid | **≤5× isolated** | DOGE #71 family; ceiling ≠ venue verify ≠ Mid-arm |
+| Scalp | **≤10× isolated** | PEPE target under [`113`](./113-kaje-architecture-2026-09-12.md); ceiling ≠ listing verify ≠ Scalp-arm |
+
+The body above still records the **earlier** fail-closed line (perp ≤2× / lev >2× → NO TRADE without verify). This addendum **raises the documented Mid/Scalp ceilings** as a Kaje clear. Runtime yaml stays `leverage_default: 2.0` / `leverage_hard_cap: 5.0`. If the venue / account / instrument cannot demonstrate the used leverage: **NO TRADE**.
+
+HALTED until **`ga live`** + **session-ja** + sleeve list. Tiny ≤€20 until then. No invented PnL.
+
+Sleeve **capital** ratio is now **6:3:1** Core : Mid : Scalp per [`113`](./113-kaje-architecture-2026-09-12.md) (supersedes the 3:1 spot:perp **as current policy**; this file’s 3:1 table stays historical). Rebalance remains **propose only**. Sweeps still need Kaje explicit yes.
+
+See [`113`](./113-kaje-architecture-2026-09-12.md). `not_a_forecast`

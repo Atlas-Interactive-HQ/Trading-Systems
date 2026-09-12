@@ -65,6 +65,7 @@
 | [110-paper-scoreboard-synthesis-2026-09-12.md](./110-paper-scoreboard-synthesis-2026-09-12.md) | Honest cite of measured paper tests; aligns with #108 DEV board; no invented PnL; not live-arm |
 | [111-sl-fill-release-human-ping.md](./111-sl-fill-release-human-ping.md) | Core/Mid/Scalp SL-fill or SL-release → ping Kaje (prep only); Soft PASS ≠ arm; does not re-lock #112 cooldown |
 | [112-scalp-s1-3sl-28m-cooldown-lock.md](./112-scalp-s1-3sl-28m-cooldown-lock.md) | Scalp S1 3× consecutive SL → 28m delayed market entry (paper-first); not martingale; Soft PASS ≠ arm |
+| [113-kaje-architecture-2026-09-12.md](./113-kaje-architecture-2026-09-12.md) | Kaje architecture 2026-09-12: BTC hold / DOGE Mid #71 / PEPE Scalp target; 6:3:1; cascade up; Mon 09:00 Amsterdam review; Soft PASS ≠ arm |
 
 ## Locked highlights (see 00 for full list)
 

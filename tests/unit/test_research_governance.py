@@ -106,6 +106,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-109",
         "TL-110",
         "TL-111",
+        "TL-113",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
@@ -133,6 +134,23 @@ def test_trial_ledger_starter_loads_and_validates():
     assert "phase1/112" in tl111.parameters["does_not_re_lock"]
     assert tl111.place_orders is False
     assert tl111.result["invented_metrics"] is False
+    tl113 = next(r for r in rows if r.trial_id == "TL-113")
+    assert tl113.parent_trial == "TL-DEV-BOARD"
+    assert tl113.family == "governance"
+    assert tl113.pre_registered is True
+    assert tl113.post_hoc is False
+    assert tl113.pass_fail == "N/A_architecture_lock_not_a_score"
+    assert tl113.parameters["ratio_core_mid_scalp"] == [6, 3, 1]
+    assert tl113.parameters["core_asset"] == "BTC"
+    assert tl113.parameters["mid_asset"] == "DOGE"
+    assert tl113.parameters["scalp_asset"] == "PEPE"
+    assert tl113.parameters["scalp_inst_id"] is None
+    assert tl113.parameters["scalp_listing_verified"] is False
+    assert tl113.parameters["live_arm"] is False
+    assert tl113.parameters["default_yaml_untouched"] is True
+    assert tl113.parameters["invent_pnl"] is False
+    assert tl113.place_orders is False
+    assert tl113.result["invented_inst_id"] is False
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

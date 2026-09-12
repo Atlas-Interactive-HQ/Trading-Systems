@@ -81,4 +81,8 @@ This is a **re-entry delay** after a streak of SL exits — **not** averaging do
 - If a later PR implements this delay path, it must keep size flat (no martingale) and remain paper until governance arm criteria pass.
 - Do not attach R1–R7 metrics to this note.
 
+### Architecture overlay ([`113`](./113-kaje-architecture-2026-09-12.md))
+
+This **3× consecutive SL → 28m delayed market entry** rule still applies to the **Scalp** sleeve **once a PEPE system exists**. S1 DOGE remains the research candidate until that system is locked. Do **not** invent PEPE params, `instId`, or expectancy here. Not martingale. Soft PASS ≠ arm.
+
 `not_a_forecast: true`. `place_orders: false`. Soft PASS ≠ arm. HALTED. lock-only.
