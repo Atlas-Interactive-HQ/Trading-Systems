@@ -105,6 +105,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-H0",
         "TL-109",
         "TL-110",
+        "TL-111",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
@@ -120,6 +121,18 @@ def test_trial_ledger_starter_loads_and_validates():
     assert board.parent_trial == "TL-DEV-BOARD"
     assert board.parameters["core_allocation"] == "cash"
     assert board.parameters["hft"] == "wait_p4b"
+    tl111 = next(r for r in rows if r.trial_id == "TL-111")
+    assert tl111.parent_trial == "TL-109"
+    assert tl111.family == "ops"
+    assert tl111.pre_registered is True
+    assert tl111.post_hoc is False
+    assert tl111.pass_fail == "N/A_ops_ping_lock_not_a_score"
+    assert tl111.parameters["ping_triggers"] == ["stop_loss_fill", "stop_release"]
+    assert tl111.parameters["send"] is False
+    assert tl111.parameters["live_arm"] is False
+    assert "phase1/112" in tl111.parameters["does_not_re_lock"]
+    assert tl111.place_orders is False
+    assert tl111.result["invented_metrics"] is False
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"
