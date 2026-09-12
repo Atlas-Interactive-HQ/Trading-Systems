@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""Fetch/copy OKX EEA 1m+15m+3m history-candles for phase1/125 — cache under results/."""
+from __future__ import annotations
+
+import shutil
+import sys
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+import httpx
+
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT / "src"))
+
+from atlas.common.time import parse_exchange_ts_ms
+from atlas.paper.md import (
+    OKX_HISTORY_LIMIT_MAX,
+    OKX_REST,
+    USER_AGENT,
+    fetch_okx_history_candles_page,
+    load_jsonl_candles,
+    merge_bars,
+    persist_candles,
+    resample_3m_from_1m,
+)
+
+INSTS = ("BTC-USDT", "ETH-USDT", "DOGE-USDT")
+BARS = ("1m", "15m", "3m")
+START = parse_exchange_ts_ms("2020-06-01T00:00:00Z")
+END = parse_exchange_ts_ms("2021-01-01T00:00:00Z")
+FULL_START = parse_exchange_ts_ms("2020-07-01T00:00:00Z")
+CACHE = _ROOT / "results" / "public_md_125_cache"
+CACHE.mkdir(parents=True, exist_ok=True)
+LOCK = threading.Lock()
+
+SIBLING = {
+    "1m": _ROOT / "results" / "public_md_123_cache",
+    "15m": _ROOT / "results" / "public_md_124_cache",
+}
+
+MIN_TRADE = {"1m": 200_000, "15m": 10_000, "3m": 60_000}
+
+CHUNKS: list[tuple[int, int]] = []
+cur = START
+while cur < END:
+    nxt = min(cur + 30 * 24 * 60 * 60 * 1000, END)
+    CHUNKS.append((cur, nxt))
+    cur = nxt
+
+
+def fetch_chunk(client: httpx.Client, inst: str, bar: str, start_ms: int, end_ms: int):
+    after = int(end_ms)
+    collected = []
+    pages = 0
+    while pages < 800:
+        page, raw_n = fetch_okx_history_candles_page(
+            client,
+            inst,
+            bar,
+            rest_base=OKX_REST,
+            after=after,
+            limit=OKX_HISTORY_LIMIT_MAX,
+        )
+        pages += 1
+        if raw_n == 0 and not page:
+            break
+        collected.extend(page)
+        if not page:
+            break
+        oldest = min(b.ts_open_ms for b in page)
+        if oldest <= start_ms:
+            break
+        if raw_n < OKX_HISTORY_LIMIT_MAX:
+            break
+        if oldest >= after:
+            break
+        after = oldest
+        time.sleep(0.015)
+    bars = [b for b in collected if b.closed and start_ms <= b.ts_open_ms < end_ms]
+    return bars, pages
+
+
+def try_cache_or_sibling(inst: str, bar: str):
+    path = CACHE / f"{inst}_{bar}.jsonl"
+    if path.is_file() and path.stat().st_size > 10_000:
+        bars = load_jsonl_candles(path, symbol=inst, bar=bar)
+        bars = [b for b in bars if START <= b.ts_open_ms < END]
+        trade = [b for b in bars if FULL_START <= b.ts_open_ms < END]
+        if len(trade) >= MIN_TRADE[bar]:
+            print(f"CACHE_OK {inst} {bar} n={len(bars)} trade={len(trade)}", flush=True)
+            return bars
+    sib = SIBLING.get(bar)
+    if sib is not None:
+        src = sib / f"{inst}_{bar}.jsonl"
+        if src.is_file() and src.stat().st_size > 10_000:
+            shutil.copy2(src, path)
+            bars = load_jsonl_candles(path, symbol=inst, bar=bar)
+            bars = [b for b in bars if START <= b.ts_open_ms < END]
+            trade = [b for b in bars if FULL_START <= b.ts_open_ms < END]
+            if len(trade) >= MIN_TRADE[bar]:
+                print(
+                    f"COPIED_SIBLING {inst} {bar} n={len(bars)} trade={len(trade)}",
+                    flush=True,
+                )
+                return bars
+    return None
+
+
+def fetch_inst_bar(inst: str, bar: str):
+    existing = try_cache_or_sibling(inst, bar)
+    if existing is not None:
+        return inst, bar, len(existing), "cache", 0.0
+    t0 = time.time()
+    print(f"FETCH_START {inst} {bar}", flush=True)
+    client = httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=60.0)
+    all_bars = []
+    try:
+        try:
+            for a, b in CHUNKS:
+                chunk_bars, pages = fetch_chunk(client, inst, bar, a, b)
+                all_bars.extend(chunk_bars)
+                with LOCK:
+                    print(
+                        f"  {inst} {bar} chunk {a}->{b} n={len(chunk_bars)} "
+                        f"pages={pages} total={len(all_bars)}",
+                        flush=True,
+                    )
+            bars = merge_bars(all_bars)
+            bars = [b for b in bars if START <= b.ts_open_ms < END]
+            if bar == "3m" and len([b for b in bars if FULL_START <= b.ts_open_ms < END]) < MIN_TRADE["3m"]:
+                raise RuntimeError("native 3m incomplete")
+            persist_candles(CACHE / f"{inst}_{bar}.jsonl", bars)
+            trade = [b for b in bars if FULL_START <= b.ts_open_ms < END]
+            dt = time.time() - t0
+            print(
+                f"FETCH_DONE {inst} {bar} n={len(bars)} trade={len(trade)} secs={dt:.1f}",
+                flush=True,
+            )
+            return inst, bar, len(bars), "fetched", dt
+        except Exception as exc:  # noqa: BLE001
+            if bar != "3m":
+                raise
+            print(f"NATIVE_3M_FAIL {inst}: {exc}; resampling from 1m", flush=True)
+            path_1m = CACHE / f"{inst}_1m.jsonl"
+            bars_1m = load_jsonl_candles(path_1m, symbol=inst, bar="1m")
+            bars = resample_3m_from_1m(bars_1m)
+            bars = [b for b in bars if START <= b.ts_open_ms < END]
+            persist_candles(CACHE / f"{inst}_3m.jsonl", bars)
+            trade = [b for b in bars if FULL_START <= b.ts_open_ms < END]
+            dt = time.time() - t0
+            print(
+                f"RESAMPLE_DONE {inst} 3m n={len(bars)} trade={len(trade)} secs={dt:.1f}",
+                flush=True,
+            )
+            return inst, bar, len(bars), "resample_1m", dt
+    finally:
+        client.close()
+
+
+def main() -> int:
+    print(f"CHUNKS n={len(CHUNKS)} cache={CACHE}", flush=True)
+    # Sequential bar priority: 1m first (for 3m fallback), then 15m, then 3m
+    for bar in ("1m", "15m", "3m"):
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            futs = [ex.submit(fetch_inst_bar, inst, bar) for inst in INSTS]
+            for fut in as_completed(futs):
+                print("RESULT", fut.result(), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
