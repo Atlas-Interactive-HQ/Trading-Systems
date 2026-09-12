@@ -107,6 +107,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-110",
         "TL-111",
         "TL-113",
+        "TL-114",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
@@ -151,6 +152,39 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl113.parameters["invent_pnl"] is False
     assert tl113.place_orders is False
     assert tl113.result["invented_inst_id"] is False
+    tl114 = next(r for r in rows if r.trial_id == "TL-114")
+    assert tl114.parent_trial == "TL-113"
+    assert tl114.family == "governance"
+    assert tl114.pre_registered is True
+    assert tl114.post_hoc is False
+    assert tl114.pass_fail == "N/A_universe_policy_lock_not_a_score"
+    assert tl114.parameters["ratio_core_mid_scalp"] == [6, 3, 1]
+    assert tl114.parameters["scalp_share_of_book"] == 0.10
+    assert tl114.parameters["one_scalp_bucket"] is True
+    assert tl114.parameters["multi_coin_watch"] is True
+    assert tl114.parameters["architecture_target_name"] == "PEPE"
+    assert tl114.parameters["ops_stamp"] == "DEMO_BLOCK"
+    assert tl114.parameters["ops_demo_key"] is True
+    assert tl114.parameters["demo_block_names"] == [
+        "PEPE",
+        "PUMP",
+        "TRUMP",
+        "WIF",
+        "SHIB",
+        "BONK",
+        "BOME",
+        "FLOKI",
+    ]
+    assert tl114.parameters["alternatives_ranked"] is False
+    assert tl114.parameters["invent_expectancy"] is False
+    assert tl114.parameters["invent_order_inst_id"] is False
+    assert tl114.parameters["catalogue_clear_neq_demo_block"] is True
+    assert tl114.parameters["live_arm"] is False
+    assert tl114.parameters["default_yaml_untouched"] is True
+    assert tl114.place_orders is False
+    assert tl114.result["invented_expectancy"] is False
+    assert tl114.result["ranked_alternatives"] is False
+    assert tl114.result["ops_demo_block"] is True
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

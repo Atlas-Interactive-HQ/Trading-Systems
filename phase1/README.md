@@ -66,6 +66,7 @@
 | [111-sl-fill-release-human-ping.md](./111-sl-fill-release-human-ping.md) | Core/Mid/Scalp SL-fill or SL-release → ping Kaje (prep only); Soft PASS ≠ arm; does not re-lock #112 cooldown |
 | [112-scalp-s1-3sl-28m-cooldown-lock.md](./112-scalp-s1-3sl-28m-cooldown-lock.md) | Scalp S1 3× consecutive SL → 28m delayed market entry (paper-first); not martingale; Soft PASS ≠ arm |
 | [113-kaje-architecture-2026-09-12.md](./113-kaje-architecture-2026-09-12.md) | Kaje architecture 2026-09-12: BTC hold / DOGE Mid #71 / PEPE Scalp target; 6:3:1; cascade up; Mon 09:00 Amsterdam review; Soft PASS ≠ arm |
+| [114-scalp-multi-coin-watch-2026-09-12.md](./114-scalp-multi-coin-watch-2026-09-12.md) | Scalp may watch multiple coins under one 10% (6:3:1) bucket; Ops DEMO_BLOCK on PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI; Soft PASS ≠ arm |
 | [115-public-md-scalp-method.md](./115-public-md-scalp-method.md) | Public-MD Scalp paper method lock (method-only); no score; Soft PASS ≠ arm |
 
 ## Locked highlights (see 00 for full list)

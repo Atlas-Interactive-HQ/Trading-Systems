@@ -98,6 +98,7 @@ Monday 09:00 Europe/Amsterdam is a **review clock**, not a cron that places orde
 | [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md) | **3× consecutive SL → 28m delayed market entry** still applies to the **Scalp** sleeve **once a PEPE system exists**. Do not invent PEPE params here. Not martingale. Paper-first. |
 | [`105`](./105-portfolio-core-major.md) / [`106`](./106-research-governance-board.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN. Soft PASS ≠ arm. BTC hold ≠ CORE-MAJOR-v1 score. |
 | [`109`](./109-three-month-program-2026-09-12.md) | 3-month quiet-ops program unchanged. This lock does not invent SHADOW dates or pick HFT. |
+| [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | Overlay (same date): Scalp may **watch multiple coins** under the **one** 10% bucket. Ops **DEMO_BLOCK** on demo key for PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI. Catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm. Does **not** re-lock this architecture. |
 
 ---
 
@@ -148,3 +149,9 @@ If max allowed leverage **cannot be demonstrated** for the instrument / size / t
 - If a later PR treats Monday 09:00 as auto-sweep / auto-POST, it contradicts I6.
 
 `not_a_forecast: true`. `place_orders: false`. Soft PASS ≠ arm. HALTED.
+
+---
+
+## Overlay — multi-coin Scalp watch ([`114`](./114-scalp-multi-coin-watch-2026-09-12.md))
+
+Kaje overlay **2026-09-12**: Scalp may **watch multiple coins** under the **one** Scalp **10%** bucket (the **1** in **6 : 3 : 1**). PEPE remains the architecture target **name**. Ops stamp on the demo key: **PEPE / PUMP / TRUMP / WIF / SHIB / BONK / BOME / FLOKI = DEMO_BLOCK**. Catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm. **No invented expectancy / order `instId`.** See [`114`](./114-scalp-multi-coin-watch-2026-09-12.md). This architecture lock is **unchanged**.
