@@ -28,10 +28,15 @@ from atlas.paper.rise_panel import (
     SCALP_PROVISIONAL_DEV_ID,
     SCALP_R2_HYPOTHESIS_ID,
     SCALP_S0_ID,
+    SCALP_S1_3SL_28M_COOLDOWN,
+    SCALP_S1_3SL_28M_COOLDOWN_ID,
+    SCALP_S1_CONSECUTIVE_SL_TRIGGER,
+    SCALP_S1_POST_3SL_ENTRY_DELAY_MIN,
     SOFT_PROMOTE_GATE,
     SOFT_PROMOTE_MEDIAN_TRADES_MIN,
     SOFT_PROMOTE_MIN_EXP_POS,
     dev_board_card,
+    scalp_s1_3sl_28m_cooldown_card,
     justification_rows,
     panel_summary_table,
     panel_windows,
@@ -128,6 +133,28 @@ def test_dev_board_research_lock():
     assert card["mid_primary_candidate_id"] == MID_PRIMARY_CANDIDATE_ID
     assert card["scalp_provisional_dev_id"] == SCALP_PROVISIONAL_DEV_ID
     assert card["core"]["role"] == "cash"
+
+
+def test_scalp_s1_3sl_28m_cooldown_lock():
+    assert SCALP_S1_3SL_28M_COOLDOWN_ID == "scalp_s1_3sl_28m_cooldown"
+    assert SCALP_S1_CONSECUTIVE_SL_TRIGGER == 3
+    assert SCALP_S1_POST_3SL_ENTRY_DELAY_MIN == 28
+    assert SCALP_S1_3SL_28M_COOLDOWN["base_candidate_id"] == SCALP_PROVISIONAL_DEV_ID
+    assert SCALP_S1_3SL_28M_COOLDOWN["live_arm"] is False
+    assert SCALP_S1_3SL_28M_COOLDOWN["soft_pass_neq_arm"] is True
+    assert SCALP_S1_3SL_28M_COOLDOWN["halted"] is True
+    assert SCALP_S1_3SL_28M_COOLDOWN["place_orders"] is False
+    assert SCALP_S1_3SL_28M_COOLDOWN["not_a_forecast"] is True
+    assert SCALP_S1_3SL_28M_COOLDOWN["averaging_down"] is False
+    assert SCALP_S1_3SL_28M_COOLDOWN["martingale"] is False
+    assert SCALP_S1_3SL_28M_COOLDOWN["size_up"] is False
+    assert SCALP_S1_3SL_28M_COOLDOWN["score_r1_r7_in_this_lock"] is False
+    assert SCALP_S1_3SL_28M_COOLDOWN["on_same_system_signal"] == "delay_then_market_entry"
+    card = scalp_s1_3sl_28m_cooldown_card()
+    assert card["id"] == SCALP_S1_3SL_28M_COOLDOWN_ID
+    assert card["entry_delay_minutes"] == 28
+    assert card["consecutive_sl_trigger"] == 3
+    assert "phase1/112" in card["citation"]
 
 
 def test_soft_promote_pass():
