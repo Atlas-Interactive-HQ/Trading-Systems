@@ -110,6 +110,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-114",
         "TL-116",
         "TL-120",
+        "TL-P4A-145",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
@@ -300,6 +301,24 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.result["majors_2020_hard_no_post"] is False
     assert tl120.result["majors_2020_live_blocker"] is False
     assert tl120.result["instrument_rescore_hard_live_blocker"] is False
+    tlp4a = next(r for r in rows if r.trial_id == "TL-P4A-145")
+    assert tlp4a.parent_trial == "phase1/100-p4a-screening-p4b-7d"
+    assert tlp4a.family == "hft"
+    assert tlp4a.pre_registered is True
+    assert tlp4a.post_hoc is False
+    assert tlp4a.pass_fail == "N/A_screening_only_no_lock"
+    assert tlp4a.global_trial_count == 17
+    assert tlp4a.family_trial_count == 2
+    assert tlp4a.parameters["selected"] is None
+    assert tlp4a.parameters["instrument_lock"] is False
+    assert tlp4a.parameters["p4b_not_started"] is True
+    assert tlp4a.parameters["default_yaml_untouched"] is True
+    assert tlp4a.result["selected"] is None
+    assert tlp4a.result["instrument_lock"] is False
+    assert "phase1/145" in tlp4a.result["citation"]
+    assert tlp4a.place_orders is False
+    assert tlp4a.not_a_forecast is True
+    assert tlp4a.soft_pass_neq_arm is True
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

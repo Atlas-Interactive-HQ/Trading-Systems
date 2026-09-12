@@ -50,7 +50,7 @@ Every row carries `not_a_forecast`, `place_orders: false`, `soft_pass_neq_arm`.
 
 `research/trial_ledger.jsonl` backfills **named mainline** trials from existing phase1 docs / PR numbers. It is **not** a complete count of phase1/16–99.
 
-Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **16** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110` + `TL-111` + `TL-113` + `TL-114` + `TL-116` + `TL-120`) as the research-wide N.
+Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **17** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110` + `TL-111` + `TL-113` + `TL-114` + `TL-116` + `TL-120` + `TL-P4A-145`) as the research-wide N.
 
 ---
 
@@ -74,6 +74,7 @@ Before any GREEN CANDIDATE declaration, expand the census to every scored hypoth
 | `TL-114` | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | `N/A_universe_policy_lock_not_a_score` (multi-coin Scalp watch under 10% bucket; Ops DEMO_BLOCK meme list; Soft PASS ≠ arm) |
 | `TL-116` | [`116`](./116-kaje-capital-intent-2026-09-12.md) | `N/A_capital_intent_lock_not_a_score` (Core BTC fill ~€144; Mid #71 ~€72 conditional/flat; Soft PASS ≠ Scalp-arm; public-MD #115) |
 | `TL-120` | [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | `N/A_live_gate_lock_not_a_score` (PEPE LIVE GATE + Ops queue PEPE ★→PUMP→TRUMP→WIF LIVE_CLEAR_BOTH; POST gate = LIVE_CLEAR + session-ja + ≤10%/≤10×; 121 backtest-only ≠ live-blocker; DEMO_BLOCK unchanged; Soft PASS ≠ Scalp-arm) |
+| `TL-P4A-145` | [`145`](./145-p4a-liqgate-v1-screening-metrics.md) | `N/A_screening_only_no_lock` (P4a ~24h liqgate_v1; `selected=None`; `instrument_lock=False`; Soft PASS N/A; P4b not started) |
 
 Result objects **cite** those notes. They do not restate panel € tables as a new score. Soft PASS ≠ arm.
 

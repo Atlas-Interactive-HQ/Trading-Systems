@@ -1,0 +1,131 @@
+{
+  "phase": "P4a",
+  "role": "screening_only",
+  "gate_id": "hft_liquidity_gate_p4a_screening_v1",
+  "selected": null,
+  "instrument_lock": false,
+  "screening_warnings": [],
+  "reconnect_count_global": 5,
+  "other_is_gap_non_reconnect": 0,
+  "process_running": false,
+  "channels_present": [
+    "books5",
+    "trades",
+    "mark-price",
+    "funding-rate"
+  ],
+  "inst_ids": [
+    "BTC-USD_UM_XPERP-310404",
+    "ETH-USD_UM_XPERP-310404",
+    "DOGE-USD_UM_XPERP-310404"
+  ],
+  "channel_matrix": {
+    "BTC-USD_UM_XPERP-310404": {
+      "books5": true,
+      "trades": true,
+      "mark-price": true,
+      "funding-rate": true
+    },
+    "ETH-USD_UM_XPERP-310404": {
+      "books5": true,
+      "trades": true,
+      "mark-price": true,
+      "funding-rate": true
+    },
+    "DOGE-USD_UM_XPERP-310404": {
+      "books5": true,
+      "trades": true,
+      "mark-price": true,
+      "funding-rate": true
+    }
+  },
+  "capture_meta": {
+    "dir": "data/liqgate_v1",
+    "planned_start": "2026-09-11T16:23:30Z",
+    "started_unix": 1789143810,
+    "planned_duration_s": 86400,
+    "first_receive_ts": "2026-09-11T16:23:36.291Z",
+    "last_receive_ts": "2026-09-12T16:26:55.233Z",
+    "span_s": 86598.942,
+    "completeness": "looks_complete_approx_24h"
+  },
+  "p4a_screen": {
+    "phase": "P4a",
+    "role": "screening_only",
+    "selected": null,
+    "instrument_lock": false
+  },
+  "metrics": [
+    {
+      "inst_id": "BTC-USD_UM_XPERP-310404",
+      "base": "BTC",
+      "span_s": 86598.94,
+      "trades_per_sec": 0.417118,
+      "n_trades": 36122,
+      "books5_changes_per_sec": 3.308343,
+      "n_books5_envelope_updates": 286499,
+      "spread_bps_median": 0.012942,
+      "spread_bps_p95": 0.012978,
+      "top5_depth_notional_median": 1332251775.60,
+      "top5_depth_notional_p95": 2835504740.19,
+      "reconnect_count": 5,
+      "gap_count": 0,
+      "book_age_ms_median": 299.0,
+      "book_age_ms_p95": 2099.0,
+      "n_health_stale": 12436,
+      "n_carried_forward": 10879,
+      "health_n_buckets": 86599,
+      "insufficient_data": false
+    },
+    {
+      "inst_id": "ETH-USD_UM_XPERP-310404",
+      "base": "ETH",
+      "span_s": 86598.917,
+      "trades_per_sec": 0.514256,
+      "n_trades": 44534,
+      "books5_changes_per_sec": 5.026264,
+      "n_books5_envelope_updates": 435269,
+      "spread_bps_median": 0.039793,
+      "spread_bps_p95": 0.904135,
+      "top5_depth_notional_median": 9641020.32,
+      "top5_depth_notional_p95": 38790937.24,
+      "reconnect_count": 5,
+      "gap_count": 0,
+      "book_age_ms_median": 293.0,
+      "book_age_ms_p95": 1592.0,
+      "n_health_stale": 7887,
+      "n_carried_forward": 6885,
+      "health_n_buckets": 86598,
+      "insufficient_data": false
+    },
+    {
+      "inst_id": "DOGE-USD_UM_XPERP-310404",
+      "base": "DOGE",
+      "span_s": 86598.916,
+      "trades_per_sec": 0.082668,
+      "n_trades": 7159,
+      "books5_changes_per_sec": 1.220292,
+      "n_books5_envelope_updates": 105676,
+      "spread_bps_median": 3.549246,
+      "spread_bps_p95": 5.942830,
+      "top5_depth_notional_median": 722.83,
+      "top5_depth_notional_p95": 4983.44,
+      "reconnect_count": 5,
+      "gap_count": 0,
+      "book_age_ms_median": 995.0,
+      "book_age_ms_p95": 7799.0,
+      "n_health_stale": 41982,
+      "n_carried_forward": 39721,
+      "health_n_buckets": 86597,
+      "insufficient_data": false
+    }
+  ],
+  "no_strategy_pnl": true,
+  "not_a_forecast": true,
+  "place_orders": false,
+  "do_not_invent_capture_numbers": true,
+  "soft_pass_neq_arm": true,
+  "p4b_not_started": true,
+  "default_yaml_untouched": true,
+  "health_note": "n_health_stale and n_carried_forward are distinct (phase1/92). health_stale = book_age_ms > 1000; carried_forward = no books5 in that 1s bucket. They are not the same counter."
+}
