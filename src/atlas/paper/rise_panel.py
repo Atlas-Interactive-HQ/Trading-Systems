@@ -60,6 +60,40 @@ CORE_R1_PROMOTED = False
 CORE_DEV_ALLOCATION = "cash"
 CORE_C0_BASELINE_ID = BASELINE_ID  # EMA12/30 1D €140 — baseline reference, not an arm
 
+# Kaje paper-first Scalp S1 lock (phase1/112). After 3 consecutive SL fills,
+# same system signal → 28m delay then market entry. Not avg-down / not martingale.
+# Base candidate remains SCALP_PROVISIONAL_DEV_ID (S1). Do not score R1–R7 here.
+SCALP_S1_3SL_28M_COOLDOWN_ID = "scalp_s1_3sl_28m_cooldown"
+SCALP_S1_CONSECUTIVE_SL_TRIGGER = 3
+SCALP_S1_POST_3SL_ENTRY_DELAY_MIN = 28
+SCALP_S1_3SL_28M_COOLDOWN: dict[str, object] = {
+    "id": SCALP_S1_3SL_28M_COOLDOWN_ID,
+    "status": "research_lock_paper_first",
+    "live_arm": False,
+    "soft_pass_neq_arm": True,
+    "halted": True,
+    "place_orders": False,
+    "not_a_forecast": True,
+    "default_yaml_untouched": True,
+    "base_candidate_id": SCALP_PROVISIONAL_DEV_ID,  # S1
+    "consecutive_sl_trigger": SCALP_S1_CONSECUTIVE_SL_TRIGGER,
+    "entry_delay_minutes": SCALP_S1_POST_3SL_ENTRY_DELAY_MIN,
+    "on_same_system_signal": "delay_then_market_entry",
+    "averaging_down": False,
+    "martingale": False,
+    "size_up": False,
+    "score_r1_r7_in_this_lock": False,
+    "citation": ("phase1/87", "phase1/93", "phase1/108", "phase1/112"),
+}
+
+
+def scalp_s1_3sl_28m_cooldown_card() -> dict[str, object]:
+    """Frozen Scalp S1 3×SL → 28m delayed market-entry lock (phase1/112). Not an arm."""
+    card = dict(SCALP_S1_3SL_28M_COOLDOWN)
+    card["citation"] = list(card["citation"])  # type: ignore[arg-type]
+    return card
+
+
 # Best DEV board research lock (phase1/108). NOT live arm. Soft PASS ≠ arm. HALTED.
 DEV_BOARD_ID = "atlas_dev_board_v1"
 DEV_BOARD: dict[str, object] = {
