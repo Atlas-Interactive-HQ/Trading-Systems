@@ -108,6 +108,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-111",
         "TL-113",
         "TL-114",
+        "TL-116",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
@@ -185,6 +186,40 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl114.result["invented_expectancy"] is False
     assert tl114.result["ranked_alternatives"] is False
     assert tl114.result["ops_demo_block"] is True
+    tl116 = next(r for r in rows if r.trial_id == "TL-116")
+    assert tl116.parent_trial == "TL-113"
+    assert tl116.family == "governance"
+    assert tl116.pre_registered is True
+    assert tl116.post_hoc is False
+    assert tl116.pass_fail == "N/A_capital_intent_lock_not_a_score"
+    assert tl116.global_trial_count == 15
+    assert tl116.family_trial_count == 4
+    assert tl116.parameters["note_id"] == 116
+    assert tl116.parameters["public_md_method"] == "phase1/115"
+    assert tl116.parameters["ratio_core_mid_scalp"] == [6, 3, 1]
+    assert tl116.parameters["when_armed_pct"] == {"btc": 60, "doge_mid": 30, "scalp": 10}
+    assert tl116.parameters["later_arm_budget_supersedes_eur200"] is True
+    assert tl116.parameters["core_exception_executed"] is True
+    assert tl116.parameters["core_btc_spot_filled"] is True
+    assert tl116.parameters["core_fill_eur_approx"] == 144
+    assert tl116.parameters["core_fill_px"] == 77304.3
+    assert tl116.parameters["core_ord_id"] == "3915002084440100864"
+    assert tl116.parameters["capital_fully_parked"] is False
+    assert tl116.parameters["mid_currently_flat"] is True
+    assert tl116.parameters["mid_conditional_on"] == "phase1/71"
+    assert tl116.parameters["scalp_armed"] is False
+    assert tl116.parameters["soft_pass_neq_scalp_arm"] is True
+    assert tl116.parameters["scalper_first_applies_to"] == "scalp_arm_only"
+    assert tl116.parameters["demo_block_full_meme_screen_demo_oms"] is True
+    assert tl116.parameters["demo_block"] == ["PEPE", "PUMP", "TRUMP"]
+    assert tl116.parameters["default_yaml_untouched"] is True
+    assert tl116.parameters["invent_pnl"] is False
+    assert "tl114_reserved_open_pr" not in tl116.parameters
+    assert tl116.place_orders is False
+    assert tl116.result["core_exception_executed"] is True
+    assert tl116.result["capital_fully_parked"] is False
+    assert tl116.result["soft_pass_neq_scalp_arm"] is True
+    assert tl116.result["invented_pnl"] is False
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

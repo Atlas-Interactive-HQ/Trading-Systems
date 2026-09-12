@@ -156,3 +156,23 @@ HALTED until **`ga live`** + **session-ja** + sleeve list. Tiny ≤€20 until t
 Sleeve **capital** ratio is now **6:3:1** Core : Mid : Scalp per [`113`](./113-kaje-architecture-2026-09-12.md) (supersedes the 3:1 spot:perp **as current policy**; this file’s 3:1 table stays historical). Rebalance remains **propose only**. Sweeps still need Kaje explicit yes.
 
 See [`113`](./113-kaje-architecture-2026-09-12.md). `not_a_forecast`
+
+## Addendum — ~€240 book + live Core fill (phase1/116, 2026-09-12)
+
+**Docs only.** Does **not** edit `config/default.yaml`. **Soft PASS ≠ Scalp-arm.** `place_orders: false`.
+
+[`116`](./116-kaje-capital-intent-2026-09-12.md) stamps Kaje intent + **live state 2026-09-12**. Do **not** describe capital as fully parked or Core as “no immediate action.”
+
+| Item | Lock |
+|------|------|
+| Budget figure | **~€240** — **supersedes €200** as the later-arm **figure**. This file’s €200 tables / `ga live €200` phrase stay **historical**. |
+| **Core BTC** | Spot **ALREADY FILLED** **~€144** @ **77304.3** · `ordId` **`3915002084440100864`**. Core exception **executed**. |
+| **Mid DOGE** | **~€72 CONDITIONAL** on Mid **#71**. **Currently flat.** Soft PASS ≠ Mid-arm. |
+| **Scalp** | **Soft PASS ≠ Scalp-arm.** Method = [`115`](./115-public-md-scalp-method.md). Scalper-first applies to **Scalp-arm only**. |
+| Split | **60% BTC · 30% DOGE Mid · 10% Scalp** ([`113`](./113-kaje-architecture-2026-09-12.md) 6:3:1). ~€144 / ~€72 are the live 60/30 stamps — **not** invented MTM PnL. |
+| Leverage | Allowed when idea + Risk gates; ceilings Mid **≤5×** / Scalp **≤10×** / Core hold **no lev** unless a later raise |
+| DEMO_BLOCK | **Full meme screen on demo OMS** ([`115`](./115-public-md-scalp-method.md)): PEPE / PUMP / TRUMP DEMO_BLOCK; WIF / SHIB / BONK pending Ops |
+
+No invented PnL.
+
+See [`116`](./116-kaje-capital-intent-2026-09-12.md). `not_a_forecast`

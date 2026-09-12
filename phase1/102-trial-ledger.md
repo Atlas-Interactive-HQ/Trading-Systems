@@ -50,7 +50,7 @@ Every row carries `not_a_forecast`, `place_orders: false`, `soft_pass_neq_arm`.
 
 `research/trial_ledger.jsonl` backfills **named mainline** trials from existing phase1 docs / PR numbers. It is **not** a complete count of phase1/16–99.
 
-Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **14** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110` + `TL-111` + `TL-113` + `TL-114`) as the research-wide N.
+Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **15** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110` + `TL-111` + `TL-113` + `TL-114` + `TL-116`) as the research-wide N.
 
 ---
 
@@ -72,6 +72,7 @@ Before any GREEN CANDIDATE declaration, expand the census to every scored hypoth
 | `TL-111` | [`111`](./111-sl-fill-release-human-ping.md) | `N/A_ops_ping_lock_not_a_score` (SL fill/release ping; does not re-lock #112) |
 | `TL-113` | [`113`](./113-kaje-architecture-2026-09-12.md) | `N/A_architecture_lock_not_a_score` (6:3:1 BTC/DOGE/PEPE; Mid≤5× Scalp≤10×; Soft PASS ≠ arm) |
 | `TL-114` | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | `N/A_universe_policy_lock_not_a_score` (multi-coin Scalp watch under 10% bucket; Ops DEMO_BLOCK meme list; Soft PASS ≠ arm) |
+| `TL-116` | [`116`](./116-kaje-capital-intent-2026-09-12.md) | `N/A_capital_intent_lock_not_a_score` (Core BTC fill ~€144; Mid #71 ~€72 conditional/flat; Soft PASS ≠ Scalp-arm; public-MD #115) |
 
 Result objects **cite** those notes. They do not restate panel € tables as a new score. Soft PASS ≠ arm.
 

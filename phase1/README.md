@@ -68,6 +68,7 @@
 | [113-kaje-architecture-2026-09-12.md](./113-kaje-architecture-2026-09-12.md) | Kaje architecture 2026-09-12: BTC hold / DOGE Mid #71 / PEPE Scalp target; 6:3:1; cascade up; Mon 09:00 Amsterdam review; Soft PASS ≠ arm |
 | [114-scalp-multi-coin-watch-2026-09-12.md](./114-scalp-multi-coin-watch-2026-09-12.md) | Scalp may watch multiple coins under one 10% (6:3:1) bucket; Ops DEMO_BLOCK on PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI; Soft PASS ≠ arm |
 | [115-public-md-scalp-method.md](./115-public-md-scalp-method.md) | Public-MD Scalp paper method lock (method-only); no score; Soft PASS ≠ arm |
+| [116-kaje-capital-intent-2026-09-12.md](./116-kaje-capital-intent-2026-09-12.md) | Kaje capital/intent 2026-09-12: Core BTC fill ~€144; Mid #71 ~€72 conditional/flat; Scalp Soft PASS ≠ arm; public-MD #115; scalper-first for Scalp only |
 
 ## Locked highlights (see 00 for full list)
 
