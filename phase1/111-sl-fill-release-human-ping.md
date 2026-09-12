@@ -4,7 +4,7 @@
 **Config:** `config/default.yaml` **untouched**.
 **Live:** ≤€20 **HALTED**. Soft PASS ≠ arm. **This note does not arm.**
 **Capital:** parked **~€240** HOLD ([`107`](./107-eur200-capital-readiness-2026-09-12.md) addendum / [`109`](./109-three-month-program-2026-09-12.md)). Capital prep only; not sleeve arm.
-**DEV board:** [`108`](./108-dev-board-research-lock.md) — Mid **#71** primary, Scalp **S1** provisional, Core **CASH**. Do **not** contradict that board.
+**DEV board:** [`108`](./108-dev-board-research-lock.md) — Mid **#71** primary, Scalp **S1** provisional, Core **CASH** (research freeze). Architecture overlay [`113`](./113-kaje-architecture-2026-09-12.md): Core **BTC hold** policy; Scalp **PEPE** target. Do **not** treat that overlay as an arm. Ping rules here are unchanged.
 
 **Scalp cooldown (already locked — do not re-lock here):** [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md) — Scalp S1 **3× consecutive SL → 28m delayed market entry**. This note is **only** the human-ping path.
 
@@ -80,5 +80,9 @@ Starter `global_trial_count` becomes **12**. That starter N is still **not** a c
 - If a later PR treats a ping as permission to cancel a resting TP, it contradicts [`28`](./28-live20-resting-exits.md) / [`109`](./109-three-month-program-2026-09-12.md).
 - If a later PR re-locks Scalp 3×SL → 28m here, it contradicts [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md).
 - If a later PR edits `config/default.yaml` for this lock, it contradicts I4.
+
+### Architecture overlay ([`113`](./113-kaje-architecture-2026-09-12.md))
+
+Ping still applies to **Core / Mid / Scalp** once that stream is armed. BTC hold / PEPE Scalp target / 6:3:1 **do not** arm a stream and **do not** send a ping. [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md) remains the Scalp cooldown lock (applies to PEPE Scalp **once that system exists**).
 
 `not_a_forecast: true`. `place_orders: false`. Soft PASS ≠ arm. HALTED.

@@ -108,3 +108,25 @@ Starter ledger rows (citations only): `TL-INT85`, `TL-M1`, `TL-S1`, `TL-C1`, `TL
 - If a later PR arms from this board without contiguous SHADOW + edge-vs-luck ([`103`](./103-edge-vs-luck-stress.md)), it violates [`106`](./106-research-governance-board.md).
 
 `not_a_forecast: true`. `place_orders: false`. Soft PASS ≠ arm. HALTED.
+
+---
+
+## Addendum — architecture overlay (phase1/113, 2026-09-12)
+
+**Docs only.** Does **not** re-score. Does **not** invent PnL / expectancy. Soft PASS ≠ arm. `config/default.yaml` **untouched**.
+
+[`113`](./113-kaje-architecture-2026-09-12.md) overlays **capital / asset policy** on this research board. Measured tables above stay **citations**.
+
+| Sleeve | This note (research lock) | Architecture overlay [`113`](./113-kaje-architecture-2026-09-12.md) |
+|--------|---------------------------|---------------------------------------------------------------------|
+| **Core** | **CASH** (no validated Core edge; CORE-R1 not promoted) | Policy → **BTC 3-month spot hold**, add periodically, **no leverage**. Not a Core strategy promote. CASH remains valid under [`105`](./105-portfolio-core-major.md) when a sleeve has no validated *system* edge. |
+| **Mid** | **#71** primary (DOGE 4H) | Unchanged research family. Capital sleeve = **DOGE**. Leverage ceiling **≤5× isolated** (Kaje clear 2026-09-12; [`107`](./107-eur200-capital-readiness-2026-09-12.md) addendum). |
+| **Scalp** | **S1 DOGE** provisional DEV | S1 DOGE was **provisional**. **PEPE is the new Scalp target.** No PEPE system / score yet. Fail-closed: re-verify OKX EEA listing before any score/arm; **do not invent `instId`**. [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md) 3×SL → 28m still applies to Scalp **once a PEPE system exists**. |
+
+`atlas_dev_board_v1` candidate ids (Mid #71 / S1 / Core CASH) remain the **research** freeze so later PRs cannot swap M1 for #71 or promote CORE-R1. The overlay is architecture, not a new panel.
+
+Ratio **6:3:1** Core : Mid : Scalp; cascade **upward** Scalp → Mid → BTC; weekly review **Monday 09:00 Europe/Amsterdam** (propose rebalance; sweeps need Kaje yes). See [`113`](./113-kaje-architecture-2026-09-12.md).
+
+**Still HALTED.** No auto-POST until `ga live` + session-ja + sleeves.
+
+`not_a_forecast: true`. `place_orders: false`.
