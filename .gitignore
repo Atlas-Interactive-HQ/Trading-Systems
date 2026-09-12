@@ -47,3 +47,6 @@ results/public_md_124_cache/
 
 # Public-MD #125 1m/15m/3m candle caches (regenerate via scripts/_fetch_public_md_125.py)
 results/public_md_125_cache/
+
+# Public-MD #145 W1/W2 candle caches (regenerate via scripts/_fetch_public_md_145.py)
+results/public_md_145_cache/
