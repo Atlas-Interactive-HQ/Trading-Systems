@@ -50,7 +50,7 @@ Every row carries `not_a_forecast`, `place_orders: false`, `soft_pass_neq_arm`.
 
 `research/trial_ledger.jsonl` backfills **named mainline** trials from existing phase1 docs / PR numbers. It is **not** a complete count of phase1/16–99.
 
-Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **11** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110`) as the research-wide N.
+Before any GREEN CANDIDATE declaration, expand the census to every scored hypothesis that touched the same families or the same data (including eliminated rungs). Use that full `global_trial_count` when discussing DSR/PBO. Do not treat starter `global_trial_count` (now **12** after `TL-DEV-BOARD` + `TL-H0` + `TL-109` + `TL-110` + `TL-111`) as the research-wide N.
 
 ---
 
@@ -69,6 +69,7 @@ Before any GREEN CANDIDATE declaration, expand the census to every scored hypoth
 | `TL-H0` | PR **#87** · [`98`](./98-h0-health-stale-2026-09-11.md) | `N/A_health_only` — no HFT PnL; health-stale ≈39.2% vs carry ≈57.7% |
 | `TL-109` | [`109`](./109-three-month-program-2026-09-12.md) | `N/A_program_lock_not_a_score` (3-month cadence; no arm) |
 | `TL-110` | [`110`](./110-paper-scoreboard-synthesis-2026-09-12.md) | `N/A_synthesis_not_a_score` (cites #108 board; no new panel) |
+| `TL-111` | [`111`](./111-sl-fill-release-human-ping.md) | `N/A_ops_ping_lock_not_a_score` (SL fill/release ping; does not re-lock #112) |
 
 Result objects **cite** those notes. They do not restate panel € tables as a new score. Soft PASS ≠ arm.
 
