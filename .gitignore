@@ -39,3 +39,6 @@ okx-eea-*.json
 # Scalp-HFT Layer B derived samples (regenerate via replay script)
 results/scalp_hft_v1/layer_b_samples/*
 !results/scalp_hft_v1/layer_b_samples/.gitkeep
+
+# Public-MD #123 1m candle caches (regenerate via scripts/_fetch_public_md_123_1m.py)
+results/public_md_123_cache/
