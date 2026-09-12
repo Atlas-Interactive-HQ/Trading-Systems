@@ -1,4 +1,4 @@
-# 145 — P4a liqgate_v1 SCREENING metrics (2026-09-11→12)
+# 146 — P4a liqgate_v1 SCREENING metrics (2026-09-11→12)
 
 **Stance:** Research / capture screening. `not_a_forecast: true`. **NO strategy PnL. NO instrument selected.**
 **Config:** `config/default.yaml` **untouched**.
