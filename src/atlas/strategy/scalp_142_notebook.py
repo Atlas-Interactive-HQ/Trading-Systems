@@ -402,13 +402,19 @@ def discover_setups(
     side: Side = LONG,
     trade_start_ms: int | None = None,
     trade_end_ms: int | None = None,
+    rvol_gate: float | None = None,
 ) -> list[NotebookSetup]:
-    """Event-driven setup discovery (no naive per-1m structure rebuild)."""
+    """Event-driven setup discovery (no naive per-1m structure rebuild).
+
+    rvol_gate: optional override of RVOL_GATE (default 1.0). Used by #144 T3
+    at 0.8; omit/None keeps the locked #142/#143 threshold.
+    """
     return _discover_setups_impl(
         bundle,
         side=side,
         trade_start_ms=trade_start_ms,
         trade_end_ms=trade_end_ms,
+        rvol_gate=RVOL_GATE if rvol_gate is None else float(rvol_gate),
     )
 
 
@@ -418,6 +424,7 @@ def _discover_setups_impl(
     side: Side,
     trade_start_ms: int | None,
     trade_end_ms: int | None,
+    rvol_gate: float = RVOL_GATE,
 ) -> list[NotebookSetup]:
     bars_1h = bundle.bars_1h
     bars_15 = bundle.bars_15m
@@ -530,7 +537,7 @@ def _discover_setups_impl(
                         if atrv is None or atrv <= 0:
                             i15_cursor += 1
                             continue
-                        if rvol is None or float(rvol) < RVOL_GATE:
+                        if rvol is None or float(rvol) < rvol_gate:
                             out.append(
                                 NotebookSetup(
                                     side=side,
@@ -576,7 +583,7 @@ def _discover_setups_impl(
                         if atrv is None or atrv <= 0:
                             i15_cursor += 1
                             continue
-                        if rvol is None or float(rvol) < RVOL_GATE:
+                        if rvol is None or float(rvol) < rvol_gate:
                             out.append(
                                 NotebookSetup(
                                     side=side,
