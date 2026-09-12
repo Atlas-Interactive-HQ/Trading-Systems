@@ -40,6 +40,7 @@ FUNDING_INTERVAL_MS = 8 * 60 * 60 * 1000  # OKX BTC-USDT-SWAP cadence (00/08/16 
 
 BAR_MS = {
     "1m": 60 * 1000,
+    "3m": 3 * 60 * 1000,
     "5m": 5 * 60 * 1000,
     "15m": 15 * 60 * 1000,
     "1H": 60 * 60 * 1000,
@@ -69,7 +70,7 @@ class PaperDataError(RuntimeError):
 
 def bar_ms(bar: str) -> int:
     if bar not in BAR_MS:
-        raise PaperDataError(f"unsupported bar {bar!r}; use 1m, 5m, 15m, 1H, 4H, or 1D")
+        raise PaperDataError(f"unsupported bar {bar!r}; use 1m, 3m, 5m, 15m, 1H, 4H, or 1D")
     return BAR_MS[bar]
 
 
@@ -78,7 +79,7 @@ def okx_bar(bar: str) -> str:
         return "1H"
     if bar.lower() in ("4h", "4H"):
         return "4H"
-    if bar in ("1m", "5m", "15m"):
+    if bar in ("1m", "3m", "5m", "15m"):
         return bar
     if bar.lower() in ("1d", "1D"):
         return "1D"
@@ -711,3 +712,38 @@ def resample_1h(bars_15m: list[Bar]) -> list[Bar]:
         except ValueError:
             continue
     return out
+
+
+def resample_3m_from_1m(bars_1m: list[Bar]) -> list[Bar]:
+    """Build closed 3m bars from complete 1m triplets only. Incomplete buckets dropped."""
+    bucket_ms = BAR_MS["3m"]
+    buckets: dict[int, list[Bar]] = {}
+    for b in bars_1m:
+        key = (b.ts_open_ms // bucket_ms) * bucket_ms
+        buckets.setdefault(key, []).append(b)
+    out: list[Bar] = []
+    for key in sorted(buckets):
+        rows = sorted(buckets[key], key=lambda x: x.ts_open_ms)
+        if len(rows) != 3:
+            continue
+        if rows[0].ts_open_ms != key:
+            continue
+        try:
+            out.append(
+                _to_bar(
+                    symbol=rows[0].symbol,
+                    ts_open_ms=key,
+                    o=rows[0].open,
+                    h=max(x.high for x in rows),
+                    l=min(x.low for x in rows),
+                    c=rows[-1].close,
+                    vol=sum(x.volume for x in rows),
+                    bar="3m",
+                    source="resample_1m",
+                    closed=True,
+                )
+            )
+        except ValueError:
+            continue
+    return out
+
