@@ -233,12 +233,23 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.parameters["gate"] == "pepe_live_conditional"
     assert tl120.parameters["reserved_backtest_note"] == 121
     assert tl120.parameters["no_post_until"] == [
-        "phase1/121_2020_measured_edge",
-        "instrument_rescore_pepe_star_first",
-        "session-ja",
+        "ops_live_clear",
+        "session-ja_sleeve_ga_live",
+        "cap_10pct_10x",
     ]
-    assert tl120.parameters["majors_2020_role"] == "backtest_research_required_before_pepe_post"
-    assert tl120.parameters["first_scalp_live_uses_121_winner_as_locked_family"] is True
+    assert tl120.parameters["majors_2020_role"] == "backtest_research_family_pick_only"
+    assert tl120.parameters["majors_2020_hard_no_post"] is False
+    assert tl120.parameters["majors_2020_live_blocker"] is False
+    assert tl120.parameters["instrument_rescore_role"] == "honesty_preferred_not_hard_live_blocker"
+    assert tl120.parameters["live_post_gate"] == [
+        "ops_live_clear",
+        "session-ja",
+        "sleeve_list",
+        "ga_live",
+        "scalp_le_10pct",
+        "leverage_le_10x",
+    ]
+    assert tl120.parameters["first_scalp_live_uses_121_winner_as_locked_family"] is False
     assert tl120.parameters["live_instrument"] == "PEPE"
     assert tl120.parameters["live_queue"] == ["PEPE", "PUMP", "TRUMP", "WIF"]
     assert tl120.parameters["live_queue_star"] == "PEPE"
@@ -286,6 +297,9 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.result["settle_ccy_confirm_before_place"] is True
     assert tl120.result["invented_pnl"] is False
     assert tl120.result["invented_121_winner"] is False
+    assert tl120.result["majors_2020_hard_no_post"] is False
+    assert tl120.result["majors_2020_live_blocker"] is False
+    assert tl120.result["instrument_rescore_hard_live_blocker"] is False
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

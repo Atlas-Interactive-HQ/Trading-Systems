@@ -101,7 +101,7 @@ Monday 09:00 Europe/Amsterdam is a **review clock**, not a cron that places orde
 | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | Overlay (same date): Scalp may **watch multiple coins** under the **one** 10% bucket. Ops **DEMO_BLOCK** on demo key for PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI. Catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm. Does **not** re-lock this architecture. |
 | [`115`](./115-public-md-scalp-method.md) | Public-MD Scalp **method** (PR #98). Method-only. Soft PASS ≠ Scalp-arm. DEMO_BLOCK full meme screen on demo OMS. |
 | [`116`](./116-kaje-capital-intent-2026-09-12.md) | Overlay (same date): live Core BTC fill ~€144 @ 77304.3 (`ordId 3915002084440100864`); Mid #71 ~€72 conditional / flat; Scalp Soft PASS ≠ arm; scalper-first for **Scalp-arm only**. Does **not** re-lock this architecture. |
-| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay (same date): **PEPE LIVE GATE** + Ops LIVE queue **PEPE ★ → PUMP → TRUMP → WIF** all `LIVE_CLEAR_BOTH`; TRUMP exch 50× / policy ≤10×; DEMO_BLOCK unchanged. Does **not** re-lock this architecture. |
+| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay (same date): **PEPE LIVE GATE** + Ops LIVE queue **PEPE ★ → PUMP → TRUMP → WIF** all `LIVE_CLEAR_BOTH`; live POST gate = `LIVE_CLEAR` + `session-ja` + ≤10%/≤10×; 121 backtest-only ≠ live-blocker; DEMO_BLOCK unchanged. Does **not** re-lock this architecture. |
 
 ---
 
@@ -165,4 +165,4 @@ Kaje overlay **2026-09-12**: book **~€240** **supersedes €200** as the later
 
 ## Overlay — Scalp LIVE conditional gate ([`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md))
 
-Kaje + Risk **2026-09-12**: [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE** plus Ops **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** (all **`LIVE_CLEAR_BOTH`** on the **live** key). **TRUMP** exchange max **50×** / **policy ≤10×**. **DEMO_BLOCK unchanged.** **No POST** until **121 + instrument re-score + session-ja**. Soft PASS ≠ Scalp-arm. This architecture lock is **unchanged**.
+Kaje + Risk HOLD/ACK **2026-09-12**: [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE** plus Ops **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** (all **`LIVE_CLEAR_BOTH`** on the **live** key). **Live POST gate** = **`LIVE_CLEAR` + `session-ja` (+ sleeve / `ga live`) + ≤10% / ≤10×**. **121 = backtest / family-pick ONLY — not a live-blocker.** Instrument re-score (PEPE ★ first) = honesty preferred, not a hard blocker. **DEMO_BLOCK unchanged.** Soft PASS ≠ Scalp-arm. This architecture lock is **unchanged**.

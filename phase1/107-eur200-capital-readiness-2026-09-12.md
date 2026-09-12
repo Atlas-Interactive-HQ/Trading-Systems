@@ -190,7 +190,9 @@ See [`116`](./116-kaje-capital-intent-2026-09-12.md). `not_a_forecast`
 | TRUMP lev | Exchange max **50×** — **policy ≤10× isolated** |
 | `settleCcy` | **USDC on acct — confirm before place** |
 | DEMO_BLOCK | **Unchanged** (demo key). ≠ invent live. ≠ lift because live-clear |
-| No POST until | **121** (2020 measured edge) **+ instrument re-score** (PEPE ★ first) **+ session-ja** |
+| Live POST gate | Ops **`LIVE_CLEAR`** + Kaje **`session-ja`** (+ sleeve / `ga live`) + **≤10% / ≤10×** |
+| 121 | **BACKTEST / research family-pick ONLY** — **not** a hard no-POST / live-blocker |
+| Re-score | Honesty preferred (PEPE ★ first) — **not** a hard live-blocker |
 | Soft PASS | **≠ Scalp-arm** |
 | Caps if later armed | Scalp **≤10%** book (**~€24** of **~€103 USDC residual** stamp) · **≤10× isolated** · 5% kill · no martingale |
 

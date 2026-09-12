@@ -156,4 +156,4 @@ Research later may rank a name **only** after a later Ops re-verify. Ranking met
 
 Kaje + Risk ACK **2026-09-12**. This watch lock is **unchanged** (one 10% bucket · DEMO_BLOCK on the **demo** key · catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm).
 
-[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE** plus Ops **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** (all **`LIVE_CLEAR_BOTH`** on the **live** key). **TRUMP** exchange max **50×** / **policy ≤10×**. **DEMO_BLOCK unchanged** on the demo key. Soft PASS ≠ Scalp-arm. `not_a_forecast`.
+[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE** plus Ops **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** (all **`LIVE_CLEAR_BOTH`** on the **live** key). **Live POST gate** = **`LIVE_CLEAR` + `session-ja` + ≤10% / ≤10×**. **121 = backtest / family-pick ONLY — not a live-blocker.** **DEMO_BLOCK unchanged** on the demo key. Soft PASS ≠ Scalp-arm. `not_a_forecast`.

@@ -12,11 +12,15 @@
 
 This note is the **PEPE LIVE conditional GATE**. Soft PASS, public-MD scores ([`117`](./117-public-md-scalp-first-score-ema1221-1h.md)–[`119`](./119-public-md-scalp-rsi14-mr-1h.md)), DEMO_BLOCK, or a PEPE name **do not POST**.
 
-**Still no Scalp POST until ALL of:**
+**Live Scalp POST gate (hard — Risk HOLD / ACK):**
 
-1. **2020 measured edge** — reserved **phase1/121** (BTC / ETH / DOGE 1H backtest; honesty bar; **not** a Soft PASS claim alone).
-2. **Instrument re-score** — same 121 family, **measured** on the LIVE-queue name (**PEPE ★** first). **No 2020 number transplant.**
-3. **Kaje `session-ja`** (parent [`113`](./113-kaje-architecture-2026-09-12.md) / [`107`](./107-eur200-capital-readiness-2026-09-12.md) **`ga live` + sleeve list** not dropped).
+1. Ops **`LIVE_CLEAR`** on the chosen LIVE-queue name.
+2. Kaje **`session-ja`** + **sleeve list** / **`ga live`** (parent [`113`](./113-kaje-architecture-2026-09-12.md) / [`107`](./107-eur200-capital-readiness-2026-09-12.md)).
+3. Caps **≤10%** book · **≤10× isolated**.
+
+**phase1/121** (2020 BTC / ETH / DOGE) = **BACKTEST / research family-pick ONLY.** **Not** a hard no-POST / live-blocker. Do **not** resurrect 2020 as a live-blocker.
+
+**Instrument re-score (PEPE ★ first)** = **honesty preferred** before first live. **Not** a hard live-blocker. **Not** a 2020 transplant.
 
 **Ops LIVE queue (live key, all `LIVE_CLEAR_BOTH`):** **PEPE ★ → PUMP → TRUMP → WIF**. Queue ≠ arm. **DEMO_BLOCK unchanged.**
 
@@ -36,7 +40,7 @@ This note is the **PEPE LIVE conditional GATE**. Soft PASS, public-MD scores ([`
 | I6 | Martingale / grid / average-down **forbidden**. |
 | I7 | Daily kill **5% of book** still applies (pack lock; [`00`](./00-decisions-and-deltas.md) L2). |
 | I8 | Sweeps / transfers / withdraws **never auto** — Kaje explicit yes ([`107`](./107-eur200-capital-readiness-2026-09-12.md)). |
-| I9 | This note **does not POST**. **No Scalp POST** until **121 + instrument re-score** (PEPE ★ first) **+ session-ja**. |
+| I9 | This note **does not POST**. **Live POST gate** = Ops **`LIVE_CLEAR`** + Kaje **`session-ja`** (+ sleeve / `ga live`) + **≤10% / ≤10×**. **121 is not a live-blocker.** |
 | I10 | **`settleCcy` USDC on acct — confirm before place.** LIVE_CLEAR_BOTH **≠** skip that confirm. |
 
 `place_orders: false`. Soft PASS ≠ Scalp-arm. DEMO_BLOCK still.
@@ -84,7 +88,8 @@ This stamp **does not**:
 - arm Scalp or place a POST
 - lift DEMO_BLOCK on the demo key (**DEMO_BLOCK unchanged**)
 - invent a live order `instId`
-- skip **121 + instrument re-score + session-ja**
+- skip the **live POST gate** (`LIVE_CLEAR` + `session-ja` + sleeve / `ga live` + ≤10% / ≤10×)
+- resurrect **121 / 2020** as a hard no-POST / live-blocker
 - skip **`settleCcy` USDC confirm before place**
 - treat TRUMP **50×** as usable leverage
 - transplant 2020 or [`117`](./117-public-md-scalp-first-score-ema1221-1h.md)–[`119`](./119-public-md-scalp-rsi14-mr-1h.md) numbers onto any queue name
@@ -103,65 +108,69 @@ These stamps are **different**. None implies the next.
 | **DEMO_CLEAR** | Reserved: this account **can** demo-trade after re-verify. | **≠** `LIVE_CLEAR`. **≠** arm. |
 | **`LIVE_CLEAR` / `LIVE_CLEAR_BOTH`** | Ops verified the **live** key can place that product (spot + X-Perp for BOTH). | **≠** Soft PASS. **≠** session-ja. **≠** arm. **≠** skip `settleCcy` confirm. |
 | **Soft PASS** | Research-panel gate on a locked card. | **≠** Scalp-arm. |
-| **arm** | **121 + instrument re-score** (PEPE ★ first in the LIVE queue) **+ `session-ja`** (and parent **`ga live` + sleeve list**). | Queue / `LIVE_CLEAR_BOTH` **≠** this. |
+| **arm** | Ops **`LIVE_CLEAR`** + Kaje **`session-ja`** + **sleeve list** / **`ga live`** + **≤10% / ≤10×**. | Queue / `LIVE_CLEAR_BOTH` / Soft PASS / **121** **≠** this. |
 
 **DEMO_BLOCK still. DEMO_BLOCK ≠ invent live. `LIVE_CLEAR_BOTH` ≠ arm.**
 
 ---
 
-## Reserved 121 — 2020 majors BACKTEST (required before PEPE POST)
+## Reserved 121 — 2020 majors BACKTEST / research family-pick ONLY
 
-**phase1/121** is reserved for a **measured** 1H backtest (not written here; **no invented numbers**):
+**phase1/121** is reserved for a **measured** 1H backtest (not written here; **no invented numbers**).
+
+**Risk HOLD / ACK:** 121 is **BACKTEST / research family-pick ONLY.** It is **NOT** a hard no-POST / live-blocker. Do **not** resurrect 2020 as a live-blocker.
 
 | Field | Lock |
 |-------|------|
-| **Role** | **BACKTEST / research** — **measured edge** to pick the Scalp family |
+| **Role** | **BACKTEST / research only** — pick a Scalp **family** (honesty bar; not Soft PASS alone) |
 | **Families** | BreakoutV1 · EMA12/21 · RSI14 MR · Dual Thrust+RVOL |
 | **Assets** | **BTC-USD · ETH-USD · DOGE-USD** |
 | **Bar** | **1H** |
 | **Window** | **Jul 2020 → Jan 2021** |
-| **Bar to beat** | **Honesty bar** (same-window / same-cost reference — **not** a Soft PASS claim alone) |
-| **Bind on this gate** | **No PEPE POST until 121 measured edge exists.** Soft PASS claim alone **insufficient**. |
-| **Not this** | Not a live-arm. Not a PEPE score. **No number transplant** onto PEPE. |
+| **Live bind** | **None.** 121 **does not** block a Scalp POST. |
+| **Not this** | Not a live-arm. Not a PEPE score. **No number transplant** onto PEPE or any alt. |
 
-121 is **backtest / research**, not a live score. On **this PEPE gate**, it is still a **hard no-POST** until measured. This PR does **not** score 121 or invent a winner / honesty-bar €.
+This PR does **not** score 121 or invent a winner / honesty-bar €.
 
 ---
 
-## Instrument re-score (PEPE ★ first)
+## Instrument re-score (PEPE ★ first) — honesty preferred, not a live-blocker
 
 | Rule | Lock |
 |------|------|
-| **Family** | The **121 winner** (same family; do not invent it here). |
+| **Role** | **Honesty preferred** before first live. **Not** a hard no-POST. **Not** a 2020 live-blocker. |
 | **First instrument** | **PEPE-USDC** public-MD (**★**). |
-| **If PEPE does not work** | Same family, **measured** on the **next LIVE-queue** name (PUMP → TRUMP → WIF). |
-| **Not this** | Do **not** copy [`117`](./117-public-md-scalp-first-score-ema1221-1h.md)–[`119`](./119-public-md-scalp-rsi14-mr-1h.md) PUMP/TRUMP/WIF tables as the live re-score. |
-| **Edge** | **Measured** vs honesty bar. **No 2020 number transplant.** |
+| **If PEPE does not work** | Same family (if 121 has a winner; else do not invent one), **measured** on the **next LIVE-queue** name (PUMP → TRUMP → WIF). |
+| **Not this** | Do **not** copy [`117`](./117-public-md-scalp-first-score-ema1221-1h.md)–[`119`](./119-public-md-scalp-rsi14-mr-1h.md) tables as a live re-score. **No 2020 number transplant.** |
 | **This PR** | **Does not** write a re-score. No invented €. |
 
 [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) multi-coin **watch** stays under **one** 10% bucket. Watch ≠ LIVE queue ≠ arm.
 
 ---
 
-## PEPE LIVE POST — ALL required (none skipped)
+## Live Scalp POST gate (hard)
 
-**No PEPE Scalp POST** until **all** of the following. This note satisfies **only** the Ops live-placeable honesty stamp (and **not** the `settleCcy` confirm-before-place).
+**This note does not POST.** A later Scalp POST still needs the **hard** gate below. **121 / 2020 is not in this table.**
 
 | # | Condition | Status in this PR |
 |---|-----------|-------------------|
-| **G1** | **2020 measured edge (phase1/121)** — family pick vs honesty bar. | **Pending** — 121 reserved, **unscored**. |
-| **G2** | **Instrument re-score** — PEPE ★ first (PEPE-USDC public-MD); else next LIVE-queue name; measured; no transplant. | **Pending** — no invented table. |
-| **G3** | **Kaje `session-ja`** + sleeve list. Parent **`ga live`** not dropped. | **Pending** — this note is **not** `session-ja`. |
-| **G4** | Ops **live** placeable. **DEMO_BLOCK unchanged.** | **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** all **`LIVE_CLEAR_BOTH`** (live key, 2026-09-12). |
-| **G5** | **`settleCcy` USDC on acct — confirm before place.** | **Required at place time.** Not invented as already confirmed for an order. |
+| **G1** | Ops **`LIVE_CLEAR`** on the chosen LIVE-queue name. **DEMO_BLOCK unchanged.** | **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** all **`LIVE_CLEAR_BOTH`** (live key, 2026-09-12). |
+| **G2** | Kaje **`session-ja`** + **sleeve list** / **`ga live`**. | **Pending** — this note is **not** `session-ja`. |
+| **G3** | Caps **≤10%** book · **≤10× isolated** (TRUMP exchange max 50× ≠ policy). | Policy locked. Runtime yaml **untouched**. |
+| **G4** | **`settleCcy` USDC on acct — confirm before place.** | **Required at place time.** Not invented as already confirmed for an order. |
 
-Soft PASS ≠ Scalp-arm. `LIVE_CLEAR_BOTH` ≠ skip G1–G3 / G5.
+| Honesty (not a hard live-blocker) | Status |
+|-----------------------------------|--------|
+| **121** 2020 family-pick backtest | **Research only.** **Not** G1. **Not** a no-POST. |
+| **Instrument re-score** (PEPE ★ first) | **Honesty preferred** before first live. **Not** a hard live-blocker. Do **not** resurrect 2020 as one. |
+
+Soft PASS ≠ Scalp-arm. `LIVE_CLEAR_BOTH` ≠ skip G2. **121 ≠ live-blocker.**
 
 ---
 
 ## Caps if armed (later — not an arm)
 
-If a later explicit arm clears **G1–G5**:
+If a later explicit arm clears the **hard** live POST gate (**G1–G4**):
 
 | Cap | Lock |
 |-----|------|
@@ -191,7 +200,7 @@ Runtime yaml **untouched**. This PR does **not** raise runtime caps.
 | [`108`](./108-dev-board-research-lock.md) | Research freeze. Live Core fill is capital, not a CORE-R1 promote. |
 | [`111`](./111-sl-fill-release-human-ping.md) / [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md) | Ping + 3×SL → 28m once a PEPE system is armed. Not an arm. |
 | [`105`](./105-portfolio-core-major.md) / [`106`](./106-research-governance-board.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN. Soft PASS ≠ arm. |
-| **121** (reserved) | 2020 majors measured-edge backtest. **Required before PEPE POST.** Not scored here. |
+| **121** (reserved) | 2020 majors **BACKTEST / research family-pick ONLY.** **Not** a hard no-POST / live-blocker. Not scored here. |
 
 ---
 
@@ -204,7 +213,9 @@ Runtime yaml **untouched**. This PR does **not** raise runtime caps.
 - Stamp **TRUMP** exchange max **50×** but **policy ≤10×**.
 - Stamp **`settleCcy` USDC on acct — confirm before place.**
 - Stamp **DEMO_BLOCK unchanged.**
-- Stamp **no POST** until **121 + instrument re-score** (PEPE ★ first) **+ session-ja**.
+- Stamp **live POST gate** = **`LIVE_CLEAR` + `session-ja` (+ sleeve / `ga live`) + ≤10% / ≤10×**.
+- Stamp **121 = backtest / family-pick ONLY** — **not** a hard no-POST.
+- Stamp instrument re-score (PEPE ★ first) = **honesty preferred**, not a live-blocker.
 - Restate **Soft PASS ≠ Scalp-arm** · ≤10% Scalp · ≤10× iso · 5% kill.
 - Pre-register `TL-120` (not a score). Index in [`README`](./README.md). Overlay pointers on 107 / 113 / 114 / 116.
 
@@ -223,11 +234,12 @@ Runtime yaml **untouched**. This PR does **not** raise runtime caps.
 ## Honesty / invalidation
 
 - Soft PASS / `LIVE_CLEAR_BOTH` / [`115`](./115-public-md-scalp-method.md) / [`117`](./117-public-md-scalp-first-score-ema1221-1h.md)–[`119`](./119-public-md-scalp-rsi14-mr-1h.md) **≠ Scalp-arm**.
-- A later PR that POSTs **without** 121 + instrument re-score (PEPE ★ first) + session-ja violates this gate.
+- A later PR that POSTs **without** `LIVE_CLEAR` + `session-ja` (+ sleeve / `ga live`) + ≤10% / ≤10× violates the **live POST gate**.
+- A later PR that treats **121 / 2020** as a **hard no-POST / live-blocker** contradicts this Risk HOLD / ACK.
 - A later PR that uses TRUMP at **50×** (exchange max) violates the **≤10×** policy cap.
 - A later PR that POSTs without **`settleCcy` USDC confirm** on acct violates I10.
 - A later PR that lifts DEMO_BLOCK or invents live from demo `51001` violates I5.
-- A later PR that transplants 2020 or PUMP/TRUMP/WIF numbers onto PEPE violates G2 / I4.
+- A later PR that transplants 2020 numbers onto PEPE / PUMP / TRUMP / WIF violates I4.
 - A later PR that edits `config/default.yaml` or flips `pepe_enabled` contradicts I3.
 
 `not_a_forecast: true`. `place_orders: false`. Soft PASS ≠ Scalp-arm. DEMO_BLOCK still. `config/default.yaml` untouched.
