@@ -181,14 +181,16 @@ See [`116`](./116-kaje-capital-intent-2026-09-12.md). `not_a_forecast`
 
 **Docs only.** Does **not** edit `config/default.yaml`. **Soft PASS ≠ Scalp-arm.** `place_orders: false`.
 
-[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the Kaje + Risk ACK **Scalp LIVE conditional gate**. Core fill / Mid #71 / ~€240 stamps stay [`116`](./116-kaje-capital-intent-2026-09-12.md).
+[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE**. Core fill / Mid #71 / ~€240 stamps stay [`116`](./116-kaje-capital-intent-2026-09-12.md).
 
 | Item | Lock |
 |------|------|
-| 2020 BTC/ETH/DOGE | **BACKTEST / research only** (reserved **phase1/121**) — pick Scalp family. **Not** a forever POST veto. **First** Scalp live uses the 121 winner. |
-| Live instrument | **Any Ops `LIVE_CLEAR` coin.** **PEPE preferred if it works**; else next alts. |
-| Ops | **PEPE `LIVE_CLEAR_BOTH` already verified.** **≠ arm.** DEMO_BLOCK on demo key **≠ invent live**. |
-| Before POST | Kaje **`session-ja` + sleeve list**. Parent **`ga live`** not dropped. |
+| Gate | **PEPE LIVE** — not a generic any-coin arm |
+| Ops honesty | **`LIVE_CLEAR_BOTH`** on **live** key: **PEPE-USDC** + **PEPE-USD_UM_XPERP-310404** (2026-09-12) |
+| `settleCcy` | **USDC on acct — confirm before place** |
+| DEMO_BLOCK | **Still on** (demo key). ≠ invent live. ≠ lift because live-clear |
+| No POST until | **121** (2020 measured edge) **+ PEPE re-score + session-ja** |
+| Soft PASS | **≠ Scalp-arm** |
 | Caps if later armed | Scalp **≤10%** book (**~€24** of **~€103 USDC residual** stamp) · **≤10× isolated** · 5% kill · no martingale |
 
 No invented PnL.

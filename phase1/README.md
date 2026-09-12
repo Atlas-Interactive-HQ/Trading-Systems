@@ -72,7 +72,7 @@
 | [117-public-md-scalp-first-score-ema1221-1h.md](./117-public-md-scalp-first-score-ema1221-1h.md) | Public-MD Scalp first scores: EMA12/21 1H PUMP/TRUMP/WIF; Soft PASS N/A ≠ arm |
 | [118-public-md-scalp-breakoutv1-1h.md](./118-public-md-scalp-breakoutv1-1h.md) | Public-MD Scalp scores: BreakoutV1 1H PUMP/TRUMP/WIF; Soft PASS N/A ≠ arm |
 | [119-public-md-scalp-rsi14-mr-1h.md](./119-public-md-scalp-rsi14-mr-1h.md) | Public-MD Scalp scores: RSI14 MR 1H PUMP/TRUMP/WIF (team-fit); Soft PASS N/A ≠ arm |
-| [120-kaje-risk-scalp-live-gate-2026-09-12.md](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Kaje+Risk Scalp LIVE conditional gate: 2020/121 backtest family-pick; any LIVE_CLEAR (PEPE preferred); PEPE LIVE_CLEAR_BOTH ≠ arm; session-ja + sleeve list; Soft PASS ≠ arm |
+| [120-kaje-risk-scalp-live-gate-2026-09-12.md](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | PEPE LIVE conditional GATE: Ops LIVE_CLEAR_BOTH PEPE-USDC + X-Perp-310404 (settleCcy USDC confirm-before-place); DEMO_BLOCK still; no POST until 121 + PEPE rescore + session-ja; Soft PASS ≠ arm |
 
 ## Locked highlights (see 00 for full list)
 

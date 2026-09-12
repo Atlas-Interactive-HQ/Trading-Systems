@@ -230,14 +230,24 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.global_trial_count == 16
     assert tl120.family_trial_count == 5
     assert tl120.parameters["note_id"] == 120
+    assert tl120.parameters["gate"] == "pepe_live_conditional"
     assert tl120.parameters["reserved_backtest_note"] == 121
-    assert tl120.parameters["majors_2020_role"] == "backtest_research_family_pick_only"
-    assert tl120.parameters["majors_2020_forever_post_veto"] is False
+    assert tl120.parameters["no_post_until"] == [
+        "phase1/121_2020_measured_edge",
+        "pepe_rescore",
+        "session-ja",
+    ]
+    assert tl120.parameters["majors_2020_role"] == "backtest_research_required_before_pepe_post"
     assert tl120.parameters["first_scalp_live_uses_121_winner_as_locked_family"] is True
-    assert tl120.parameters["live_instrument"] == "any_ops_live_clear"
-    assert tl120.parameters["pepe_preferred_if_it_works"] is True
+    assert tl120.parameters["live_instrument"] == "PEPE"
+    assert tl120.parameters["pepe_spot"] == "PEPE-USDC"
+    assert tl120.parameters["pepe_xperp_md"] == "PEPE-USD_UM_XPERP-310404"
     assert tl120.parameters["pepe_live_clear_both_verified"] is True
+    assert tl120.parameters["pepe_live_clear_both_key"] == "live"
     assert tl120.parameters["pepe_live_clear_both_neq_arm"] is True
+    assert tl120.parameters["settle_ccy_usdc_on_acct"] is True
+    assert tl120.parameters["settle_ccy_confirm_before_place"] is True
+    assert tl120.parameters["demo_block_still"] is True
     assert tl120.parameters["demo_block_neq_invent_live"] is True
     assert tl120.parameters["session_ja_required"] is True
     assert tl120.parameters["sleeve_list_required"] is True
@@ -250,10 +260,13 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl120.parameters["default_yaml_untouched"] is True
     assert tl120.parameters["invent_pnl"] is False
     assert tl120.parameters["invent_121_winner"] is False
+    assert tl120.parameters["invent_pepe_rescore"] is False
     assert tl120.place_orders is False
+    assert tl120.asset == "PEPE-USDC"
     assert tl120.result["pepe_live_clear_both_verified"] is True
     assert tl120.result["pepe_live_clear_both_neq_arm"] is True
-    assert tl120.result["majors_2020_forever_post_veto"] is False
+    assert tl120.result["demo_block_still"] is True
+    assert tl120.result["settle_ccy_confirm_before_place"] is True
     assert tl120.result["invented_pnl"] is False
     assert tl120.result["invented_121_winner"] is False
     note = multiplicity_note(rows)

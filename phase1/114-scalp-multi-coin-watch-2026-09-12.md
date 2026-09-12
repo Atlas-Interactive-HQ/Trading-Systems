@@ -110,7 +110,7 @@ Research later may rank a name **only** after a later Ops re-verify. Ranking met
 | [`07`](./07-venue-preflight-notes.md) / [`08`](./08-self-learning-paper-path.md) / [`09`](./09-handoff-grok-cli.md) | Catalogue vs demo-tradable split; PEPE deferred. |
 | [`105`](./105-portfolio-core-major.md) / [`106`](./106-research-governance-board.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN. Soft PASS ≠ arm. |
 | [`115`](./115-public-md-scalp-method.md) | Public-MD Scalp **paper method** (already on main). Not a second watch lock. Public MD ≠ demo route ≠ arm. |
-| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay: live-key `LIVE_CLEAR` / PEPE `LIVE_CLEAR_BOTH` ≠ arm. DEMO_BLOCK ≠ invent live. Does **not** re-lock this watch policy. |
+| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay: **PEPE LIVE GATE.** `LIVE_CLEAR_BOTH` PEPE-USDC + X-Perp-310404 ≠ arm. **DEMO_BLOCK still.** Does **not** re-lock this watch policy. |
 
 ---
 
@@ -156,4 +156,4 @@ Research later may rank a name **only** after a later Ops re-verify. Ranking met
 
 Kaje + Risk ACK **2026-09-12**. This watch lock is **unchanged** (one 10% bucket · DEMO_BLOCK on the **demo** key · catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm).
 
-[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) adds **live-key** stamps: **`LIVE_CLEAR` / `LIVE_CLEAR_BOTH`**. Ops: **PEPE `LIVE_CLEAR_BOTH` already verified** — **≠ arm**. DEMO_BLOCK **≠ invent live**. Live instrument may be **any `LIVE_CLEAR` coin** (PEPE preferred if it works; else next alts). Soft PASS ≠ arm. `not_a_forecast`.
+[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE**. Ops **2026-09-12** **`LIVE_CLEAR_BOTH`** on the **live** key for **PEPE-USDC** + **PEPE-USD_UM_XPERP-310404**; **`settleCcy` USDC on acct — confirm before place.** **DEMO_BLOCK still** on the demo key. **No POST** until **121 + PEPE re-score + session-ja**. Soft PASS ≠ Scalp-arm. `not_a_forecast`.

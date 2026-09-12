@@ -101,7 +101,7 @@ Monday 09:00 Europe/Amsterdam is a **review clock**, not a cron that places orde
 | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | Overlay (same date): Scalp may **watch multiple coins** under the **one** 10% bucket. Ops **DEMO_BLOCK** on demo key for PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI. Catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm. Does **not** re-lock this architecture. |
 | [`115`](./115-public-md-scalp-method.md) | Public-MD Scalp **method** (PR #98). Method-only. Soft PASS ≠ Scalp-arm. DEMO_BLOCK full meme screen on demo OMS. |
 | [`116`](./116-kaje-capital-intent-2026-09-12.md) | Overlay (same date): live Core BTC fill ~€144 @ 77304.3 (`ordId 3915002084440100864`); Mid #71 ~€72 conditional / flat; Scalp Soft PASS ≠ arm; scalper-first for **Scalp-arm only**. Does **not** re-lock this architecture. |
-| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay (same date): Scalp LIVE conditional gate (Risk ACK). 2020/121 backtest family-pick; any `LIVE_CLEAR` (PEPE preferred); PEPE `LIVE_CLEAR_BOTH` ≠ arm. Does **not** re-lock this architecture. |
+| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay (same date): **PEPE LIVE conditional GATE.** Ops `LIVE_CLEAR_BOTH` PEPE-USDC + `PEPE-USD_UM_XPERP-310404`; `settleCcy` USDC confirm-before-place; DEMO_BLOCK still; no POST until 121 + PEPE rescore + session-ja. Does **not** re-lock this architecture. |
 
 ---
 
@@ -165,4 +165,4 @@ Kaje overlay **2026-09-12**: book **~€240** **supersedes €200** as the later
 
 ## Overlay — Scalp LIVE conditional gate ([`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md))
 
-Kaje + Risk ACK **2026-09-12**: first Scalp LIVE POST is **conditional**. **2020 BTC/ETH/DOGE = BACKTEST / research only** (reserved **phase1/121**) — pick the Scalp family; **not** a forever POST veto; **first** live still uses the 121 winner as the locked family. Live instrument = **any Ops `LIVE_CLEAR` coin**; **PEPE preferred if it works**; else next alts. Ops: **PEPE `LIVE_CLEAR_BOTH` already verified** — **≠ arm**. Still need **`session-ja` + sleeve list** (parent **`ga live`** not dropped). Soft PASS ≠ arm · Scalp ≤10% · ≤10× iso · DEMO_BLOCK ≠ invent live. See [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md). This architecture lock is **unchanged**.
+Kaje + Risk **2026-09-12**: [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE**. Ops honesty: **`LIVE_CLEAR_BOTH`** on the **live** key for **PEPE-USDC** + **PEPE-USD_UM_XPERP-310404**; **`settleCcy` USDC on acct — confirm before place.** **DEMO_BLOCK still.** **No POST** until **121 + PEPE re-score + session-ja**. Soft PASS ≠ Scalp-arm. This architecture lock is **unchanged**.
