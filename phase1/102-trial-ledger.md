@@ -71,7 +71,7 @@ Before any GREEN CANDIDATE declaration, expand the census to every scored hypoth
 | `TL-110` | [`110`](./110-paper-scoreboard-synthesis-2026-09-12.md) | `N/A_synthesis_not_a_score` (cites #108 board; no new panel) |
 | `TL-111` | [`111`](./111-sl-fill-release-human-ping.md) | `N/A_ops_ping_lock_not_a_score` (SL fill/release ping; does not re-lock #112) |
 | `TL-113` | [`113`](./113-kaje-architecture-2026-09-12.md) | `N/A_architecture_lock_not_a_score` (6:3:1 BTC/DOGE/PEPE; Mid≤5× Scalp≤10×; Soft PASS ≠ arm) |
-| `TL-114` | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | `N/A_universe_policy_lock_not_a_score` (multi-coin Scalp watch under 10% bucket; PEPE preferred if DEMO_CLEAR; Soft PASS ≠ arm) |
+| `TL-114` | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | `N/A_universe_policy_lock_not_a_score` (multi-coin Scalp watch under 10% bucket; Ops DEMO_BLOCK meme list; Soft PASS ≠ arm) |
 
 Result objects **cite** those notes. They do not restate panel € tables as a new score. Soft PASS ≠ arm.
 

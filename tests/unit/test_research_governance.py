@@ -162,17 +162,29 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl114.parameters["scalp_share_of_book"] == 0.10
     assert tl114.parameters["one_scalp_bucket"] is True
     assert tl114.parameters["multi_coin_watch"] is True
-    assert tl114.parameters["preferred_if_demo_clear"] == "PEPE"
-    assert tl114.parameters["pepe_demo_clear"] is False
+    assert tl114.parameters["architecture_target_name"] == "PEPE"
+    assert tl114.parameters["ops_stamp"] == "DEMO_BLOCK"
+    assert tl114.parameters["ops_demo_key"] is True
+    assert tl114.parameters["demo_block_names"] == [
+        "PEPE",
+        "PUMP",
+        "TRUMP",
+        "WIF",
+        "SHIB",
+        "BONK",
+        "BOME",
+        "FLOKI",
+    ]
     assert tl114.parameters["alternatives_ranked"] is False
     assert tl114.parameters["invent_expectancy"] is False
     assert tl114.parameters["invent_order_inst_id"] is False
-    assert tl114.parameters["catalogue_clear_neq_demo_clear"] is True
+    assert tl114.parameters["catalogue_clear_neq_demo_block"] is True
     assert tl114.parameters["live_arm"] is False
     assert tl114.parameters["default_yaml_untouched"] is True
     assert tl114.place_orders is False
     assert tl114.result["invented_expectancy"] is False
     assert tl114.result["ranked_alternatives"] is False
+    assert tl114.result["ops_demo_block"] is True
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"
