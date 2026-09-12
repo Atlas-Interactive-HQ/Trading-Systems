@@ -99,6 +99,8 @@ Monday 09:00 Europe/Amsterdam is a **review clock**, not a cron that places orde
 | [`105`](./105-portfolio-core-major.md) / [`106`](./106-research-governance-board.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN. Soft PASS ≠ arm. BTC hold ≠ CORE-MAJOR-v1 score. |
 | [`109`](./109-three-month-program-2026-09-12.md) | 3-month quiet-ops program unchanged. This lock does not invent SHADOW dates or pick HFT. |
 | [`114`](./114-scalp-multi-coin-watch-2026-09-12.md) | Overlay (same date): Scalp may **watch multiple coins** under the **one** 10% bucket. Ops **DEMO_BLOCK** on demo key for PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI. Catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm. Does **not** re-lock this architecture. |
+| [`115`](./115-public-md-scalp-method.md) | Public-MD Scalp **method** (PR #98). Method-only. Soft PASS ≠ Scalp-arm. DEMO_BLOCK full meme screen on demo OMS. |
+| [`116`](./116-kaje-capital-intent-2026-09-12.md) | Overlay (same date): live Core BTC fill ~€144 @ 77304.3 (`ordId 3915002084440100864`); Mid #71 ~€72 conditional / flat; Scalp Soft PASS ≠ arm; scalper-first for **Scalp-arm only**. Does **not** re-lock this architecture. |
 
 ---
 
@@ -155,3 +157,7 @@ If max allowed leverage **cannot be demonstrated** for the instrument / size / t
 ## Overlay — multi-coin Scalp watch ([`114`](./114-scalp-multi-coin-watch-2026-09-12.md))
 
 Kaje overlay **2026-09-12**: Scalp may **watch multiple coins** under the **one** Scalp **10%** bucket (the **1** in **6 : 3 : 1**). PEPE remains the architecture target **name**. Ops stamp on the demo key: **PEPE / PUMP / TRUMP / WIF / SHIB / BONK / BOME / FLOKI = DEMO_BLOCK**. Catalogue CLEAR ≠ DEMO_BLOCK ≠ Soft PASS ≠ arm. **No invented expectancy / order `instId`.** See [`114`](./114-scalp-multi-coin-watch-2026-09-12.md). This architecture lock is **unchanged**.
+
+## Overlay — capital / intent ([`116`](./116-kaje-capital-intent-2026-09-12.md))
+
+Kaje overlay **2026-09-12**: book **~€240** **supersedes €200** as the later-arm **budget figure**. **6 : 3 : 1** remains. **Live:** Core BTC spot **already filled** ~€144 @ 77304.3 (`ordId 3915002084440100864`) — Core exception **executed**; do **not** call Core parked. Mid DOGE ~€72 **conditional** on #71, **currently flat**. Scalp: **Soft PASS ≠ Scalp-arm**; method [`115`](./115-public-md-scalp-method.md). **Scalper-first applies to Scalp-arm only.** DEMO_BLOCK = full meme screen on demo OMS. See [`116`](./116-kaje-capital-intent-2026-09-12.md). This architecture lock is **unchanged**.
