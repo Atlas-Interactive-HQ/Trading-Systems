@@ -50,3 +50,4 @@ results/public_md_125_cache/
 
 # Public-MD #145 W1/W2 candle caches (regenerate via scripts/_fetch_public_md_145.py)
 results/public_md_145_cache/
+results/public_md_148_cache/
