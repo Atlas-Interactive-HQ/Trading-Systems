@@ -118,6 +118,7 @@ Do **not** invent a Scalp `instId`, expectancy, or ranked coin pick.
 | [`109`](./109-three-month-program-2026-09-12.md) | Quiet-ops program unchanged. Do not invent SHADOW dates. |
 | [`111`](./111-sl-fill-release-human-ping.md) / [`112`](./112-scalp-s1-3sl-28m-cooldown-lock.md) | Ping + 3×SL → 28m still apply **once** a stream / Scalp system is armed. Not a Scalp-arm. |
 | [`105`](./105-portfolio-core-major.md) / [`106`](./106-research-governance-board.md) | STRATEGY GREEN ≠ PORTFOLIO GREEN. Soft PASS ≠ Scalp-arm. |
+| [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | Overlay (same date): **PEPE LIVE conditional GATE.** Does **not** re-lock this capital stamp. |
 
 ---
 
@@ -153,3 +154,11 @@ Do **not** invent a Scalp `instId`, expectancy, or ranked coin pick.
 - A later PR that edits `config/default.yaml` for this lock contradicts I5.
 
 `not_a_forecast: true`. `place_orders: false`. Soft PASS ≠ Scalp-arm. `config/default.yaml` untouched.
+
+---
+
+## Overlay — Scalp LIVE conditional gate ([`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md))
+
+Kaje + Risk ACK **2026-09-12**. This capital / intent lock is **unchanged** (Core filled · Mid #71 conditional / flat · Soft PASS ≠ Scalp-arm).
+
+[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE** plus Ops **LIVE queue** **PEPE ★ → PUMP → TRUMP → WIF** (all **`LIVE_CLEAR_BOTH`**). **Live POST gate** = **`LIVE_CLEAR` + `session-ja` (+ sleeve / `ga live`) + ≤10% / ≤10×**. **121 = backtest / family-pick ONLY — not a live-blocker.** Instrument re-score = honesty preferred. **DEMO_BLOCK unchanged.** Soft PASS ≠ Scalp-arm. `not_a_forecast`.

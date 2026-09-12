@@ -176,3 +176,26 @@ See [`113`](./113-kaje-architecture-2026-09-12.md). `not_a_forecast`
 No invented PnL.
 
 See [`116`](./116-kaje-capital-intent-2026-09-12.md). `not_a_forecast`
+
+## Addendum — Scalp LIVE conditional gate (phase1/120, 2026-09-12)
+
+**Docs only.** Does **not** edit `config/default.yaml`. **Soft PASS ≠ Scalp-arm.** `place_orders: false`.
+
+[`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md) is the **PEPE LIVE conditional GATE**. Core fill / Mid #71 / ~€240 stamps stay [`116`](./116-kaje-capital-intent-2026-09-12.md).
+
+| Item | Lock |
+|------|------|
+| Gate | **PEPE LIVE** — PEPE ★ first |
+| Ops LIVE queue | **PEPE ★ → PUMP → TRUMP → WIF** — all **`LIVE_CLEAR_BOTH`** on **live** key (2026-09-12) |
+| TRUMP lev | Exchange max **50×** — **policy ≤10× isolated** |
+| `settleCcy` | **USDC on acct — confirm before place** |
+| DEMO_BLOCK | **Unchanged** (demo key). ≠ invent live. ≠ lift because live-clear |
+| Live POST gate | Ops **`LIVE_CLEAR`** + Kaje **`session-ja`** (+ sleeve / `ga live`) + **≤10% / ≤10×** |
+| 121 | **BACKTEST / research family-pick ONLY** — **not** a hard no-POST / live-blocker |
+| Re-score | Honesty preferred (PEPE ★ first) — **not** a hard live-blocker |
+| Soft PASS | **≠ Scalp-arm** |
+| Caps if later armed | Scalp **≤10%** book (**~€24** of **~€103 USDC residual** stamp) · **≤10× isolated** · 5% kill · no martingale |
+
+No invented PnL.
+
+See [`120`](./120-kaje-risk-scalp-live-gate-2026-09-12.md). `not_a_forecast`

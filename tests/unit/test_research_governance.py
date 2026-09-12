@@ -109,6 +109,7 @@ def test_trial_ledger_starter_loads_and_validates():
         "TL-113",
         "TL-114",
         "TL-116",
+        "TL-120",
     ]
     assert all(r.not_a_forecast and r.soft_pass_neq_arm for r in rows)
     assert all(r.pre_registered and not r.post_hoc for r in rows)
@@ -220,6 +221,85 @@ def test_trial_ledger_starter_loads_and_validates():
     assert tl116.result["capital_fully_parked"] is False
     assert tl116.result["soft_pass_neq_scalp_arm"] is True
     assert tl116.result["invented_pnl"] is False
+    tl120 = next(r for r in rows if r.trial_id == "TL-120")
+    assert tl120.parent_trial == "TL-116"
+    assert tl120.family == "governance"
+    assert tl120.pre_registered is True
+    assert tl120.post_hoc is False
+    assert tl120.pass_fail == "N/A_live_gate_lock_not_a_score"
+    assert tl120.global_trial_count == 16
+    assert tl120.family_trial_count == 5
+    assert tl120.parameters["note_id"] == 120
+    assert tl120.parameters["gate"] == "pepe_live_conditional"
+    assert tl120.parameters["reserved_backtest_note"] == 121
+    assert tl120.parameters["no_post_until"] == [
+        "ops_live_clear",
+        "session-ja_sleeve_ga_live",
+        "cap_10pct_10x",
+    ]
+    assert tl120.parameters["majors_2020_role"] == "backtest_research_family_pick_only"
+    assert tl120.parameters["majors_2020_hard_no_post"] is False
+    assert tl120.parameters["majors_2020_live_blocker"] is False
+    assert tl120.parameters["instrument_rescore_role"] == "honesty_preferred_not_hard_live_blocker"
+    assert tl120.parameters["live_post_gate"] == [
+        "ops_live_clear",
+        "session-ja",
+        "sleeve_list",
+        "ga_live",
+        "scalp_le_10pct",
+        "leverage_le_10x",
+    ]
+    assert tl120.parameters["first_scalp_live_uses_121_winner_as_locked_family"] is False
+    assert tl120.parameters["live_instrument"] == "PEPE"
+    assert tl120.parameters["live_queue"] == ["PEPE", "PUMP", "TRUMP", "WIF"]
+    assert tl120.parameters["live_queue_star"] == "PEPE"
+    assert tl120.parameters["live_queue_all_live_clear_both"] is True
+    assert tl120.parameters["pepe_spot"] == "PEPE-USDC"
+    assert tl120.parameters["pepe_xperp_md"] == "PEPE-USD_UM_XPERP-310404"
+    assert tl120.parameters["pump_spot"] == "PUMP-USDC"
+    assert tl120.parameters["pump_xperp_md"] == "PUMP-USD_UM_XPERP-310404"
+    assert tl120.parameters["trump_spot"] == "TRUMP-USDC"
+    assert tl120.parameters["trump_xperp_md"] == "TRUMP-USD_UM_XPERP-310704"
+    assert tl120.parameters["trump_exchange_max_leverage"] == 50.0
+    assert tl120.parameters["trump_policy_leverage_ceiling_isolated"] == 10.0
+    assert tl120.parameters["wif_spot"] == "WIF-USDC"
+    assert tl120.parameters["wif_xperp_md"] == "WIF-USD_UM_XPERP-310815"
+    assert tl120.parameters["pepe_live_clear_both_verified"] is True
+    assert tl120.parameters["pepe_live_clear_both_key"] == "live"
+    assert tl120.parameters["pepe_live_clear_both_neq_arm"] is True
+    assert tl120.parameters["settle_ccy_usdc_on_acct"] is True
+    assert tl120.parameters["settle_ccy_confirm_before_place"] is True
+    assert tl120.parameters["demo_block_still"] is True
+    assert tl120.parameters["demo_block_unchanged"] is True
+    assert tl120.parameters["demo_block_neq_invent_live"] is True
+    assert tl120.parameters["session_ja_required"] is True
+    assert tl120.parameters["sleeve_list_required"] is True
+    assert tl120.parameters["ga_live_not_dropped"] is True
+    assert tl120.parameters["soft_pass_neq_scalp_arm"] is True
+    assert tl120.parameters["scalp_share_of_book"] == 0.1
+    assert tl120.parameters["scalp_leverage_ceiling_isolated"] == 10.0
+    assert tl120.parameters["scalp_armed"] is False
+    assert tl120.parameters["place_orders"] is False
+    assert tl120.parameters["default_yaml_untouched"] is True
+    assert tl120.parameters["invent_pnl"] is False
+    assert tl120.parameters["invent_121_winner"] is False
+    assert tl120.parameters["invent_pepe_rescore"] is False
+    assert tl120.place_orders is False
+    assert tl120.asset == "PEPE-USDC"
+    assert tl120.result["pepe_live_clear_both_verified"] is True
+    assert tl120.result["pepe_live_clear_both_neq_arm"] is True
+    assert tl120.result["live_queue"] == ["PEPE", "PUMP", "TRUMP", "WIF"]
+    assert tl120.result["live_queue_star"] == "PEPE"
+    assert tl120.result["trump_exchange_max_leverage"] == 50.0
+    assert tl120.result["trump_policy_leverage_ceiling_isolated"] == 10.0
+    assert tl120.result["demo_block_still"] is True
+    assert tl120.result["demo_block_unchanged"] is True
+    assert tl120.result["settle_ccy_confirm_before_place"] is True
+    assert tl120.result["invented_pnl"] is False
+    assert tl120.result["invented_121_winner"] is False
+    assert tl120.result["majors_2020_hard_no_post"] is False
+    assert tl120.result["majors_2020_live_blocker"] is False
+    assert tl120.result["instrument_rescore_hard_live_blocker"] is False
     note = multiplicity_note(rows)
     assert note["invented_deflated_sharpe"] is False
     assert note["dsr_pbo"] == "conceptual_reference_only"

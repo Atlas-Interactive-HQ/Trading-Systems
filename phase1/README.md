@@ -69,6 +69,10 @@
 | [114-scalp-multi-coin-watch-2026-09-12.md](./114-scalp-multi-coin-watch-2026-09-12.md) | Scalp may watch multiple coins under one 10% (6:3:1) bucket; Ops DEMO_BLOCK on PEPE/PUMP/TRUMP/WIF/SHIB/BONK/BOME/FLOKI; Soft PASS ≠ arm |
 | [115-public-md-scalp-method.md](./115-public-md-scalp-method.md) | Public-MD Scalp paper method lock (method-only); no score; Soft PASS ≠ arm |
 | [116-kaje-capital-intent-2026-09-12.md](./116-kaje-capital-intent-2026-09-12.md) | Kaje capital/intent 2026-09-12: Core BTC fill ~€144; Mid #71 ~€72 conditional/flat; Scalp Soft PASS ≠ arm; public-MD #115; scalper-first for Scalp only |
+| [117-public-md-scalp-first-score-ema1221-1h.md](./117-public-md-scalp-first-score-ema1221-1h.md) | Public-MD Scalp first scores: EMA12/21 1H PUMP/TRUMP/WIF; Soft PASS N/A ≠ arm |
+| [118-public-md-scalp-breakoutv1-1h.md](./118-public-md-scalp-breakoutv1-1h.md) | Public-MD Scalp scores: BreakoutV1 1H PUMP/TRUMP/WIF; Soft PASS N/A ≠ arm |
+| [119-public-md-scalp-rsi14-mr-1h.md](./119-public-md-scalp-rsi14-mr-1h.md) | Public-MD Scalp scores: RSI14 MR 1H PUMP/TRUMP/WIF (team-fit); Soft PASS N/A ≠ arm |
+| [120-kaje-risk-scalp-live-gate-2026-09-12.md](./120-kaje-risk-scalp-live-gate-2026-09-12.md) | PEPE LIVE GATE + Ops queue PEPE ★→PUMP→TRUMP→WIF LIVE_CLEAR_BOTH; POST gate = LIVE_CLEAR + session-ja + ≤10%/≤10×; 121 backtest-only (not a live-blocker); DEMO_BLOCK unchanged; Soft PASS ≠ arm |
 
 ## Locked highlights (see 00 for full list)
 
