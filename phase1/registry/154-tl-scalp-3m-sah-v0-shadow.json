@@ -1,0 +1,271 @@
+{
+  "trial_id": "TL-SCALP-3M-SAH-v0",
+  "window_id": "SHADOW_POST_R7_MAJORS_v0",
+  "verdicts": {
+    "CTRL": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 2,
+      "n_pairs_term_ge_bh": 3,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_single_predeclared_window",
+      "arms_neq_soft": true
+    },
+    "SAH-A": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 3,
+      "n_pairs_term_ge_bh": 2,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_single_predeclared_window",
+      "arms_neq_soft": true
+    },
+    "SAH-B": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 2,
+      "n_pairs_term_ge_bh": 3,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_single_predeclared_window",
+      "arms_neq_soft": true
+    }
+  },
+  "sah_ranking": {
+    "metric": "mean_completed_exp_eur_across_pairs",
+    "CTRL": 0.04779787,
+    "SAH-A": 0.00562806,
+    "SAH-B": 0.05320508,
+    "SAH-A_gt_CTRL": false,
+    "SAH-B_gt_CTRL": true,
+    "orthogonal_to_hard": true,
+    "does_not_arm": true
+  },
+  "table": [
+    {
+      "arm": "CTRL",
+      "inst": "BTC-USDT",
+      "n": 71,
+      "exp": 0.1579135,
+      "term": 11.2118587,
+      "bh": 1.98747338,
+      "fee": 1.86786732,
+      "mix": {
+        "wins": 29,
+        "losses": 42,
+        "win_rate": 0.4084507
+      },
+      "occupancy": 0.45496818,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "CTRL",
+      "inst": "ETH-USDT",
+      "n": 72,
+      "exp": 0.12077037,
+      "term": 8.6954663,
+      "bh": 0.1671786,
+      "fee": 2.02630534,
+      "mix": {
+        "wins": 26,
+        "losses": 46,
+        "win_rate": 0.36111111
+      },
+      "occupancy": 0.41960352,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "CTRL",
+      "inst": "DOGE-USDT",
+      "n": 72,
+      "exp": -0.13529027,
+      "term": -9.74089977,
+      "bh": -10.40396243,
+      "fee": 1.54715367,
+      "mix": {
+        "wins": 15,
+        "losses": 57,
+        "win_rate": 0.20833333
+      },
+      "occupancy": 0.49498287,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": false
+    },
+    {
+      "arm": "SAH-A",
+      "inst": "BTC-USDT",
+      "n": 71,
+      "exp": 0.00794698,
+      "term": 0.5642359,
+      "bh": 1.98747338,
+      "fee": 0.07128286,
+      "mix": {
+        "wins": 29,
+        "losses": 42,
+        "win_rate": 0.4084507
+      },
+      "occupancy": 0.45496818,
+      "n_forced_end": 0,
+      "term_ge_bh": false,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "SAH-A",
+      "inst": "ETH-USDT",
+      "n": 72,
+      "exp": 0.0088857,
+      "term": 0.63977017,
+      "bh": 0.1671786,
+      "fee": 0.07232005,
+      "mix": {
+        "wins": 26,
+        "losses": 46,
+        "win_rate": 0.36111111
+      },
+      "occupancy": 0.41960352,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "SAH-A",
+      "inst": "DOGE-USDT",
+      "n": 72,
+      "exp": 5.15e-05,
+      "term": 0.00370781,
+      "bh": -10.40396243,
+      "fee": 0.07200184,
+      "mix": {
+        "wins": 15,
+        "losses": 57,
+        "win_rate": 0.20833333
+      },
+      "occupancy": 0.49498287,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "SAH-B",
+      "inst": "BTC-USDT",
+      "n": 71,
+      "exp": 0.16696874,
+      "term": 11.85478053,
+      "bh": 1.98747338,
+      "fee": 1.87440259,
+      "mix": {
+        "wins": 29,
+        "losses": 42,
+        "win_rate": 0.4084507
+      },
+      "occupancy": 0.45405042,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "SAH-B",
+      "inst": "ETH-USDT",
+      "n": 72,
+      "exp": 0.10820267,
+      "term": 7.7905926,
+      "bh": 0.1671786,
+      "fee": 2.03249402,
+      "mix": {
+        "wins": 26,
+        "losses": 46,
+        "win_rate": 0.36111111
+      },
+      "occupancy": 0.4181351,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true
+    },
+    {
+      "arm": "SAH-B",
+      "inst": "DOGE-USDT",
+      "n": 70,
+      "exp": -0.11555616,
+      "term": -8.08893095,
+      "bh": -10.40396243,
+      "fee": 1.58472016,
+      "mix": {
+        "wins": 16,
+        "losses": 54,
+        "win_rate": 0.22857143
+      },
+      "occupancy": 0.49082232,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": false
+    }
+  ],
+  "md_confirm": {
+    "BTC-USDT": {
+      "n_bars": 16381,
+      "first_ts_open_utc": "2024-11-05T00:00:00Z",
+      "last_ts_open_utc": "2026-09-18T12:00:00Z"
+    },
+    "ETH-USDT": {
+      "n_bars": 16381,
+      "first_ts_open_utc": "2024-11-05T00:00:00Z",
+      "last_ts_open_utc": "2026-09-18T12:00:00Z"
+    },
+    "DOGE-USDT": {
+      "n_bars": 16381,
+      "first_ts_open_utc": "2024-11-05T00:00:00Z",
+      "last_ts_open_utc": "2026-09-18T12:00:00Z"
+    }
+  },
+  "window_lock": {
+    "trial_id": "TL-SCALP-3M-SAH-v0",
+    "window_id": "SHADOW_POST_R7_MAJORS_v0",
+    "warmup_start_utc": "2024-11-05T00:00:00Z",
+    "scored_start_utc": "2024-11-06T00:00:00Z",
+    "scored_end_exclusive_utc": "2026-09-18T00:00:00Z",
+    "pairs": [
+      "BTC-USDT",
+      "ETH-USDT",
+      "DOGE-USDT"
+    ],
+    "arms": [
+      "CTRL",
+      "SAH-A",
+      "SAH-B"
+    ],
+    "sah_a_risk_frac": 0.05,
+    "sah_b_roll": 20,
+    "sah_b_cooldown_h": 24,
+    "length_days": 681.0,
+    "length_ok_for_3m_kpi": true,
+    "base_candidate_id": "rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_rvol_gt1_1h_eur20",
+    "family": "dual_thrust_n20_k0505_rvol_gt1_long_flat_1h",
+    "bar": "1H",
+    "sleeve_eur": 20.0,
+    "accounting": "accounting_v2",
+    "costs": "5+5 bps",
+    "fill": "next_open",
+    "place_orders": false,
+    "not_a_forecast": true,
+    "soft_ne_arm": true,
+    "dual_hard_pass": "N/A_single_predeclared_window"
+  },
+  "default_yaml_sha256": "5ea3910c8adb63ed0462ca93f128975619b519f13b869313d9f019bc10633fef",
+  "place_orders": false,
+  "not_a_forecast": true,
+  "soft_ne_arm": true,
+  "dual_hard_pass": "N/A_single_predeclared_window"
+}
