@@ -1,0 +1,575 @@
+{
+  "id": "TL-SCALP-MODULAR-COMPOSITE-v0",
+  "board": "156",
+  "ts_cest": "2026-09-18T16:21:26+02:00",
+  "agent": "Atlas | TS Research",
+  "kind": "modular_composite_paper_score",
+  "status": "scored",
+  "risk_ack": true,
+  "coord_ack": true,
+  "expectancy_board_run": true,
+  "place_orders": false,
+  "soft_ne_arm": true,
+  "not_a_forecast": true,
+  "no_edit_default_yaml": true,
+  "scalp": "PAUSED",
+  "n_arms": 5,
+  "arms": [
+    {
+      "id": "M1",
+      "name": "CTRL",
+      "one_liner": "S1 Dual Thrust N20 k0.5 + RVOL>1 1H alone; exit DT sell; \u20ac20; next-open; 5+5 bps"
+    },
+    {
+      "id": "M2",
+      "name": "S1+EMA_regime",
+      "one_liner": "S1 + 1H EMA12>EMA21; exit DT sell or EMA12<=EMA21; \u20ac20; next-open; 5+5 bps"
+    },
+    {
+      "id": "M3",
+      "name": "S1+RSI_band",
+      "one_liner": "S1 + RSI14 in [45,70] additive (RVOL already in S1); exit DT sell; \u20ac20; next-open; 5+5 bps"
+    },
+    {
+      "id": "M4",
+      "name": "S1+SAH-B",
+      "one_liner": "S1 + SAH-B offload (rolling-20 exp<=0 flat + 24h); \u20ac20; next-open; 5+5 bps"
+    },
+    {
+      "id": "M5",
+      "name": "MSB_P2+EMA",
+      "one_liner": "#151 P2 15m MSB + 1H EMA12>EMA21; long-only; #151 SL/TP or EMA flat; \u20ac20; next 15m open; 5+5 bps"
+    }
+  ],
+  "modules_reused": {
+    "S1": {
+      "cite": "phase1/87-rise-panel-scalp-s1-rvol-1h.md",
+      "strategy": "atlas.strategy.scalp_doge_dual_thrust_rvol_1h"
+    },
+    "EMA12_21_1H_gate": {
+      "cite": "Mid rise / PEPE E1 structure adapted as 1H majors gate \u2014 not PEPE 10x transplant"
+    },
+    "RSI_45_70": {
+      "cite": "labeled majors gate; not PEPE E4 reclaim FAIL (#155)"
+    },
+    "MSB_P2": {
+      "cite": "phase1/151-public-md-scalp-entry-msb.md",
+      "note": "P2 Soft note non-FAIL; P3 FAIL excluded"
+    },
+    "SAH_B": {
+      "cite": "phase1/154-tl-scalp-3m-sah-v0-shadow-board.md",
+      "role": "optional exit/offload only"
+    },
+    "SAH_A": {
+      "status": "REJECT_forever",
+      "reason": "#154 mean completed exp <= CTRL"
+    }
+  },
+  "window": {
+    "window_id": "SHADOW_POST_R7_MAJORS_v0",
+    "warmup_start_utc": "2024-11-05T00:00:00Z",
+    "scored_start_utc": "2024-11-06T00:00:00Z",
+    "scored_end_exclusive_utc": "2026-09-18T00:00:00Z",
+    "pairs": [
+      "BTC-USDT",
+      "ETH-USDT",
+      "DOGE-USDT"
+    ],
+    "md_ops": "/workspace/ts-live-ops/md/post-r7-shadow/"
+  },
+  "dual_hard": {
+    "primary": "SHADOW_POST_R7_MAJORS_v0",
+    "second": "future_OOS_Coord_locks_later",
+    "second_id": "TBD_fail_closed_until_Coord_lock",
+    "soft_ne_arm": true
+  },
+  "falsifiers": [
+    "completed_exp_after_costs_le_0_on_SHADOW -> FAIL that arm",
+    "Soft_note_ne_arm",
+    "no_param_grind_after_FAIL"
+  ],
+  "sleeve_eur": 20.0,
+  "costs": "5+5 bps",
+  "fill": "next_open",
+  "accounting": "accounting_v2",
+  "lock_brief": "/workspace/briefs/LOCK-TL-SCALP-MODULAR-COMPOSITE-v0-2026-09-18.md",
+  "board_md": "phase1/156-tl-scalp-modular-composite-v0-board.md",
+  "notes": "Coord/Kaje 2026-09-18 lock/plan only. No expectancy score this turn. Soft \u2260 Scalp-arm. SAH-A REJECT forever. Ask Risk ACK before score.",
+  "risk_ack_note": "Delegated gate 2026-09-18: Risk ACK on #156 (score authorized)",
+  "trial_id": "TL-SCALP-MODULAR-COMPOSITE-v0",
+  "window_id": "SHADOW_POST_R7_MAJORS_v0",
+  "verdicts": {
+    "M1": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 2,
+      "n_pairs_term_ge_bh": 3,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+      "arms_neq_soft": true
+    },
+    "M2": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 3,
+      "n_pairs_term_ge_bh": 2,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+      "arms_neq_soft": true
+    },
+    "M3": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 2,
+      "n_pairs_term_ge_bh": 3,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+      "arms_neq_soft": true
+    },
+    "M4": {
+      "verdict": "Window_PASS",
+      "reason": "exp>0_and_term>=BH on 2/3 pairs",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 2,
+      "n_pairs_term_ge_bh": 3,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 2,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+      "arms_neq_soft": true
+    },
+    "M5": {
+      "verdict": "SOFT_NOTE",
+      "reason": "partial: exp>0 0/3, term>=BH 1/3, both 0/3 (Soft\u2260arm)",
+      "n_pairs": 3,
+      "n_pairs_exp_gt_0": 0,
+      "n_pairs_term_ge_bh": 1,
+      "n_pairs_exp_gt_0_and_term_ge_bh": 0,
+      "need": 2,
+      "soft_ne_arm": true,
+      "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+      "arms_neq_soft": true
+    }
+  },
+  "table": [
+    {
+      "arm": "M1",
+      "inst": "BTC-USDT",
+      "n": 71,
+      "exp": 0.1579135,
+      "term": 11.2118587,
+      "bh": 1.98747338,
+      "fee": 1.86786732,
+      "mix": {
+        "wins": 29,
+        "losses": 42,
+        "win_rate": 0.4084507
+      },
+      "occupancy": 0.45496818,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M1",
+      "inst": "ETH-USDT",
+      "n": 72,
+      "exp": 0.12077037,
+      "term": 8.6954663,
+      "bh": 0.1671786,
+      "fee": 2.02630534,
+      "mix": {
+        "wins": 26,
+        "losses": 46,
+        "win_rate": 0.36111111
+      },
+      "occupancy": 0.41960352,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M1",
+      "inst": "DOGE-USDT",
+      "n": 72,
+      "exp": -0.13529027,
+      "term": -9.74089977,
+      "bh": -10.40396243,
+      "fee": 1.54715367,
+      "mix": {
+        "wins": 15,
+        "losses": 57,
+        "win_rate": 0.20833333
+      },
+      "occupancy": 0.49498287,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": false,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M2",
+      "inst": "BTC-USDT",
+      "n": 178,
+      "exp": 0.00054345,
+      "term": 0.09673333,
+      "bh": 1.98747338,
+      "fee": 3.55626879,
+      "mix": {
+        "wins": 57,
+        "losses": 121,
+        "win_rate": 0.32022472
+      },
+      "occupancy": 0.31846549,
+      "n_forced_end": 0,
+      "term_ge_bh": false,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M2",
+      "inst": "ETH-USDT",
+      "n": 178,
+      "exp": 0.01202514,
+      "term": 2.14047498,
+      "bh": 0.1671786,
+      "fee": 4.06497271,
+      "mix": {
+        "wins": 56,
+        "losses": 122,
+        "win_rate": 0.31460674
+      },
+      "occupancy": 0.28885218,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M2",
+      "inst": "DOGE-USDT",
+      "n": 181,
+      "exp": 0.08472746,
+      "term": 15.33567067,
+      "bh": -10.40396243,
+      "fee": 8.09218585,
+      "mix": {
+        "wins": 54,
+        "losses": 127,
+        "win_rate": 0.29834254
+      },
+      "occupancy": 0.29576603,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M3",
+      "inst": "BTC-USDT",
+      "n": 70,
+      "exp": 0.18257947,
+      "term": 12.78056299,
+      "bh": 1.98747338,
+      "fee": 1.88973497,
+      "mix": {
+        "wins": 29,
+        "losses": 41,
+        "win_rate": 0.41428571
+      },
+      "occupancy": 0.45111356,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M3",
+      "inst": "ETH-USDT",
+      "n": 70,
+      "exp": 0.13564696,
+      "term": 9.4952872,
+      "bh": 0.1671786,
+      "fee": 1.94453084,
+      "mix": {
+        "wins": 25,
+        "losses": 45,
+        "win_rate": 0.35714286
+      },
+      "occupancy": 0.4122002,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M3",
+      "inst": "DOGE-USDT",
+      "n": 70,
+      "exp": -0.14094111,
+      "term": -9.8658774,
+      "bh": -10.40396243,
+      "fee": 1.5499657,
+      "mix": {
+        "wins": 15,
+        "losses": 55,
+        "win_rate": 0.21428571
+      },
+      "occupancy": 0.48849731,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": false,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M4",
+      "inst": "BTC-USDT",
+      "n": 71,
+      "exp": 0.16696874,
+      "term": 11.85478053,
+      "bh": 1.98747338,
+      "fee": 1.87440259,
+      "mix": {
+        "wins": 29,
+        "losses": 42,
+        "win_rate": 0.4084507
+      },
+      "occupancy": 0.45405042,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M4",
+      "inst": "ETH-USDT",
+      "n": 72,
+      "exp": 0.10820267,
+      "term": 7.7905926,
+      "bh": 0.1671786,
+      "fee": 2.03249402,
+      "mix": {
+        "wins": 26,
+        "losses": 46,
+        "win_rate": 0.36111111
+      },
+      "occupancy": 0.4181351,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": true,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M4",
+      "inst": "DOGE-USDT",
+      "n": 70,
+      "exp": -0.11555616,
+      "term": -8.08893095,
+      "bh": -10.40396243,
+      "fee": 1.58472016,
+      "mix": {
+        "wins": 16,
+        "losses": 54,
+        "win_rate": 0.22857143
+      },
+      "occupancy": 0.49082232,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": false,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M5",
+      "inst": "BTC-USDT",
+      "n": 9,
+      "exp": -0.01022761,
+      "term": -0.09204851,
+      "bh": 1.98747338,
+      "fee": 1.36211333,
+      "mix": {
+        "wins": 4,
+        "losses": 5,
+        "win_rate": 0.44444444
+      },
+      "occupancy": 0.01928842,
+      "n_forced_end": 0,
+      "term_ge_bh": false,
+      "exp_gt_0": false,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M5",
+      "inst": "ETH-USDT",
+      "n": 23,
+      "exp": -0.64746863,
+      "term": -14.89177859,
+      "bh": 0.1671786,
+      "fee": 1.25896874,
+      "mix": {
+        "wins": 7,
+        "losses": 16,
+        "win_rate": 0.30434783
+      },
+      "occupancy": 0.04263032,
+      "n_forced_end": 0,
+      "term_ge_bh": false,
+      "exp_gt_0": false,
+      "blocked": false,
+      "status": null,
+      "error": null
+    },
+    {
+      "arm": "M5",
+      "inst": "DOGE-USDT",
+      "n": 26,
+      "exp": -0.37657784,
+      "term": -9.79102389,
+      "bh": -10.40396243,
+      "fee": 2.93336349,
+      "mix": {
+        "wins": 9,
+        "losses": 17,
+        "win_rate": 0.34615385
+      },
+      "occupancy": 0.03801089,
+      "n_forced_end": 0,
+      "term_ge_bh": true,
+      "exp_gt_0": false,
+      "blocked": false,
+      "status": null,
+      "error": null
+    }
+  ],
+  "md_confirm": {
+    "BTC-USDT": {
+      "n_bars": 16381,
+      "first_ts_open_utc": "2024-11-05T00:00:00Z",
+      "last_ts_open_utc": "2026-09-18T12:00:00Z",
+      "bar": "1H"
+    },
+    "ETH-USDT": {
+      "n_bars": 16381,
+      "first_ts_open_utc": "2024-11-05T00:00:00Z",
+      "last_ts_open_utc": "2026-09-18T12:00:00Z",
+      "bar": "1H"
+    },
+    "DOGE-USDT": {
+      "n_bars": 16381,
+      "first_ts_open_utc": "2024-11-05T00:00:00Z",
+      "last_ts_open_utc": "2026-09-18T12:00:00Z",
+      "bar": "1H"
+    }
+  },
+  "md_15m": {
+    "available": true,
+    "missing_pairs": [],
+    "found_paths": [
+      "/workspace/ts-live-ops/md/post-r7-shadow-15m/BTC-USDT_15m.jsonl",
+      "/workspace/ts-live-ops/md/post-r7-shadow-15m/ETH-USDT_15m.jsonl",
+      "/workspace/ts-live-ops/md/post-r7-shadow-15m/DOGE-USDT_15m.jsonl"
+    ],
+    "n_bars": {
+      "BTC-USDT": 65527,
+      "ETH-USDT": 65527,
+      "DOGE-USDT": 65527
+    },
+    "ops_dir": "/workspace/ts-live-ops/md/post-r7-shadow-15m",
+    "reason": null,
+    "manifest_bar": "15m",
+    "sl_tp_bar": "15m",
+    "sl_tp_note": "#151 honored SL/TP on 1m; post-R7 1m MD not provided \u2014 M5 honors same-bar SL-first SL/TP on 15m OHLC (Ops 15m)."
+  },
+  "window_lock": {
+    "trial_id": "TL-SCALP-MODULAR-COMPOSITE-v0",
+    "window_id": "SHADOW_POST_R7_MAJORS_v0",
+    "warmup_start_utc": "2024-11-05T00:00:00Z",
+    "scored_start_utc": "2024-11-06T00:00:00Z",
+    "scored_end_exclusive_utc": "2026-09-18T00:00:00Z",
+    "pairs": [
+      "BTC-USDT",
+      "ETH-USDT",
+      "DOGE-USDT"
+    ],
+    "arms": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+    ],
+    "arm_notes": {
+      "M1": "CTRL S1 alone",
+      "M2": "S1 + EMA12>EMA21; exit DT sell or EMA flat",
+      "M3": "S1 + RSI14 in [45,70] entry; exit DT sell",
+      "M4": "S1 + SAH-B offload rolling-20 + 24h",
+      "M5": "#151 P2 15m MSB + EMA12>EMA21; SL/TP on 15m OHLC or EMA flat; \u20ac20; next 15m open; 5+5 bps"
+    },
+    "sah_a": "REJECT_forever",
+    "sah_b_roll": 20,
+    "sah_b_cooldown_h": 24,
+    "ema_fast": 12,
+    "ema_slow": 21,
+    "rsi_period": 14,
+    "rsi_band": [
+      45.0,
+      70.0
+    ],
+    "length_days": 681.0,
+    "length_ok_for_3m_kpi": true,
+    "base_candidate_id": "rise_panel_v1_scalp_doge_dual_thrust_n20_k0505_rvol_gt1_1h_eur20",
+    "family": "dual_thrust_n20_k0505_rvol_gt1_long_flat_1h",
+    "bar": "1H",
+    "sleeve_eur": 20.0,
+    "accounting": "accounting_v2",
+    "costs": "5+5 bps",
+    "fill": "next_open",
+    "place_orders": false,
+    "not_a_forecast": true,
+    "soft_ne_arm": true,
+    "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+    "pair_pass_rule": "exp>0_and_term>=BH on >=2/3 pairs (#154)"
+  },
+  "default_yaml_sha256": "5ea3910c8adb63ed0462ca93f128975619b519f13b869313d9f019bc10633fef",
+  "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+  "sah_a_excluded": true,
+  "results_json": "results/tl_scalp_modular_composite_v0.json",
+  "walker": "src/atlas/paper/tl_scalp_modular_composite_v0.py",
+  "m5_only_update": true
+}
