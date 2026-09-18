@@ -9,7 +9,7 @@ Arms (LOCKED):
   M2 — S1 + 1H EMA12>EMA21; exit DT sell OR EMA12≤EMA21
   M3 — S1 + RSI14∈[45,70] on entry; exit DT sell
   M4 — S1 + SAH-B offload (rolling-20 completed exp≤0 → flat + 24h)
-  M5 — #151 P2 15m MSB + 1H EMA12>EMA21; BLOCKED if post-R7 15m MD missing
+  M5 — #151 P2 15m MSB + 1H EMA12>EMA21; #151 SL/TP or EMA flat; 15m OHLC SL (no 1m MD)
 
 Accounting: accounting_v2 · 5+5 bps · €20 · next-open · BH on scored bars.
 Window: SHADOW_POST_R7_MAJORS_v0 (same as #154).
@@ -30,6 +30,17 @@ from atlas.paper.ema_eval import EmaBookSettings, buy_and_hold
 from atlas.paper.engine import PaperSettings
 from atlas.paper.md import load_jsonl_candles
 from atlas.paper.replay import ReplayError
+from atlas.paper.accounting_v2 import attach_accounting_v2, compute_accounting_v2
+from atlas.paper.fills import apply_slippage, fee_on_notional
+from atlas.paper.public_md_scalp_144 import SAME_BAR_SL_TP, SL_FILL_CONVENTION, TP_FILL_CONVENTION
+from atlas.paper.public_md_scalp_151 import (
+    CELL_R_MULTIPLE,
+    CELL_RVOL_GATE,
+    CELL_USE_TP,
+    ENTRY_FILL_P1,
+    discover_15m_msb_setups,
+)
+from atlas.paper.public_md_scalp_dt_rvol_1h_131 import resample_4h_from_1h
 from atlas.paper.tl_scalp_3m_sah_v0_shadow import (
     ARM_CTRL,
     ARM_SAH_B,
@@ -43,6 +54,12 @@ from atlas.paper.tl_scalp_3m_sah_v0_shadow import (
 from atlas.paper.types import Bar, q
 from atlas.strategy.ema_trend import FLAT, LONG, ema_series
 from atlas.strategy.mid_doge_rsi_mr import rsi_wilder
+from atlas.strategy.scalp_142_notebook import (
+    LEVERAGE_CAP,
+    PIVOT_N,
+    RISK_M2,
+    build_tf_bundle,
+)
 from atlas.strategy.scalp_doge_dual_thrust_rvol_1h import BAR, FAMILY
 
 TRIAL_ID = "TL-SCALP-MODULAR-COMPOSITE-v0"
@@ -70,7 +87,14 @@ RSI_LO = 45.0
 RSI_HI = 70.0
 
 MD_CACHE_REL = Path("paper/candles/post_r7_shadow")
-MD_15M_OPS = Path("/workspace/ts-live-ops/md/post-r7-shadow")
+MD_15M_CACHE_REL = Path("paper/candles/post_r7_shadow_15m")
+MD_15M_OPS = Path("/workspace/ts-live-ops/md/post-r7-shadow-15m")
+MD_1H_OPS = Path("/workspace/ts-live-ops/md/post-r7-shadow")
+M5_R_MULTIPLE = float(CELL_R_MULTIPLE["P2"])
+M5_RVOL_GATE = float(CELL_RVOL_GATE["P2"])
+M5_USE_TP = bool(CELL_USE_TP["P2"])
+M5_RISK_FRAC = float(RISK_M2)
+
 
 
 def _iso_to_ms(iso: str) -> int:
@@ -214,22 +238,21 @@ def m3_desired_state_series(bars: Sequence[Bar]) -> list[str]:
 
 
 def post_r7_15m_md_status(data_dir: Path | None = None) -> dict[str, Any]:
-    """Fail-closed probe: post-R7 SHADOW MD is 1H-only in Ops manifest."""
+    """Probe Ops/repo 15m post-R7 majors MD for M5 (#151 P2)."""
     ops = MD_15M_OPS
     missing: list[str] = []
     found: list[str] = []
+    n_bars: dict[str, int] = {}
     for inst in PAIRS:
-        # Common naming patterns — none present for post-r7 majors
         candidates = [
             ops / f"{inst}_15m.jsonl",
             ops / f"{inst}_15M.jsonl",
-            ops / f"{inst}_15min.jsonl",
         ]
         if data_dir is not None:
             candidates.extend(
                 [
+                    data_dir / MD_15M_CACHE_REL / f"{inst}_15m.jsonl",
                     data_dir / MD_CACHE_REL / f"{inst}_15m.jsonl",
-                    data_dir / MD_CACHE_REL / f"{inst}_15M.jsonl",
                 ]
             )
         hit = next((p for p in candidates if p.is_file()), None)
@@ -237,22 +260,436 @@ def post_r7_15m_md_status(data_dir: Path | None = None) -> dict[str, Any]:
             missing.append(inst)
         else:
             found.append(str(hit))
+            try:
+                with hit.open("r", encoding="utf-8") as fh:
+                    n_bars[inst] = sum(1 for _ in fh)
+            except OSError:
+                n_bars[inst] = -1
     available = len(missing) == 0
     reason = None
     if not available:
         reason = (
-            "post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m "
-            "jsonl under /workspace/ts-live-ops/md/post-r7-shadow/). "
-            "M5 requires #151 P2 15m MSB — fail-closed BLOCKED; do not invent bars "
-            "or score on wrong TF."
+            "post-R7 15m MD missing for "
+            + ", ".join(missing)
+            + f" under {ops} — M5 fail-closed BLOCKED; do not invent bars or score wrong TF."
         )
+    manifest_bar = "15m" if available else None
     return {
         "available": available,
         "missing_pairs": missing,
         "found_paths": found,
+        "n_bars": n_bars,
         "ops_dir": str(ops),
         "reason": reason,
-        "manifest_bar": "1H",
+        "manifest_bar": manifest_bar,
+        "sl_tp_bar": "15m" if available else None,
+        "sl_tp_note": (
+            "#151 honored SL/TP on 1m; post-R7 1m MD not provided — M5 honors "
+            "same-bar SL-first SL/TP on 15m OHLC (Ops 15m)."
+            if available
+            else None
+        ),
+    }
+
+
+def _resolve_15m_path(data_dir: Path, inst_id: str) -> Path:
+    candidates = [
+        MD_15M_OPS / f"{inst_id}_15m.jsonl",
+        data_dir / MD_15M_CACHE_REL / f"{inst_id}_15m.jsonl",
+        data_dir / MD_CACHE_REL / f"{inst_id}_15m.jsonl",
+    ]
+    hit = next((p for p in candidates if p.is_file()), None)
+    if hit is None:
+        raise ReplayError(f"missing post-R7 15m MD: {inst_id}")
+    return hit
+
+
+def load_pair_bars_15m(data_dir: Path, inst_id: str) -> list[Bar]:
+    path = _resolve_15m_path(data_dir, inst_id)
+    bars = load_jsonl_candles(path, symbol=inst_id, bar="15m")
+    if not bars:
+        raise ReplayError(f"{inst_id}: empty 15m history")
+    if any(not b.closed for b in bars):
+        raise ReplayError(f"{inst_id}: open/partial 15m bar (fail closed)")
+    return bars
+
+
+def _asof_1h_index(bars_1h: Sequence[Bar], ts_ms: int, start: int = 0) -> int:
+    """Last closed 1H bar with ts_close_ms <= ts_ms; -1 if none."""
+    j = max(0, start)
+    best = -1
+    n = len(bars_1h)
+    while j < n and bars_1h[j].ts_close_ms <= ts_ms:
+        best = j
+        j += 1
+    return best
+
+
+def _ema_ok_asof_series_15m(
+    bars_15: Sequence[Bar], bars_1h: Sequence[Bar]
+) -> list[bool]:
+    """Per 15m bar: True iff latest closed 1H has EMA12>EMA21."""
+    ema_ok_1h = ema_regime_ok_series(bars_1h)
+    out: list[bool] = []
+    cursor = 0
+    for b in bars_15:
+        j = _asof_1h_index(bars_1h, int(b.ts_open_ms), start=max(0, cursor - 1))
+        if j < 0:
+            out.append(False)
+        else:
+            cursor = j
+            out.append(bool(ema_ok_1h[j]))
+    return out
+
+
+def walk_m5_p2_ema(
+    bars_15: Sequence[Bar],
+    setups: Sequence[Any],
+    ema_ok_15: Sequence[bool],
+    *,
+    settings: EmaBookSettings,
+    trade_start_ms: int,
+    trade_end_ms: int,
+    risk_frac: float = M5_RISK_FRAC,
+    r_multiple: float = M5_R_MULTIPLE,
+    use_tp: bool = M5_USE_TP,
+) -> dict[str, Any]:
+    """Long-only #151 P2 walk on 15m + 1H EMA gate.
+
+    Entry: next 15m open after P2 trigger, only if EMA12>EMA21.
+    Exit: #151 SL/TP on 15m OHLC (same-bar SL first) OR EMA12<=EMA21 flat at close.
+    Sleeve €20 · risk_frac=#151 RISK_M2 · accounting_v2.
+    """
+    bars = list(bars_15)
+    if not bars:
+        raise ReplayError("empty 15m history (fail closed)")
+    if len(ema_ok_15) != len(bars):
+        raise ReplayError("ema_ok_15 length mismatch")
+    if risk_frac <= 0:
+        raise ReplayError("invalid risk_frac")
+    if use_tp and float(r_multiple) <= 0:
+        raise ReplayError("use_tp requires positive r_multiple")
+
+    # Map fill index (15m next open after trigger) -> setup
+    fill_map: dict[int, Any] = {}
+    actionable = [s for s in setups if getattr(s, "skipped", None) is None]
+    actionable.sort(key=lambda s: (int(s.trigger_ts_open_ms), int(s.trigger_index)))
+    for s in actionable:
+        ti = int(s.trigger_index)
+        if ti < 0 or ti + 1 >= len(bars):
+            continue
+        fill_i = ti + 1
+        fill_open = int(bars[fill_i].ts_open_ms)
+        if not (trade_start_ms <= fill_open < trade_end_ms):
+            continue
+        if fill_i in fill_map:
+            continue
+        fill_map[fill_i] = s
+
+    cash = float(settings.equity_eur)
+    start = cash
+    qty = 0.0
+    entry_px = 0.0
+    entry_fee = 0.0
+    sl_px = 0.0
+    tp_px = 0.0
+    fees = 0.0
+    realized_net = 0.0
+    n_trades = 0
+    wins = 0
+    peak = start
+    max_dd = 0.0
+    in_market = 0
+    n_scored = 0
+    n_entries = 0
+    n_tp = 0
+    n_sl = 0
+    n_ema_flat = 0
+    n_skip_ema = 0
+    n_skip_lev = 0
+    n_skip_invalid = 0
+
+    for i, bar in enumerate(bars):
+        in_trade = trade_start_ms <= bar.ts_open_ms < trade_end_ms
+
+        if qty == 0.0 and in_trade and i in fill_map:
+            if not ema_ok_15[i]:
+                n_skip_ema += 1
+            else:
+                s = fill_map[i]
+                equity = cash
+                raw_open = float(bar.open)
+                px = apply_slippage(raw_open, "buy", settings.slippage_bps)
+                sl = float(s.sl_structural)
+                if not (sl < px):
+                    n_skip_invalid += 1
+                else:
+                    sl_dist = px - sl
+                    qty_abs = q((risk_frac * equity) / sl_dist) if sl_dist > 0 else 0.0
+                    notional = qty_abs * px
+                    if (
+                        qty_abs <= 0
+                        or equity <= 0
+                        or notional > LEVERAGE_CAP * equity + 1e-12
+                    ):
+                        n_skip_lev += 1
+                    else:
+                        fee = fee_on_notional(notional, settings.fee_rate)
+                        cash = q(cash - notional - fee)
+                        fees = q(fees + fee)
+                        qty = qty_abs
+                        entry_px = px
+                        entry_fee = fee
+                        sl_px = sl
+                        if use_tp:
+                            tp_px = px + float(r_multiple) * sl_dist
+                        else:
+                            tp_px = 0.0
+                        n_entries += 1
+
+        if qty > 0.0:
+            mark = q(cash + qty * float(bar.close))
+        else:
+            mark = cash
+        if in_trade:
+            n_scored += 1
+            if qty != 0.0:
+                in_market += 1
+            if mark > peak:
+                peak = mark
+            dd = peak - mark
+            if dd > max_dd:
+                max_dd = dd
+
+        if qty != 0.0 and sl_px > 0.0 and in_trade:
+            hit_sl = float(bar.low) <= sl_px
+            hit_tp = False
+            if use_tp and tp_px > 0.0:
+                hit_tp = float(bar.high) >= tp_px
+                if hit_sl and hit_tp:
+                    hit_tp = False  # same-bar SL first (#151)
+            if hit_sl or hit_tp:
+                fill_ref = sl_px if hit_sl else tp_px
+                reason = "sl" if hit_sl else "tp"
+                px = apply_slippage(fill_ref, "sell", settings.slippage_bps)
+                fee = fee_on_notional(qty * px, settings.fee_rate)
+                proceeds = qty * px - fee
+                net = q(proceeds - (qty * entry_px + entry_fee))
+                cash = q(cash + proceeds)
+                fees = q(fees + fee)
+                realized_net = q(realized_net + net)
+                n_trades += 1
+                if net > 0:
+                    wins += 1
+                if reason == "sl":
+                    n_sl += 1
+                else:
+                    n_tp += 1
+                qty = 0.0
+                entry_px = 0.0
+                entry_fee = 0.0
+                sl_px = 0.0
+                tp_px = 0.0
+            elif not ema_ok_15[i]:
+                # EMA12<=EMA21 → flat at close
+                px = apply_slippage(float(bar.close), "sell", settings.slippage_bps)
+                fee = fee_on_notional(qty * px, settings.fee_rate)
+                proceeds = qty * px - fee
+                net = q(proceeds - (qty * entry_px + entry_fee))
+                cash = q(cash + proceeds)
+                fees = q(fees + fee)
+                realized_net = q(realized_net + net)
+                n_trades += 1
+                if net > 0:
+                    wins += 1
+                n_ema_flat += 1
+                qty = 0.0
+                entry_px = 0.0
+                entry_fee = 0.0
+                sl_px = 0.0
+                tp_px = 0.0
+
+    last_bar = None
+    for b in reversed(bars):
+        if trade_start_ms <= b.ts_open_ms < trade_end_ms:
+            last_bar = b
+            break
+    mark_close = float(last_bar.close) if last_bar is not None else None
+    open_at_end = qty != 0.0
+
+    v2 = compute_accounting_v2(
+        start_equity_eur=start,
+        cash=cash,
+        qty=qty,
+        entry_px=entry_px,
+        entry_fee=entry_fee,
+        realized_net_eur=realized_net,
+        completed_round_trips=n_trades,
+        mark_close=mark_close,
+        fee_rate=settings.fee_rate,
+        slippage_bps=settings.slippage_bps,
+    )
+    end_equity = q(start + float(v2["terminal_liquidation_net_eur"]))
+    n_total = int(v2["completed_round_trips"]) + (
+        1 if v2.get("forced_window_close") else 0
+    )
+    walk: dict[str, Any] = {
+        "n_trades": n_total,
+        "completed_round_trips": int(v2["completed_round_trips"]),
+        "n_entries": n_entries,
+        "n_tp_exits": n_tp,
+        "n_sl_exits": n_sl,
+        "n_ema_flat_exits": n_ema_flat,
+        "n_skip_ema": n_skip_ema,
+        "n_skip_lev": n_skip_lev,
+        "n_skip_invalid": n_skip_invalid,
+        "fee_drag_eur": q(fees),
+        "net_return_eur": q(realized_net),
+        "max_dd_eur": q(max_dd),
+        "wins": wins,
+        "n_bars": n_scored,
+        "n_bars_scored": n_scored,
+        "n_bars_in_market": in_market,
+        "time_in_market": q(in_market / n_scored) if n_scored else None,
+        "occupancy": q(in_market / n_scored) if n_scored else None,
+        "win_rate": q(wins / n_trades) if n_trades else None,
+        "mix": {
+            "wins": wins,
+            "losses": n_trades - wins,
+            "win_rate": q(wins / n_trades) if n_trades else None,
+        },
+        "risk_frac": risk_frac,
+        "leverage_cap": LEVERAGE_CAP,
+        "r_multiple": float(r_multiple),
+        "use_tp": use_tp,
+        "sl_fill_convention": SL_FILL_CONVENTION,
+        "tp_fill_convention": TP_FILL_CONVENTION if use_tp else "disabled",
+        "same_bar_sl_tp": SAME_BAR_SL_TP if use_tp else "n_a_no_tp",
+        "entry_fill": ENTRY_FILL_P1,
+        "open_position_at_end": open_at_end,
+        "start_equity_eur": start,
+        "end_equity_eur": end_equity,
+        "n_forced_end": 1 if v2.get("forced_window_close") else 0,
+        "forced_window_close": bool(v2.get("forced_window_close")),
+    }
+    attach_accounting_v2(walk, v2)
+    walk["expectancy_after_costs_eur"] = walk.get("expectancy_completed_eur")
+    walk["terminal_liquidation_net_eur"] = v2["terminal_liquidation_net_eur"]
+    walk["terminal_net_eur"] = v2["terminal_liquidation_net_eur"]
+    return walk
+
+
+def score_m5_pair(
+    *,
+    bars_1h: list[Bar],
+    bars_15: list[Bar],
+    inst_id: str,
+    fee_rate: float,
+    slippage_bps: float,
+    equity: float = SCALP_START_EUR,
+) -> dict[str, Any]:
+    """Score M5 for one pair: #151 P2 + 1H EMA gate on SHADOW window."""
+    w = SHADOW_WINDOW
+    use_1h = [b for b in bars_1h if b.ts_open_ms >= w.warmup_start_ms]
+    use_15 = [b for b in bars_15 if b.ts_open_ms >= w.warmup_start_ms]
+    if not use_1h or not use_15:
+        raise ReplayError(f"{inst_id}: no warmup bars for M5")
+    scored_1h = [b for b in use_1h if w.start_ms <= b.ts_open_ms < w.end_ms_exclusive]
+    scored_15 = [b for b in use_15 if w.start_ms <= b.ts_open_ms < w.end_ms_exclusive]
+    if len(scored_15) < 96 * 90:  # 15m * 96/day * 90d
+        raise ReplayError(
+            f"{inst_id}: scored 15m bars {len(scored_15)} < 90d contiguous requirement"
+        )
+
+    bars_4h = resample_4h_from_1h(use_1h)
+    if len(bars_4h) < 10:
+        raise ReplayError(f"{inst_id}: 4H resample too short ({len(bars_4h)})")
+
+    # 1m not available post-R7 — empty stub for TfBundle (P2 discover unused 1m)
+    bundle = build_tf_bundle(bars_4h, use_1h, use_15, [], pivot_n=PIVOT_N)
+    setups = discover_15m_msb_setups(
+        bundle,
+        trade_start_ms=w.start_ms,
+        trade_end_ms=w.end_ms_exclusive,
+        rvol_gate=M5_RVOL_GATE,
+        session_gate=True,  # P2
+    )
+    ema_ok_15 = _ema_ok_asof_series_15m(use_15, use_1h)
+    settings = EmaBookSettings(
+        equity_eur=float(equity),
+        fee_rate=float(fee_rate),
+        slippage_bps=float(slippage_bps),
+        leverage=1.0,
+    )
+    walk = walk_m5_p2_ema(
+        use_15,
+        setups,
+        ema_ok_15,
+        settings=settings,
+        trade_start_ms=w.start_ms,
+        trade_end_ms=w.end_ms_exclusive,
+    )
+    # BH on 1H scored bars — same family BH as M1–M4 for term>=BH gate
+    bh = buy_and_hold(scored_1h, settings=settings)
+    bh_net = bh.get("net_return_eur")
+    if walk.get("terminal_liquidation_net_eur") is not None:
+        term_net = walk.get("terminal_liquidation_net_eur")
+    else:
+        term_net = walk.get("net_return_eur")
+    term = (
+        q(float(walk["start_equity_eur"]) + float(term_net))
+        if term_net is not None
+        else walk.get("end_equity_eur")
+    )
+    exp = walk.get("expectancy_completed_eur")
+    if exp is None:
+        exp = walk.get("expectancy_after_costs_eur")
+    n_setups = len([s for s in setups if s.skipped is None])
+    return {
+        "ok": True,
+        "blocked": False,
+        "window_id": WINDOW_ID,
+        "arm": ARM_M5,
+        "inst_id": inst_id,
+        "bar": "15m",
+        "family": "msb_p2_15m_ema1221_1h",
+        "candidate_id": "tl_scalp_modular_m5_151_p2_ema_eur20",
+        "n_trades": int(walk.get("n_trades") or 0),
+        "n_entries": int(walk.get("n_entries") or 0),
+        "expectancy_after_costs_eur": exp,
+        "expectancy_completed_eur": walk.get("expectancy_completed_eur"),
+        "expectancy_terminal_adjusted_eur": walk.get("expectancy_terminal_adjusted_eur"),
+        "net_return_eur": walk.get("net_return_eur"),
+        "terminal_net_eur": walk.get("terminal_net_eur", term_net),
+        "terminal_equity_eur": term,
+        "fee_drag_eur": walk.get("fee_drag_eur"),
+        "max_dd_eur": walk.get("max_dd_eur"),
+        "time_in_market": walk.get("time_in_market"),
+        "occupancy": walk.get("occupancy"),
+        "mix": walk.get("mix"),
+        "win_rate": walk.get("win_rate"),
+        "bh_net_return_eur": bh_net,
+        "bh_max_dd_eur": bh.get("max_dd_eur"),
+        "n_forced_end": walk.get("n_forced_end"),
+        "forced_window_close": walk.get("forced_window_close"),
+        "n_scored_bars": walk.get("n_bars"),
+        "n_setups_p2": n_setups,
+        "n_tp_exits": walk.get("n_tp_exits"),
+        "n_sl_exits": walk.get("n_sl_exits"),
+        "n_ema_flat_exits": walk.get("n_ema_flat_exits"),
+        "n_skip_ema": walk.get("n_skip_ema"),
+        "sl_tp_bar": "15m",
+        "risk_frac": M5_RISK_FRAC,
+        "r_multiple": M5_R_MULTIPLE,
+        "term_ge_bh": (
+            None
+            if term_net is None or bh_net is None
+            else bool(float(term_net) >= float(bh_net))
+        ),
+        "exp_gt_0": None if exp is None else bool(float(exp) > 0.0),
+        "not_a_forecast": True,
+        "place_orders": False,
+        "soft_ne_arm": True,
     }
 
 
@@ -486,20 +923,40 @@ def run_shadow_score(cfg: Any, *, data_dir: Path) -> dict[str, Any]:
                     }
                 )
 
-        # M5 — fail-closed when 15m MD missing (do not invent / wrong TF)
+        # M5 — score when 15m MD available; else fail-closed BLOCKED
         if not md15["available"]:
             by_arm[ARM_M5].append(
                 blocked_m5_row(inst, md15["reason"] or "15m MD missing")
             )
         else:
-            by_arm[ARM_M5].append(
-                blocked_m5_row(
-                    inst,
-                    "M5 walker not enabled this turn despite 15m paths — "
-                    "unexpected; treat as BLOCKED fail-closed",
+            try:
+                bars_1h = load_pair_bars(data_dir, inst)
+                bars_15 = load_pair_bars_15m(data_dir, inst)
+                row = score_m5_pair(
+                    bars_1h=bars_1h,
+                    bars_15=bars_15,
+                    inst_id=inst,
+                    fee_rate=fee_rate,
+                    slippage_bps=slip,
                 )
-            )
-            errors.append(f"{inst}: M5 15m present but walker not wired this score")
+                by_arm[ARM_M5].append(row)
+            except ReplayError as exc:
+                errors.append(f"{inst} M5: {exc}")
+                by_arm[ARM_M5].append(
+                    {
+                        "ok": False,
+                        "blocked": False,
+                        "fail_closed": True,
+                        "error": str(exc),
+                        "window_id": WINDOW_ID,
+                        "arm": ARM_M5,
+                        "inst_id": inst,
+                        "bar": "15m",
+                        "place_orders": False,
+                        "not_a_forecast": True,
+                        "soft_ne_arm": True,
+                    }
+                )
 
     verdicts: dict[str, Any] = {}
     for arm in (ARM_M1, ARM_M2, ARM_M3, ARM_M4):
@@ -509,11 +966,14 @@ def run_shadow_score(cfg: Any, *, data_dir: Path) -> dict[str, Any]:
     if not md15["available"]:
         verdicts[ARM_M5] = m5_verdict_blocked(md15["reason"] or "15m MD missing")
     else:
-        verdicts[ARM_M5] = m5_verdict_blocked("M5 unexpected path")
+        verdicts[ARM_M5] = window_verdict(by_arm[ARM_M5])
+        verdicts[ARM_M5]["dual_hard_pass"] = "N/A_until_second_OOS_Coord_locked"
+        verdicts[ARM_M5]["arms_neq_soft"] = True
+        verdicts[ARM_M5]["soft_ne_arm"] = True
 
     # Falsifier note: completed exp ≤0 → FAIL that arm (pair-rule already encodes)
     return {
-        "ok": len(errors) == 0,  # M5 BLOCKED (15m missing) is expected fail-closed, not an error
+        "ok": len(errors) == 0,
         "trial_id": TRIAL_ID,
         "source": SOURCE,
         "board": "156",
@@ -542,6 +1002,107 @@ def run_shadow_score(cfg: Any, *, data_dir: Path) -> dict[str, Any]:
         "ts_ms": utc_ms(),
         "redacted": redact_record({"note": "research_shadow_only"}),
     }
+
+
+def run_m5_only_update(cfg: Any, *, data_dir: Path, prior: dict[str, Any]) -> dict[str, Any]:
+    """Score ONLY M5; preserve prior M1–M4 rows/verdicts unchanged."""
+    fee_rate, slip = _paper_costs(cfg)
+    md15 = post_r7_15m_md_status(data_dir)
+    by_arm = dict(prior.get("rows_by_arm") or {})
+    # deep-ish copy lists we will replace
+    by_arm = {k: list(v) for k, v in by_arm.items()}
+    for a in ARMS:
+        by_arm.setdefault(a, [])
+    errors: list[str] = list(prior.get("errors") or [])
+    # drop prior M5-related errors
+    errors = [e for e in errors if "M5" not in e and "15m" not in e]
+    m5_rows: list[dict[str, Any]] = []
+
+    if not md15["available"]:
+        reason = md15["reason"] or "15m MD missing"
+        for inst in PAIRS:
+            m5_rows.append(blocked_m5_row(inst, reason))
+        m5_verdict = m5_verdict_blocked(reason)
+    else:
+        for inst in PAIRS:
+            try:
+                bars_1h = load_pair_bars(data_dir, inst)
+                bars_15 = load_pair_bars_15m(data_dir, inst)
+                m5_rows.append(
+                    score_m5_pair(
+                        bars_1h=bars_1h,
+                        bars_15=bars_15,
+                        inst_id=inst,
+                        fee_rate=fee_rate,
+                        slippage_bps=slip,
+                    )
+                )
+            except ReplayError as exc:
+                errors.append(f"{inst} M5: {exc}")
+                m5_rows.append(
+                    {
+                        "ok": False,
+                        "blocked": False,
+                        "fail_closed": True,
+                        "error": str(exc),
+                        "window_id": WINDOW_ID,
+                        "arm": ARM_M5,
+                        "inst_id": inst,
+                        "bar": "15m",
+                        "place_orders": False,
+                        "not_a_forecast": True,
+                        "soft_ne_arm": True,
+                    }
+                )
+        m5_verdict = window_verdict(m5_rows)
+        m5_verdict["dual_hard_pass"] = "N/A_until_second_OOS_Coord_locked"
+        m5_verdict["arms_neq_soft"] = True
+        m5_verdict["soft_ne_arm"] = True
+
+    by_arm[ARM_M5] = m5_rows
+    verdicts = dict(prior.get("verdicts") or {})
+    # Keep M1–M4 verdicts exactly as prior
+    for arm in (ARM_M1, ARM_M2, ARM_M3, ARM_M4):
+        if arm in verdicts:
+            verdicts[arm] = dict(verdicts[arm])
+            verdicts[arm]["dual_hard_pass"] = "N/A_until_second_OOS_Coord_locked"
+    verdicts[ARM_M5] = m5_verdict
+
+    out = dict(prior)
+    out.update(
+        {
+            "ok": len(errors) == 0 and all(r.get("ok") for r in m5_rows),
+            "trial_id": TRIAL_ID,
+            "source": SOURCE,
+            "board": "156",
+            "window_lock": prior.get("window_lock") or window_lock_card(),
+            "md_confirm": prior.get("md_confirm") or {},
+            "md_15m": md15,
+            "rows_by_arm": by_arm,
+            "verdicts": verdicts,
+            "errors": errors,
+            "place_orders": False,
+            "not_a_forecast": True,
+            "soft_ne_arm": True,
+            "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
+            "scalp_paused": True,
+            "default_yaml_untouched": True,
+            "pair_pass_rule": "exp>0_and_term>=BH on >=2/3 pairs (cite #154)",
+            "m5_only_update": True,
+            "ts_ms": utc_ms(),
+            "redacted": redact_record({"note": "research_shadow_only"}),
+        }
+    )
+    # refresh arm note
+    wl = dict(out["window_lock"])
+    notes = dict(wl.get("arm_notes") or {})
+    notes[ARM_M5] = (
+        "#151 P2 15m MSB + EMA12>EMA21; SL/TP on 15m OHLC or EMA flat; "
+        "€20; next 15m open; 5+5 bps"
+    )
+    wl["arm_notes"] = notes
+    out["window_lock"] = wl
+    return out
 
 
 def measured_table_rows(bundle: dict[str, Any]) -> list[dict[str, Any]]:
@@ -610,14 +1171,26 @@ def render_board_markdown(bundle: dict[str, Any], *, default_yaml_sha256: str) -
     md15 = bundle.get("md_15m") or {}
     lines.append("## 1b. MD 15m probe (M5)")
     lines.append("")
-    lines.append(f"| Field | Value |")
-    lines.append(f"|-------|-------|")
+    lines.append("| Field | Value |")
+    lines.append("|-------|-------|")
     lines.append(f"| available | `{md15.get('available')}` |")
     lines.append(f"| missing_pairs | {', '.join(md15.get('missing_pairs') or []) or '—'} |")
-    lines.append(f"| status | **BLOCKED fail-closed** (no invent / no wrong TF) |")
-    if md15.get("reason"):
-        lines.append("")
-        lines.append(f"Reason: {md15['reason']}")
+    lines.append(f"| ops_dir | `{md15.get('ops_dir')}` |")
+    n_bars = md15.get("n_bars") or {}
+    if n_bars:
+        nb = ", ".join(f"{k}={v}" for k, v in n_bars.items())
+        lines.append(f"| n_bars | {nb} |")
+    if md15.get("available"):
+        lines.append("| status | **AVAILABLE** — M5 scored |")
+        lines.append(f"| sl_tp_bar | `{md15.get('sl_tp_bar')}` |")
+        if md15.get("sl_tp_note"):
+            lines.append("")
+            lines.append(f"Note: {md15['sl_tp_note']}")
+    else:
+        lines.append("| status | **BLOCKED fail-closed** (no invent / no wrong TF) |")
+        if md15.get("reason"):
+            lines.append("")
+            lines.append(f"Reason: {md15['reason']}")
     lines.append("")
     lines.append("## 2. Window lock (pre-score)")
     lines.append("")
@@ -640,24 +1213,30 @@ def render_board_markdown(bundle: dict[str, Any], *, default_yaml_sha256: str) -
     lines.append("## 3. Per-pair tables (M1–M5)")
     lines.append("")
 
+    m5_blocked = bool((bundle.get("verdicts") or {}).get(ARM_M5, {}).get("verdict") == "BLOCKED")
     arm_titles = {
         ARM_M1: "M1 CTRL — S1 alone",
         ARM_M2: "M2 — S1 + EMA12>EMA21",
         ARM_M3: "M3 — S1 + RSI14∈[45,70]",
         ARM_M4: "M4 — S1 + SAH-B offload",
-        ARM_M5: "M5 — #151 P2 15m MSB + EMA (BLOCKED)",
+        ARM_M5: (
+            "M5 — #151 P2 15m MSB + EMA (BLOCKED)"
+            if m5_blocked
+            else "M5 — #151 P2 15m MSB + EMA12>EMA21"
+        ),
     }
     for arm in ARMS:
         lines.append(f"### {arm_titles.get(arm, arm)}")
         lines.append("")
-        if arm == ARM_M5:
+        rows = bundle.get("rows_by_arm", {}).get(arm, [])
+        if arm == ARM_M5 and (m5_blocked or any(r.get("blocked") for r in rows)):
             lines.append("| Pair | status | reason |")
             lines.append("|------|--------|--------|")
-            for r in bundle.get("rows_by_arm", {}).get(arm, []):
+            for r in rows:
                 err = (r.get("error") or "—").replace("|", "/")
-                # shorten reason in table
                 short = err if len(err) < 120 else err[:117] + "..."
-                lines.append(f"| {r.get('inst_id')} | BLOCKED | {short} |")
+                st = r.get("status") or ("BLOCKED" if r.get("blocked") else "ERR")
+                lines.append(f"| {r.get('inst_id')} | {st} | {short} |")
             v = bundle.get("verdicts", {}).get(arm, {})
             lines.append("")
             lines.append(
@@ -672,7 +1251,7 @@ def render_board_markdown(bundle: dict[str, Any], *, default_yaml_sha256: str) -
         lines.append(
             "|------|---|---------|--------|------|-------|--------------|-----------|--------------|"
         )
-        for r in bundle.get("rows_by_arm", {}).get(arm, []):
+        for r in rows:
             mix = r.get("mix") or {}
             mix_s = (
                 f"{mix.get('wins')}/{mix.get('losses')}/{mix.get('win_rate')}"
@@ -711,7 +1290,13 @@ def render_board_markdown(bundle: dict[str, Any], *, default_yaml_sha256: str) -
         "- `place_orders: false` · Scalp PAUSED · no live · SAH-A absent · no grind · no P3 resurrect"
     )
     lines.append("- BH recomputed on scored-window bars per pair (no transplant)")
-    lines.append("- M5 BLOCKED fail-closed: post-R7 15m MD unavailable")
+    if m5_blocked:
+        lines.append("- M5 BLOCKED fail-closed: post-R7 15m MD unavailable")
+    else:
+        lines.append(
+            "- M5 scored: #151 P2 + 1H EMA gate; SL/TP on 15m OHLC (1m MD N/A); Soft≠arm"
+        )
+        lines.append("- M1–M4 numbers preserved (M5-only update); no grind")
     lines.append("")
     lines.append("## 6. Paths")
     lines.append("")
@@ -719,7 +1304,10 @@ def render_board_markdown(bundle: dict[str, Any], *, default_yaml_sha256: str) -
     lines.append("- Registry: `phase1/registry/156-tl-scalp-modular-composite-v0.json`")
     lines.append("- This note: `phase1/156-tl-scalp-modular-composite-v0-board.md`")
     lines.append(
-        "- MD: `data/paper/candles/post_r7_shadow/` → Ops `/workspace/ts-live-ops/md/post-r7-shadow/`"
+        "- MD 1H: `data/paper/candles/post_r7_shadow/` → Ops `/workspace/ts-live-ops/md/post-r7-shadow/`"
+    )
+    lines.append(
+        "- MD 15m: `data/paper/candles/post_r7_shadow_15m/` → Ops `/workspace/ts-live-ops/md/post-r7-shadow-15m/`"
     )
     lines.append("- Walker: `src/atlas/paper/tl_scalp_modular_composite_v0.py`")
     lines.append("")
@@ -744,6 +1332,10 @@ __all__ = [
     "WARMUP_START_ISO",
     "WINDOW_ID",
     "blocked_m5_row",
+    "load_pair_bars_15m",
+    "run_m5_only_update",
+    "score_m5_pair",
+    "walk_m5_p2_ema",
     "ema_regime_ok_series",
     "m1_desired_state_series",
     "m2_desired_state_series",

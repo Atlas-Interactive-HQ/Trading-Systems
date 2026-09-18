@@ -24,11 +24,14 @@ Ops path: `/workspace/ts-live-ops/md/post-r7-shadow/` · bar=1H (Ops manifest).
 
 | Field | Value |
 |-------|-------|
-| available | `False` |
-| missing_pairs | BTC-USDT, ETH-USDT, DOGE-USDT |
-| status | **BLOCKED fail-closed** (no invent / no wrong TF) |
+| available | `True` |
+| missing_pairs | — |
+| ops_dir | `/workspace/ts-live-ops/md/post-r7-shadow-15m` |
+| n_bars | BTC-USDT=65527, ETH-USDT=65527, DOGE-USDT=65527 |
+| status | **AVAILABLE** — M5 scored |
+| sl_tp_bar | `15m` |
 
-Reason: post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m jsonl under /workspace/ts-live-ops/md/post-r7-shadow/). M5 requires #151 P2 15m MSB — fail-closed BLOCKED; do not invent bars or score on wrong TF.
+Note: #151 honored SL/TP on 1m; post-R7 1m MD not provided — M5 honors same-bar SL-first SL/TP on 15m OHLC (Ops 15m).
 
 ## 2. Window lock (pre-score)
 
@@ -86,15 +89,15 @@ Reason: post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m j
 
 **Verdict M4:** `Window_PASS` — exp>0_and_term>=BH on 2/3 pairs (both=2/3; Soft≠arm).
 
-### M5 — #151 P2 15m MSB + EMA (BLOCKED)
+### M5 — #151 P2 15m MSB + EMA12>EMA21
 
-| Pair | status | reason |
-|------|--------|--------|
-| BTC-USDT | BLOCKED | post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m jsonl under /workspace/ts-live-ops/md/post-r7-... |
-| ETH-USDT | BLOCKED | post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m jsonl under /workspace/ts-live-ops/md/post-r7-... |
-| DOGE-USDT | BLOCKED | post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m jsonl under /workspace/ts-live-ops/md/post-r7-... |
+| Pair | n | exp €/t | term € | BH € | fee € | mix (W/L/wr) | occupancy | n_forced_end |
+|------|---|---------|--------|------|-------|--------------|-----------|--------------|
+| BTC-USDT | 9 | -0.01022761 | -0.09204851 | 1.98747338 | 1.36211333 | 4/5/0.44444444 | 0.01928842 | 0 |
+| ETH-USDT | 23 | -0.64746863 | -14.89177859 | 0.1671786 | 1.25896874 | 7/16/0.30434783 | 0.04263032 | 0 |
+| DOGE-USDT | 26 | -0.37657784 | -9.79102389 | -10.40396243 | 2.93336349 | 9/17/0.34615385 | 0.03801089 | 0 |
 
-**Verdict M5:** `BLOCKED` — post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m jsonl under /workspace/ts-live-ops/md/post-r7-shadow/). M5 requires #151 P2 15m MSB — fail-closed BLOCKED; do not invent bars or score on wrong TF. (Soft≠arm).
+**Verdict M5:** `SOFT_NOTE` — partial: exp>0 0/3, term>=BH 1/3, both 0/3 (Soft≠arm) (both=0/3; Soft≠arm).
 
 ## 4. Gate summary
 
@@ -104,21 +107,23 @@ Reason: post-R7 SHADOW Ops MD is 1H-only (manifest bar=1H; no BTC/ETH/DOGE 15m j
 | M2 | Window_PASS | N/A (2nd OOS not locked) | true |
 | M3 | Window_PASS | N/A (2nd OOS not locked) | true |
 | M4 | Window_PASS | N/A (2nd OOS not locked) | true |
-| M5 | BLOCKED | N/A (2nd OOS not locked) | true |
+| M5 | SOFT_NOTE | N/A (2nd OOS not locked) | true |
 
 ## 5. Integrity
 
 - `config/default.yaml` sha256: `5ea3910c8adb63ed0462ca93f128975619b519f13b869313d9f019bc10633fef`
 - `place_orders: false` · Scalp PAUSED · no live · SAH-A absent · no grind · no P3 resurrect
 - BH recomputed on scored-window bars per pair (no transplant)
-- M5 BLOCKED fail-closed: post-R7 15m MD unavailable
+- M5 scored: #151 P2 + 1H EMA gate; SL/TP on 15m OHLC (1m MD N/A); Soft≠arm
+- M1–M4 numbers preserved (M5-only update); no grind
 
 ## 6. Paths
 
 - Results JSON: `results/tl_scalp_modular_composite_v0.json`
 - Registry: `phase1/registry/156-tl-scalp-modular-composite-v0.json`
 - This note: `phase1/156-tl-scalp-modular-composite-v0-board.md`
-- MD: `data/paper/candles/post_r7_shadow/` → Ops `/workspace/ts-live-ops/md/post-r7-shadow/`
+- MD 1H: `data/paper/candles/post_r7_shadow/` → Ops `/workspace/ts-live-ops/md/post-r7-shadow/`
+- MD 15m: `data/paper/candles/post_r7_shadow_15m/` → Ops `/workspace/ts-live-ops/md/post-r7-shadow-15m/`
 - Walker: `src/atlas/paper/tl_scalp_modular_composite_v0.py`
 
 *End board. Paper only. Soft ≠ arm. not_a_forecast. STOP no grind.*

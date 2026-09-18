@@ -28,6 +28,7 @@ from atlas.paper.tl_scalp_modular_composite_v0 import (  # noqa: E402
     WINDOW_ID,
     measured_table_rows,
     render_board_markdown,
+    run_m5_only_update,
     run_shadow_score,
     window_lock_card,
     write_report_json,
@@ -55,6 +56,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--write-registry",
         default="phase1/registry/156-tl-scalp-modular-composite-v0.json",
+    )
+    p.add_argument(
+        "--m5-only",
+        action="store_true",
+        default=False,
+        help="Score only M5; preserve prior M1–M4 rows/verdicts",
     )
     args = p.parse_args(argv)
 
@@ -85,22 +92,31 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 3
 
+    out_path = Path(args.out)
+    if not out_path.is_absolute():
+        out_path = _ROOT / out_path
+
     try:
-        bundle = run_shadow_score(cfg, data_dir=data_dir)
+        if args.m5_only:
+            if not out_path.is_file():
+                print(json.dumps({
+                    "ok": False,
+                    "error": "--m5-only requires existing results JSON",
+                    "path": str(out_path),
+                    "place_orders": False,
+                }, indent=2))
+                return 2
+            prior_bundle = json.loads(out_path.read_text(encoding="utf-8"))
+            bundle = run_m5_only_update(cfg, data_dir=data_dir, prior=prior_bundle)
+        else:
+            bundle = run_shadow_score(cfg, data_dir=data_dir)
     except ReplayError as exc:
         print(json.dumps({"ok": False, "error": str(exc), "place_orders": False}, indent=2))
         return 2
 
     bundle["default_yaml_sha256"] = sha
-    out_path = Path(args.out)
-    if not out_path.is_absolute():
-        out_path = _ROOT / out_path
     write_report_json(bundle, out_path)
 
-    now_cest = datetime.now(tz=CEST).strftime("%Y-%m-%dT%H:%M:%S%z")
-    # normalize +0200 style
-    if len(now_cest) >= 5 and now_cest[-5] in "+-" and now_cest[-3] != ":":
-        now_cest = now_cest[:-2] + "00"  # keep compact; rewrite below
     now_cest = datetime.now(tz=CEST).isoformat(timespec="seconds")
 
     reg_path = Path(args.write_registry)
@@ -143,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         "default_yaml_sha256": sha,
         "dual_hard_pass": "N/A_until_second_OOS_Coord_locked",
         "sah_a_excluded": True,
+        "m5_only_update": bool(args.m5_only or bundle.get("m5_only_update")),
         "results_json": "results/tl_scalp_modular_composite_v0.json",
         "board_md": "phase1/156-tl-scalp-modular-composite-v0-board.md",
         "walker": "src/atlas/paper/tl_scalp_modular_composite_v0.py",
@@ -166,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
                     for a in (bundle.get("arms") or [])
                 },
                 "md_15m_available": (bundle.get("md_15m") or {}).get("available"),
+                "m5_only_update": bool(args.m5_only or bundle.get("m5_only_update")),
                 "default_yaml_sha256": sha,
                 "place_orders": False,
                 "not_a_forecast": True,
