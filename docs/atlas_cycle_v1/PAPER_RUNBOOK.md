@@ -10,8 +10,9 @@
 
 - Wel: Decimal-ledger, settlement na een platte cycle, unitized risk, synthetische DOGE-smoke, weigering van `LIVE`.
 - Niet: OKX private fills, nieuws/LLM in de beslissing, shorts, averaging-down, martingale, auto coin rotation, ML.
-- Scalp staat uit (`scalp.enabled: false`) tot feasibility meer is dan **INSUFFICIENT_EVIDENCE**.
+- Scalp staat uit (`scalp.enabled: false`, freeze `SCALP_OFF`). Dat is een schakelaar, geen edge-PASS. G6 blijft **INSUFFICIENT_EVIDENCE**.
 - Live vrije USDC uit de upload van 2026-09-24 (0.69) is **INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM**. De smoke print dat label. Verhoog de leverage niet om het te omzeilen.
+- Aanbeveling: het DOGE-only paper-skelet (Variant A). Het volledige systeem (scalp, adds, live) wordt niet geleverd. Zie `FINAL_COMPARISON.md`.
 
 ## Setup
 
@@ -23,10 +24,61 @@ pip install -e ".[dev]"
 
 Python ≥ 3.12. Geen API-keys. De smoke doet geen netwerk.
 
+## Gesimuleerde deposits
+
+`paper_deposit_A.sensitivity` is **200, 500 en 1000**. De default voor smoke en de walks is **1000**. Dat zijn labels in de yaml. Het zijn geen stortingen, geen withdrawals, en geen size-up van het live-account. Stuur geen USDC. De code maakt geen transfer.
+
+## Start
+
+Er is geen daemon. Elk commando is een eenmalig proces. Start vanuit de repo-root:
+
+```bash
+python scripts/run_atlas_cycle_v1_smoke.py
+python scripts/run_atlas_cycle_v1_doge_backtest.py
+python scripts/run_atlas_cycle_v1_phase3.py
+python scripts/run_atlas_cycle_v1_gate_summary.py
+```
+
+De smoke schrijft een lokale journal plus `results/atlas_cycle_v1/runs/smoke_summary.json` (gitignored). De backtest en Phase 3 schrijven alleen het `--out` bestand. De gate-summary leest `docs/atlas_cycle_v1/GATE_STATUS.md` en plaatst geen order.
+
+## Stop
+
+`Ctrl-C` in die terminal. Er staan geen venue-orders open om te annuleren. Het proces praat niet met OKX. Een afgebroken run laat hoogstens een lokaal JSON-bestand half staan.
+
+## Herstel
+
+Draai hetzelfde commando opnieuw. De synthetische reeks is deterministisch (seed `20260924`). Er is geen checkpoint van een forward-sessie om te hervatten, omdat die sessie niet bestaat (G11, **PENDING_FORWARD_EVIDENCE**, 0 kalenderdagen). Een half summary-bestand mag je verwijderen en opnieuw laten schrijven. Een LIVE-weigering schrijft dat bestand niet.
+
+## LIVE weigeren
+
+Elk runner-script stopt met exit **2** vóór een fill of een summary, ook via de omgeving:
+
+```bash
+python scripts/run_atlas_cycle_v1_smoke.py --execution-mode LIVE
+python scripts/run_atlas_cycle_v1_doge_backtest.py --execution-mode LIVE
+python scripts/run_atlas_cycle_v1_phase3.py --execution-mode LIVE
+python scripts/run_atlas_cycle_v1_gate_summary.py --execution-mode LIVE
+ATLAS_CYCLE_EXECUTION_MODE=LIVE python scripts/run_atlas_cycle_v1_smoke.py
+echo $?   # 2
+```
+
+De loader weigert `execution_mode: LIVE` in de yaml op dezelfde manier. Zet de yaml niet op LIVE.
+
+## Wat nog niet bewezen is
+
+- DOGE-edge en scalp-edge: **INSUFFICIENT_EVIDENCE** (synthetisch, onder de vloeren).
+- Echte OHLCV-herkomst: **INSUFFICIENT_EVIDENCE**.
+- Instrumenten `listing_verified`: false.
+- Fee-tier en funding: aannames.
+- Live vol systeem: **FAIL**.
+- Forward paper: **PENDING_FORWARD_EVIDENCE**. Er zijn geen 30 dagen verstreken.
+
+De lijst wat een latere upgrade nodig heeft: `docs/atlas_cycle_v1/OPEN_EVIDENCE.md`. Modules aan/uit: `docs/atlas_cycle_v1/MODULE_STATUS.md`.
+
 ## Tests
 
 ```bash
-python -m pytest tests/unit/test_atlas_cycle_v1_settlement.py tests/unit/test_atlas_cycle_v1_gates.py tests/unit/test_atlas_cycle_v1_phase2.py tests/unit/test_atlas_cycle_v1_phase3.py -q
+python -m pytest tests/unit/test_atlas_cycle_v1_settlement.py tests/unit/test_atlas_cycle_v1_gates.py tests/unit/test_atlas_cycle_v1_phase2.py tests/unit/test_atlas_cycle_v1_phase3.py tests/unit/test_atlas_cycle_v1_phase4.py -q
 ```
 
 De settlement-file is het rekenvoorbeeld: verlies → carryforward L, gedeeltelijk herstel → nog geen BTC-pending, daarna B = 0.60 × W. Zie `DESIGN_DECISIONS.md`.
@@ -101,5 +153,8 @@ echo $?   # 2
 4. `docs/atlas_cycle_v1/GATE_STATUS.md` — eerlijke PASS / FAIL / INSUFFICIENT_EVIDENCE / PENDING_FORWARD_EVIDENCE.
 5. `docs/atlas_cycle_v1/PHASE2_DOGE.md` — DOGE-ablatie op synthetische regimes. Geen live-arm.
 6. `docs/atlas_cycle_v1/PHASE3_SCALP.md` en `PHASE3_ABCD.md` — scalp-kandidaten en A/B/C/D. Freeze blijft `SCALP_OFF`.
+7. `docs/atlas_cycle_v1/FINAL_COMPARISON.md` — aanbeveling: DOGE-only paper-skelet. Geen vol systeem.
+8. `docs/atlas_cycle_v1/OPEN_EVIDENCE.md` — wat een latere upgrade nodig heeft. Forward is niet verstreken.
+9. `docs/atlas_cycle_v1/MODULE_STATUS.md` — welke modules aan staan.
 
-Forward paper blijft **PENDING_FORWARD_EVIDENCE** tot er een echt vooruitlopend paper-journaal is. Deze smoke telt daar niet voor.
+Forward paper blijft **PENDING_FORWARD_EVIDENCE** tot er een echt vooruitlopend paper-journaal is. Deze smoke telt daar niet voor. Er zijn 0 forward-kalenderdagen verstreken.

@@ -1,26 +1,38 @@
 # GATE_STATUS — Atlas Cycle v1
 
-**As-of:** 2026-09-24 · Phase 3 scalp comparison. Scalp stays disabled (`SCALP_OFF`).
-**LIVE HOLD.** Een PASS hieronder is geen arm. `PAPER_PASS ≠ live-arm`. Soft PASS ≠ arm.
+**As-of:** 2026-09-24 · Phase 4 final paper package. Scalp stays `SCALP_OFF`. Entry stays `first_retest`.
+**LIVE HOLD.** A PASS below is a control or a unit behavior. It is not an arm. `PAPER_PASS ≠ live-arm`. Soft PASS ≠ arm.
 
-Statuses: `PASS` (control or unit behavior holds), `FAIL` (the check ran and the system is not allowed to proceed), `INSUFFICIENT_EVIDENCE` (not measured), `PENDING_FORWARD_EVIDENCE` (needs a forward paper window that does not exist yet).
+Each gate has exactly one status:
+
+- `PASS` — the control or the unit behavior holds. Not an edge and not a live arm.
+- `FAIL` — the check ran, and that path is not allowed to proceed.
+- `INSUFFICIENT_EVIDENCE` — measured on synthetic bars, or not measured on a real book. Not a pass.
+- `PENDING_FORWARD_EVIDENCE` — needs a forward paper window that has not started.
+
+`scripts/run_atlas_cycle_v1_gate_summary.py` prints this table. It exits 1 if a status is outside the four names, or if G6, G7, G8, G9, G10, G11, or G16 is marked `PASS`.
 
 | Gate | Status | What it means | Evidence |
 |------|--------|---------------|----------|
-| G0 LIVE HOLD | PASS | Code refuses `execution_mode: LIVE` before a fill. Smoke exits non-zero. | `tests/unit/test_atlas_cycle_v1_gates.py::test_t30_live_mode_refused_before_fill`, `test_smoke_script_paper_ok_and_live_nonzero` |
-| G1 `default.yaml` untouched | PASS | Sha256 of `config/default.yaml` pinned. Cycle loader rejects a file named `default.yaml`. | `test_default_yaml_bytes_unchanged`, `test_cycle_config_loads_paper_and_refuses_default_name` |
-| G2 Settlement §18 | PASS | Unit arithmetic for L and B=0.60×W after recovery. Not a venue fill. | `tests/unit/test_atlas_cycle_v1_settlement.py` |
-| G3 BTC reserve never sold | PASS | Reserve qty/quote unchanged across losses, skims, and an explicit sell call (the call raises). | `test_t02_btc_reserve_cannot_be_sold_or_pledged`, conservation test, smoke |
-| G4 Unitized risk | PASS | Daily 3% halt, 5% REDUCED after UTC roll, 10% latched MANUAL_HALT, soft pass does not widen. | `test_t14_daily_halt_at_three_percent`, `test_t16_reduced_halves_risk_and_soft_pass_does_not_widen`, `test_t17_manual_halt_latches_until_ack_below_ten_percent` |
-| G5 Money conservation | PASS | Seeded PnL path: total quote changes only by the applied PnL. Pending is a transfer inside the total. | `test_money_conservation_seeded_pnl_path` |
-| G6 Scalp feasibility | INSUFFICIENT_EVIDENCE | Public snapshot can size one min order at A in {200, 500, 1000} under labeled fee, slip, and 0.50% stop assumptions (paper skip rate 0/9). Val scalp net is 0. OOS scalps 0 and OOS DOGE cycles 20, below 300 / 100. Freeze stays `SCALP_OFF`. Registry stays unverified. | `docs/atlas_cycle_v1/PHASE3_SCALP.md`, `PHASE3_ABCD.md`, `test_p3_selection_is_scalp_off_and_documented` |
-| G7 DOGE trend edge | INSUFFICIENT_EVIDENCE | Variant A synthetic ablation: 40 OOS cycles, bootstrap CI crosses 0. Frozen entry stays `first_retest`. Holdout is not a PASS. Real-market OOS was not scored. | `docs/atlas_cycle_v1/PHASE2_DOGE.md`, `test_variant_a_ablation_is_insufficient_and_documented` |
-| G8 Instrument metadata | INSUFFICIENT_EVIDENCE | Public SWAP snapshot is stored for the paper size table. Every registry row is still `listing_verified=false`, minSz empty. Live spec raises. | `public_probe.py`, `test_p3_public_probe_does_not_verify_the_registry`, `test_registry_placeholders_are_not_proven` |
-| G9 Fee tier / funding | INSUFFICIENT_EVIDENCE | 5 bps taker, 5/10 bps slip are labeled assumptions. Funding unknown. | `FEASIBILITY.md`, broker assumption string |
-| G10 Live capital for the full system | FAIL | Free USDC 0.69 (upload, 2026-09-24) is below T=0.40×A for A in {200, 500, 1000}. Leverage was not raised. | `classify_live_capital` → `INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM` |
-| G11 Forward paper | PENDING_FORWARD_EVIDENCE | No forward session, no public-cache walk, no multi-week journal. Smoke is synthetic and same-day. | `scripts/run_atlas_cycle_v1_smoke.py` |
-| G12 PEPE protection untouched | PASS | This PR has no path that reads or amends the open PEPE position or its OCO. | No PEPE order client in `atlas_cycle`. Legacy position excluded in `CURRENT_STATE.md`. |
-| G13 Soft / paper ≠ arm | PASS | Soft pass cannot widen risk or leverage. Paper config keeps `place_orders: false` and `live_hold: true`. | `test_t16_reduced_halves_risk_and_soft_pass_does_not_widen`, yaml |
+| G0 LIVE HOLD | PASS | Code refuses `execution_mode: LIVE` before a fill. Smoke, DOGE backtest, and Phase 3 exit 2. | `tests/unit/test_atlas_cycle_v1_gates.py`, `docs/atlas_cycle_v1/PAPER_RUNBOOK.md` |
+| G1 `default.yaml` untouched | PASS | Sha256 `5ea3910c8adb63ed0462ca93f128975619b519f13b869313d9f019bc10633fef`. The cycle loader rejects a file named `default.yaml`. | `tests/unit/test_atlas_cycle_v1_gates.py` |
+| G2 Settlement §18 | PASS | Unit arithmetic for loss carryforward L and B = 0.60×W after recovery. Not a venue fill. | `tests/unit/test_atlas_cycle_v1_settlement.py`, `docs/atlas_cycle_v1/DESIGN_DECISIONS.md` |
+| G3 BTC reserve never sold | PASS | Reserve quantity and quote stay unchanged across losses, skims, and an explicit sell call (the call raises). | `tests/unit/test_atlas_cycle_v1_gates.py`, `tests/unit/test_atlas_cycle_v1_phase3.py` |
+| G4 Unitized risk | PASS | Daily 3% halt, 5% REDUCED, 10% latched MANUAL_HALT. Soft pass does not widen risk or leverage. | `tests/unit/test_atlas_cycle_v1_gates.py`, `docs/atlas_cycle_v1/DESIGN_DECISIONS.md` |
+| G5 Money conservation | PASS | Seeded PnL path: total quote changes only by the applied PnL. Pending is a transfer inside the total. | `tests/unit/test_atlas_cycle_v1_settlement.py` |
+| G6 Scalp edge | INSUFFICIENT_EVIDENCE | Paper min-size can pass under labeled assumptions (skip rate 0/9 at A in {200, 500, 1000}). Val scalp net is 0. OOS scalps 0 and OOS DOGE cycles 20, below 300 and 100. | `docs/atlas_cycle_v1/PHASE3_SCALP.md`, `docs/atlas_cycle_v1/PHASE3_ABCD.md` |
+| G7 DOGE trend edge | INSUFFICIENT_EVIDENCE | Synthetic ablation: 20 OOS cycles per entry mode (40 combined), bootstrap intervals cross 0. Holdout is not a pass. Real-market OOS was not scored. | `docs/atlas_cycle_v1/PHASE2_DOGE.md` |
+| G8 Instrument metadata | INSUFFICIENT_EVIDENCE | Public SWAP snapshot is stored for the size table. Every registry row is `listing_verified=false` and `min_sz` is empty. Live spec raises. | `src/atlas/paper/atlas_cycle/public_probe.py`, `src/atlas/paper/atlas_cycle/instruments.py` |
+| G9 Fee tier / funding | INSUFFICIENT_EVIDENCE | Taker 5 bps and slippage 5/10 bps are labeled assumptions. Funding is unknown. | `docs/atlas_cycle_v1/FEASIBILITY.md` |
+| G10 Live capital for the full system | FAIL | Free USDC 0.69 (upload, 2026-09-24) is below T = 0.40×A for A in {200, 500, 1000}. Leverage was not raised. | `docs/atlas_cycle_v1/FEASIBILITY.md`, `docs/atlas_cycle_v1/FINAL_COMPARISON.md` |
+| G11 Forward paper | PENDING_FORWARD_EVIDENCE | No forward session and no multi-day journal. Elapsed forward days: 0. Smoke is synthetic and same-day. | `docs/atlas_cycle_v1/OPEN_EVIDENCE.md`, `scripts/run_atlas_cycle_v1_smoke.py` |
+| G12 PEPE protection untouched | PASS | No path reads or amends the open legacy PEPE position or its OCO. Paper PEPE is a separate simulated instrument. | `docs/atlas_cycle_v1/CURRENT_STATE.md`, `docs/atlas_cycle_v1/MODULE_STATUS.md` |
+| G13 Soft / paper ≠ arm | PASS | Soft pass cannot widen risk or leverage. Yaml keeps `place_orders: false` and `live_hold: true`. | `config/strategies/atlas_cycle_v1.yaml`, `tests/unit/test_atlas_cycle_v1_gates.py` |
+| G14 Entry freeze discipline | PASS | Control only. `entry_frozen` is `first_retest`. Synthetic validation preferred `direct_breakout` and that preference was not applied. This PASS is not an edge. | `docs/atlas_cycle_v1/PHASE2_DOGE.md`, `config/strategies/atlas_cycle_v1.yaml` |
+| G15 Scalp switch | PASS | Control only. `scalp.enabled` is false and `scalp.freeze` is `SCALP_OFF`. This PASS is not an edge. The evidence gate is G6. | `config/strategies/atlas_cycle_v1.yaml`, `docs/atlas_cycle_v1/PHASE3_SCALP.md` |
+| G16 Real-market OHLCV | INSUFFICIENT_EVIDENCE | Scores use generated bars. `fetch_okx_history_candles` was not called. A public ticker snapshot is not a candle history. | `docs/atlas_cycle_v1/PHASE2_DOGE.md`, `docs/atlas_cycle_v1/PHASE3_SCALP.md` |
+
+Upgrade conditions for G6, G7, G8, G9, G10, G11, and G16 are in `docs/atlas_cycle_v1/OPEN_EVIDENCE.md`. Meeting a size check or a unit test does not move those gates.
 
 ## Test id map (brief-style)
 
@@ -60,12 +72,3 @@ Scalp stays off. These checks are the gates around a counterfactual that is not 
 | P3-T04 | LIVE is refused before the Phase 3 script writes a report. |
 | P3-T05 | BTC reserve quantity is unchanged by a scalp round-trip and by a rejected add. |
 | P3-T06 | Two consecutive net-loss scalps reject the next scalp in that cycle. Settlement clears the streak. |
-
-## What would move a gate
-
-- G6: a pre-registered walk with at least 300 OOS scalps and 100 OOS DOGE cycles, positive validation scalp net inside the +1R window, costs on, and a freeze written down before holdout. The public size table does not clear this. Do not shop extra coins and do not loosen the signal.
-- G8: a decision to promote the public snapshot into the registry, including fee tier. Until then `listing_verified` stays false.
-- G9: a measured fee tier and a funding assumption that is no longer labeled unknown.
-- G7: a pre-registered walk on public DOGE candles with at least 200 OOS cycles and a bootstrap interval that stays above 0, costs on. The synthetic ablation does not clear this. Do not loosen the signal to get there.
-- G10: more free collateral or an explicit decision to run a smaller sleeve. Not a higher leverage.
-- G11: a forward paper journal over unseen days. Until then the status stays **PENDING_FORWARD_EVIDENCE**.
