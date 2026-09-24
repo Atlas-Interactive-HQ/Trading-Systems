@@ -26,7 +26,8 @@ from atlas.paper.atlas_cycle.config import (
     load_atlas_cycle_config,
 )
 from atlas.paper.atlas_cycle.coordinator import CycleCoordinator
-from atlas.paper.atlas_cycle.synthetic import synthetic_doge_retest
+from atlas.paper.atlas_cycle.doge_trend import DogeTrendParams, DogeTrendStrategy
+from atlas.paper.atlas_cycle.synthetic import synthetic_smoke_cycle
 from atlas.paper.journal import PaperJournal
 
 
@@ -76,21 +77,25 @@ def main(argv: list[str] | None = None) -> int:
     if cfg.execution_mode.value not in ("BACKTEST", "PAPER"):
         return _refuse_live(f"refusing execution mode {cfg.execution_mode!r}")
 
-    bars_15, bars_1h, bars_4h, _entry_i, _exit_i = synthetic_doge_retest()
+    bars_15 = synthetic_smoke_cycle()
     reserve_before = None
     coord = CycleCoordinator.from_config(cfg)
+    # Wiring check only. The yaml warm-up stays 250; this short series is
+    # paired with 60 closed 4H so one cycle can finish in-process.
+    coord.doge = DogeTrendStrategy(
+        DogeTrendParams(
+            entry_mode=cfg.entry_frozen,
+            warmup_4h=60,
+            intent_ttl_ms=cfg.intent_ttl_ms,
+        )
+    )
     reserve_before = coord.ledger.btc_reserve_qty
     out_path = Path(args.out)
     journal = PaperJournal(out_path.parent, "atlas-cycle-v1-smoke")
     fills = []
     settlement = None
-    for i, bar in enumerate(bars_15):
-        step = coord.on_doge_bars(
-            bars_15[: i + 1],
-            bars_1h,
-            bars_4h,
-            ts_ms=bar.ts_close_ms,
-        )
+    for bar in bars_15:
+        step = coord.push_doge_bar(bar)
         for fill in step.fills:
             fills.append(fill)
             journal.append(
@@ -143,7 +148,10 @@ def main(argv: list[str] | None = None) -> int:
         "listing_verified": False,
         "scalp_enabled": cfg.scalp_enabled,
         "live_capital_verdict": classify_live_capital(cfg),
-        "candles": "synthetic",
+        "candles": "synthetic_regimes",
+        "warmup_4h_yaml": cfg.warmup_4h,
+        "warmup_4h_smoke_override": 60,
+        "not_oos_evidence": True,
         "assumptions": fills[-1].assumptions if fills else "",
         "journal_dir": str(journal.dir_for(bars_15[-1].ts_close_ms)),
     }

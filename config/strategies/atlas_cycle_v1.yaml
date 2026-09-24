@@ -52,8 +52,20 @@ scalp:
   default_candidate: SOL
 
 doge_trend:
-  # Primary path is 15m breakout + first retest. Direct breakout is ablation.
+  # Primary path is 15m breakout + first retest. Direct breakout is ablation
+  # and is not the frozen candidate. Phase 2 evidence is synthetic and thin,
+  # so the freeze stays on first_retest. See docs/atlas_cycle_v1/PHASE2_DOGE.md.
   direct_breakout_ablation: false
+  entry_frozen: first_retest
+  warmup_4h: 250
+  intent_ttl_ms: 30000
+  variant: A
+  # Paper quantity step. Not an OKX minSz. The registry min_sz stays empty.
+  min_qty: "1"
+  qty_step: "1"
+  min_qty_is_venue_minsz: false
+  margin_cash_frac_max: "0.80"
+  roundtrip_cost_of_2r_max: "0.20"
   timeframe_stack: "4H veto / 1H filter / 15m execution"
 
 costs:

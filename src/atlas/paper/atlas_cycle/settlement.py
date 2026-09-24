@@ -12,8 +12,10 @@ Rules encoded here (brief §4 / §18, as stated for this build):
 - After recovery (``L == 0``), surplus ``W = W_gross - recovered`` and
   ``B = 0.60 * W``. ``B`` is moved from trading cash into ``btc_pending_quote``.
   It is not an automatic spot buy and it is not a sell of existing BTC.
-- The skim is pro-rata across DOGE and scalp cash. It does not refill a
-  sleeve from the other sleeve or from BTC (no downward refill, no average-down).
+- The default skim is pro-rata across DOGE and scalp cash. Variant A passes
+  ``skim_sleeves=("doge",)`` so the scalp sleeve stays cash. The skim does not
+  refill a sleeve from the other sleeve or from BTC (no downward refill, no
+  average-down).
 - Units are redeemed at the pre-skim unit NAV so a distribution is not a
   drawdown. High-water mark is the max unit NAV, not total equity.
 
@@ -67,6 +69,7 @@ def settle_flat_cycle(
     cycle_open_t: object,
     *,
     flat: bool,
+    skim_sleeves: tuple[str, ...] = ("doge", "scalp"),
 ) -> SettlementResult:
     """Apply one flat-cycle settlement. ``cycle_open_t`` is T at cycle open."""
     if not flat:
@@ -98,7 +101,9 @@ def settle_flat_cycle(
         )
 
     if pending_delta > 0:
-        doge_skim, scalp_skim = _skim_pending(ledger, pending_delta)
+        doge_skim, scalp_skim = _skim_pending(
+            ledger, pending_delta, skim_sleeves
+        )
 
     return SettlementResult(
         cycle_pnl=w_gross,
@@ -112,19 +117,33 @@ def settle_flat_cycle(
     )
 
 
-def _skim_pending(ledger: CapitalLedger, pending_delta: Decimal) -> tuple[Decimal, Decimal]:
+def _skim_pending(
+    ledger: CapitalLedger,
+    pending_delta: Decimal,
+    skim_sleeves: tuple[str, ...],
+) -> tuple[Decimal, Decimal]:
     """Move B from T into btc_pending. Redeem units so unit NAV is unchanged."""
     trading = ledger.trading_nav()
     if pending_delta > trading:
         raise ValueError("BTC pending skim exceeds trading NAV")
     if trading == 0:
         raise ValueError("cannot skim an empty trading book")
+    if skim_sleeves == ("doge", "scalp"):
+        doge_skim = q(pending_delta * ledger.doge_cash / trading)
+        scalp_skim = q(pending_delta - doge_skim)
+    elif skim_sleeves == ("doge",):
+        doge_skim = q(pending_delta)
+        scalp_skim = ZERO
+        if doge_skim > ledger.doge_cash:
+            raise ValueError(
+                "variant A skim exceeds DOGE cash; scalp cash is not used"
+            )
+    else:
+        raise ValueError(f"unsupported skim sleeves {skim_sleeves!r}")
     nav = ledger.nav_per_unit()
     redeem = pending_delta / nav
-    doge_skim = q(pending_delta * ledger.doge_cash / trading)
-    scalp_skim = q(pending_delta - doge_skim)
     if doge_skim > ledger.doge_cash or scalp_skim > ledger.scalp_cash:
-        raise ValueError("pro-rata skim exceeded a sleeve; refusing reserve use")
+        raise ValueError("skim exceeded a sleeve; refusing reserve use")
     ledger.doge_cash = q(ledger.doge_cash - doge_skim)
     ledger.scalp_cash = q(ledger.scalp_cash - scalp_skim)
     ledger.btc_pending_quote = q(ledger.btc_pending_quote + pending_delta)

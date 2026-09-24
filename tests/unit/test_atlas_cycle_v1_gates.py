@@ -29,7 +29,7 @@ from atlas.paper.atlas_cycle.config import (
     load_atlas_cycle_config,
 )
 from atlas.paper.atlas_cycle.coordinator import CycleCoordinator
-from atlas.paper.atlas_cycle.doge_trend import DogeTrendParams, DogeTrendStrategy, four_h_veto
+from atlas.paper.atlas_cycle.doge_trend import DogeTrendParams
 from atlas.paper.atlas_cycle.enums import CycleState, RiskMode
 from atlas.paper.atlas_cycle.instruments import InstrumentRegistry, ListingUnverified
 from atlas.paper.atlas_cycle.ledger import CapitalLedger
@@ -40,7 +40,6 @@ from atlas.paper.atlas_cycle.risk import (
     assert_leverage_ceilings,
 )
 from atlas.paper.atlas_cycle.scalp_momentum import ScalpMomentumStrategy
-from atlas.paper.atlas_cycle.synthetic import synthetic_doge_retest
 from atlas.paper.types import Bar
 
 CONFIG = Path("config/strategies/atlas_cycle_v1.yaml")
@@ -66,6 +65,10 @@ def test_cycle_config_loads_paper_and_refuses_default_name(tmp_path: Path) -> No
     assert cfg.place_orders is False
     assert cfg.live_hold is True
     assert cfg.scalp_enabled is False
+    assert cfg.entry_frozen == "first_retest"
+    assert cfg.direct_breakout is False
+    assert cfg.warmup_4h == 250
+    assert cfg.variant == "A"
     assert cfg.paper_deposit_sensitivity == (D("200"), D("500"), D("1000"))
     assert classify_live_capital(cfg, D("200")) == INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM
     assert classify_live_capital(cfg, D("1000")) == INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM
@@ -167,15 +170,9 @@ def test_registry_placeholders_are_not_proven() -> None:
 
 
 def test_t25_scalp_blocked_until_enabled_and_doge_healthy() -> None:
-    bars_15, bars_1h, bars_4h, entry_i, _exit_i = synthetic_doge_retest()
     cfg = load_atlas_cycle_config(CONFIG)
     coord = CycleCoordinator.from_config(cfg, deposit=D("1000"))
-    opened = None
-    for i in range(entry_i + 1):
-        step = coord.on_doge_bars(bars_15[: i + 1], bars_1h, bars_4h, ts_ms=bars_15[i].ts_close_ms)
-        if step.fills:
-            opened = step
-    assert opened is not None
+    coord._open_doge(ts_ms=1, ref_price=D("100"), stop=D("99"))
     assert coord.doge_pos is not None
     assert coord.cycle_state is CycleState.TREND_OPEN
     assert coord.doge_cycle_healthy(coord.doge_pos.entry)
@@ -205,54 +202,14 @@ def test_t25_scalp_blocked_until_enabled_and_doge_healthy() -> None:
         strategy.evaluate(scalp_bars, enabled=True, doge_cycle_healthy=True, asset="BONK")
 
 
-def test_doge_trend_retest_primary_and_four_h_veto() -> None:
-    bars_15, bars_1h, bars_4h, entry_i, _exit_i = synthetic_doge_retest()
-    strategy = DogeTrendStrategy()
-    saw_wait = False
-    entered = None
-    for i in range(entry_i + 1):
-        decision = strategy.evaluate(bars_15[: i + 1], bars_1h, bars_4h, position_open=False)
-        if decision.reason == "breakout_seen_wait_retest":
-            saw_wait = True
-        if decision.action == "enter_long":
-            entered = decision
-    assert saw_wait
-    assert entered is not None
-    assert entered.reason == "first_retest"
-    assert entered.ablation is None
-
-    veto_4h = list(bars_4h)
-    # Force the last 4H close under the prior midpoint.
-    last = veto_4h[-1]
-    veto_4h[-1] = Bar(
-        last.symbol,
-        last.ts_open_ms,
-        last.ts_close_ms,
-        last.open,
-        last.high,
-        last.low,
-        1.0,
-        last.volume,
-        True,
-        last.source,
-    )
-    blocked, reason = four_h_veto(veto_4h)
-    assert blocked and reason == "4h_veto"
-    strategy.reset()
-    decision = strategy.evaluate(bars_15[: entry_i + 1], bars_1h, veto_4h, position_open=False)
-    assert decision.action == "none"
-    assert decision.reason == "4h_veto"
-
-    ablation = DogeTrendStrategy(DogeTrendParams(direct_breakout=True))
-    direct = None
-    for i in range(entry_i + 1):
-        decision = ablation.evaluate(bars_15[: i + 1], bars_1h, bars_4h, position_open=False)
-        if decision.action == "enter_long":
-            direct = decision
-            break
-    assert direct is not None
-    assert direct.ablation == "direct_breakout"
-    assert direct.reason == "direct_breakout_ablation"
+def test_doge_defaults_stay_primary_retest() -> None:
+    params = DogeTrendParams()
+    assert params.entry_mode == "first_retest"
+    assert params.direct_breakout is False
+    assert params.warmup_4h == 250
+    cfg = load_atlas_cycle_config(CONFIG)
+    assert cfg.entry_frozen == "first_retest"
+    assert cfg.scalp_enabled is False
 
 
 def test_smoke_script_paper_ok_and_live_nonzero(tmp_path: Path) -> None:

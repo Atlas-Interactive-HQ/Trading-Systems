@@ -59,6 +59,14 @@ class AtlasCycleConfig:
     seed: int
     live_free_quote_context: Decimal
     direct_breakout: bool
+    entry_frozen: str
+    warmup_4h: int
+    intent_ttl_ms: int
+    variant: str
+    min_qty: Decimal
+    qty_step: Decimal
+    margin_cash_frac_max: Decimal
+    roundtrip_cost_of_2r_max: Decimal
     place_orders: bool
     live_hold: bool
     source_path: str
@@ -171,6 +179,38 @@ def load_atlas_cycle_config(path: str | Path) -> AtlasCycleConfig:
     live = data.get("live_context") or {}
     live_free = _dec(live.get("free_usdc_quote"), "live_context.free_usdc_quote")
     trend = data.get("doge_trend") or {}
+    entry_frozen = str(trend.get("entry_frozen", ""))
+    if entry_frozen not in ("first_retest", "direct_breakout"):
+        raise AtlasCycleConfigError(
+            "doge_trend.entry_frozen must be first_retest or direct_breakout"
+        )
+    warmup_4h = int(trend.get("warmup_4h", 0))
+    if warmup_4h < 250:
+        raise AtlasCycleConfigError("doge_trend.warmup_4h must be >= 250")
+    intent_ttl_ms = int(trend.get("intent_ttl_ms", 0))
+    if intent_ttl_ms != 30_000:
+        raise AtlasCycleConfigError("doge_trend.intent_ttl_ms is locked at 30000")
+    variant = str(trend.get("variant", ""))
+    if variant != "A":
+        raise AtlasCycleConfigError("phase 2 variant is A (scalp budget stays cash)")
+    min_qty = _dec(trend.get("min_qty"), "doge_trend.min_qty")
+    qty_step = _dec(trend.get("qty_step"), "doge_trend.qty_step")
+    if min_qty <= 0 or qty_step <= 0:
+        raise AtlasCycleConfigError("min_qty and qty_step must be positive")
+    if trend.get("min_qty_is_venue_minsz") is not False:
+        raise AtlasCycleConfigError(
+            "doge_trend.min_qty_is_venue_minsz must be false (paper step only)"
+        )
+    margin_frac = _dec(
+        trend.get("margin_cash_frac_max"), "doge_trend.margin_cash_frac_max"
+    )
+    cost_cap = _dec(
+        trend.get("roundtrip_cost_of_2r_max"), "doge_trend.roundtrip_cost_of_2r_max"
+    )
+    if margin_frac != D("0.80") or cost_cap != D("0.20"):
+        raise AtlasCycleConfigError(
+            "margin cap 0.80 and round-trip cost cap 0.20 are locked"
+        )
 
     return AtlasCycleConfig(
         execution_mode=mode,
@@ -195,6 +235,14 @@ def load_atlas_cycle_config(path: str | Path) -> AtlasCycleConfig:
         seed=int(data.get("seed", 0)),
         live_free_quote_context=live_free,
         direct_breakout=bool(trend.get("direct_breakout_ablation", False)),
+        entry_frozen=entry_frozen,
+        warmup_4h=warmup_4h,
+        intent_ttl_ms=intent_ttl_ms,
+        variant=variant,
+        min_qty=min_qty,
+        qty_step=qty_step,
+        margin_cash_frac_max=margin_frac,
+        roundtrip_cost_of_2r_max=cost_cap,
         place_orders=False,
         live_hold=True,
         source_path=str(src),
