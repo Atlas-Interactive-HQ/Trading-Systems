@@ -26,7 +26,7 @@ Python ≥ 3.12. Geen API-keys. De smoke doet geen netwerk.
 ## Tests
 
 ```bash
-python -m pytest tests/unit/test_atlas_cycle_v1_settlement.py tests/unit/test_atlas_cycle_v1_gates.py tests/unit/test_atlas_cycle_v1_phase2.py -q
+python -m pytest tests/unit/test_atlas_cycle_v1_settlement.py tests/unit/test_atlas_cycle_v1_gates.py tests/unit/test_atlas_cycle_v1_phase2.py tests/unit/test_atlas_cycle_v1_phase3.py -q
 ```
 
 De settlement-file is het rekenvoorbeeld: verlies → carryforward L, gedeeltelijk herstel → nog geen BTC-pending, daarna B = 0.60 × W. Zie `DESIGN_DECISIONS.md`.
@@ -73,6 +73,26 @@ python scripts/run_atlas_cycle_v1_doge_backtest.py --execution-mode LIVE
 echo $?   # 2
 ```
 
+## Scalp-vergelijking (Phase 3, paper)
+
+Zelfde LIVE HOLD. `scalp.enabled` blijft false. `entry_frozen` blijft `first_retest`. Leverage blijft 2x / max 3x. `config/default.yaml` niet aanraken.
+
+```bash
+python scripts/run_atlas_cycle_v1_phase3.py
+python scripts/run_atlas_cycle_v1_phase3.py --out /tmp/atlas_cycle_v1_phase3.json
+```
+
+Het script loopt dezelfde synthetische DOGE-reeks als Phase 2, plus uitgelijnde synthetische scalp-paden voor SOL, ETH en PEPE. Varianten B en C draaien in-memory. De yaml blijft variant A en `SCALP_OFF`.
+
+Uitkomst: `docs/atlas_cycle_v1/PHASE3_SCALP.md` en `docs/atlas_cycle_v1/PHASE3_ABCD.md`. Op deze reeks is het label **INSUFFICIENT_EVIDENCE** (0 OOS scalps, 20 OOS DOGE-cycles). De freeze is **SCALP_OFF**. Holdout is geen PASS. Er is geen publieke candle-download.
+
+LIVE stopt vóór een fill:
+
+```bash
+python scripts/run_atlas_cycle_v1_phase3.py --execution-mode LIVE
+echo $?   # 2
+```
+
 ## Leesvolgorde
 
 1. `docs/atlas_cycle_v1/CURRENT_STATE.md` — wat bekend was op 2026-09-24, inclusief **ONBEKEND**.
@@ -80,5 +100,6 @@ echo $?   # 2
 3. `docs/atlas_cycle_v1/DESIGN_DECISIONS.md` — hergebruik versus nieuw, en de §18-rekenregels.
 4. `docs/atlas_cycle_v1/GATE_STATUS.md` — eerlijke PASS / FAIL / INSUFFICIENT_EVIDENCE / PENDING_FORWARD_EVIDENCE.
 5. `docs/atlas_cycle_v1/PHASE2_DOGE.md` — DOGE-ablatie op synthetische regimes. Geen live-arm.
+6. `docs/atlas_cycle_v1/PHASE3_SCALP.md` en `PHASE3_ABCD.md` — scalp-kandidaten en A/B/C/D. Freeze blijft `SCALP_OFF`.
 
 Forward paper blijft **PENDING_FORWARD_EVIDENCE** tot er een echt vooruitlopend paper-journaal is. Deze smoke telt daar niet voor.

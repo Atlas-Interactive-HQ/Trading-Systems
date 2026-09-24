@@ -53,6 +53,13 @@ class AtlasCycleConfig:
     scalp_enabled: bool
     scalp_candidates: tuple[str, ...]
     scalp_default: str
+    scalp_freeze: str
+    scalp_risk_frac: Decimal
+    scalp_max_per_cycle: int
+    scalp_max_loss_streak: int
+    scalp_min_doge_r: Decimal
+    legacy_pepe_excluded: bool
+    add_reserve_frac: Decimal
     taker_fee_rate: Decimal
     doge_slippage_bps: Decimal
     scalp_slippage_bps: Decimal
@@ -169,6 +176,26 @@ def load_atlas_cycle_config(path: str | Path) -> AtlasCycleConfig:
     default_scalp = str(scalp_cfg.get("default_candidate", ""))
     if default_scalp not in candidates:
         raise AtlasCycleConfigError("default scalp candidate must be in the candidate list")
+    scalp_freeze = str(scalp_cfg.get("freeze", ""))
+    if scalp_freeze != "SCALP_OFF":
+        raise AtlasCycleConfigError(
+            "scalp.freeze stays SCALP_OFF until a candidate clears the evidence gate"
+        )
+    scalp_risk = _dec(scalp_cfg.get("risk_frac_of_t0"), "scalp.risk_frac_of_t0")
+    if scalp_risk != D("0.0005"):
+        raise AtlasCycleConfigError("scalp risk is locked at 0.05% of T0")
+    scalp_max = int(scalp_cfg.get("max_per_cycle", 0))
+    scalp_streak = int(scalp_cfg.get("max_consecutive_losses", 0))
+    if scalp_max != 5 or scalp_streak != 2:
+        raise AtlasCycleConfigError("scalp cap is 5 per cycle and 2 consecutive losses")
+    scalp_min_r = _dec(scalp_cfg.get("require_doge_r"), "scalp.require_doge_r")
+    if scalp_min_r != D("1"):
+        raise AtlasCycleConfigError("scalp requires the DOGE cycle at +1R")
+    if scalp_cfg.get("legacy_pepe_excluded") is not True:
+        raise AtlasCycleConfigError("legacy live PEPE stays outside new cycles")
+    add_reserve = _dec(scalp_cfg.get("add_reserve_frac"), "scalp.add_reserve_frac")
+    if add_reserve != D("0.20"):
+        raise AtlasCycleConfigError("variant D add reserve is locked at 0.20 of DOGE cash")
 
     costs = data.get("costs") or {}
     if costs.get("funding") != "unknown":
@@ -229,6 +256,13 @@ def load_atlas_cycle_config(path: str | Path) -> AtlasCycleConfig:
         scalp_enabled=False,
         scalp_candidates=candidates,
         scalp_default=default_scalp,
+        scalp_freeze=scalp_freeze,
+        scalp_risk_frac=scalp_risk,
+        scalp_max_per_cycle=scalp_max,
+        scalp_max_loss_streak=scalp_streak,
+        scalp_min_doge_r=scalp_min_r,
+        legacy_pepe_excluded=True,
+        add_reserve_frac=add_reserve,
         taker_fee_rate=_dec(costs.get("taker_fee_rate"), "costs.taker_fee_rate"),
         doge_slippage_bps=_dec(costs.get("doge_slippage_bps"), "costs.doge_slippage_bps"),
         scalp_slippage_bps=_dec(costs.get("scalp_slippage_bps"), "costs.scalp_slippage_bps"),

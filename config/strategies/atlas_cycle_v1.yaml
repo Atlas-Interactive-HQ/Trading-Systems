@@ -45,11 +45,19 @@ slots:
   auto_coin_rotation: false
 
 scalp:
-  # Stays false until a scalp candidate passes feasibility. SOL is the
-  # research default, not a proven listing.
+  # Stays false until a candidate freezes with evidence. Phase 3 selection
+  # is SCALP_OFF. SOL is the research default for counterfactual B/C runs,
+  # not a proven listing. Legacy live PEPE is not this paper instrument.
   enabled: false
+  freeze: SCALP_OFF
   candidates: [SOL, ETH, PEPE]
   default_candidate: SOL
+  risk_frac_of_t0: "0.0005"
+  max_per_cycle: 5
+  max_consecutive_losses: 2
+  require_doge_r: "1"
+  legacy_pepe_excluded: true
+  add_reserve_frac: "0.20"
 
 doge_trend:
   # Primary path is 15m breakout + first retest. Direct breakout is ablation

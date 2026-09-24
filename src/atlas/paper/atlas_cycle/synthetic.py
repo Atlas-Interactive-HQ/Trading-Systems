@@ -253,6 +253,100 @@ def synthetic_doge_regimes(
     return bars
 
 
+def regime_episode_starts(
+    n_bars: int,
+    *,
+    first_episode: int = 4_200,
+    episode_every: int = 400,
+) -> list[tuple[int, str]]:
+    """Grid used by ``synthetic_doge_regimes``. Even ordinals are rallies."""
+    starts: list[tuple[int, str]] = []
+    index = first_episode
+    ordinal = 0
+    while index + 48 < n_bars:
+        kind = "winner" if ordinal % 2 == 0 else "loser"
+        starts.append((index, kind))
+        ordinal += 1
+        index += episode_every
+    return starts
+
+
+def synthetic_scalp_aligned(
+    doge_bars: list[Bar],
+    *,
+    price: float,
+    asset: str,
+) -> list[Bar]:
+    """Closed 15m path on the DOGE timestamps. Deterministic. Not a venue cache.
+
+    Winner episodes plant a breakout after the DOGE rally is past +1R
+    (offset 28; max-hold is still open), then either a 1.5R print or a gap
+    through the stop. Loser DOGE episodes stay a grind.
+    """
+    symbol = {
+        "SOL": "SOL-USDT-SWAP",
+        "ETH": "ETH-USDT-SWAP",
+        "PEPE": "PEPE-USDT-SWAP",
+    }[asset]
+    spans = {start for start, kind in regime_episode_starts(len(doge_bars)) if kind == "winner"}
+    # Planned after the bar before the breakout, using that bar's own channel.
+    # An absolute anchor would sit under the drifted grind and never break out.
+    planned: dict[int, tuple[float, float, float, float]] = {}
+    bars: list[Bar] = []
+    level = price
+    for index, doge in enumerate(doge_bars):
+        shaped = planned.get(index)
+        if shaped is None:
+            open_ = level
+            close = level * 1.00005
+            half = level * 0.004
+            high = max(open_, close) + half
+            low = min(open_, close) - half
+            level = close
+        else:
+            open_, high, low, close = shaped
+            level = close
+        bars.append(
+            Bar(
+                symbol,
+                doge.ts_open_ms,
+                doge.ts_close_ms,
+                open_,
+                high,
+                low,
+                close,
+                100.0,
+                True,
+                "atlas_cycle_v1_synthetic_scalp",
+            )
+        )
+        # DOGE +1R lands near offset 26 (R about 1.12, rally +0.05/bar).
+        # Max-hold exits near offset 34. Offset 24 is still inside the
+        # doge_not_plus_1r block, so the plant sits at offset 28.
+        start = index - 27
+        if start in spans and len(bars) >= 8:
+            prev_high = max(row.high for row in bars[-8:])
+            prev_close = bars[-1].close
+            close_b = prev_high * 1.002
+            open_b = min(prev_close, close_b * 0.999)
+            low_b = close_b * 0.995
+            planned[index + 1] = (open_b, close_b * 1.001, low_b, close_b)
+            # Even episode ordinals print 1.5R. The other winners gap the stop.
+            # Stop is the breakout low. Entry pays 10 bps, so 1.5R sits near
+            # close_b * 1.010. The win high is above that; the gap open is below.
+            if ((start - 4_200) // 400) % 4 == 0:
+                planned[index + 2] = (
+                    close_b * 1.001,
+                    close_b * 1.025,
+                    close_b * 1.000,
+                    close_b * 1.012,
+                )
+            else:
+                gap = low_b * 0.990
+                planned[index + 2] = (gap, gap * 1.001, gap * 0.995, gap * 1.0005)
+    return bars
+
+
 def synthetic_smoke_cycle() -> list[Bar]:
     """One winner after a short warm-up. Pair with ``warmup_4h=60`` in smoke.
 

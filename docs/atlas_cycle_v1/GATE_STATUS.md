@@ -1,6 +1,6 @@
 # GATE_STATUS — Atlas Cycle v1
 
-**As-of:** 2026-09-24 · Phase 2 DOGE-only paper. Scalp still disabled.
+**As-of:** 2026-09-24 · Phase 3 scalp comparison. Scalp stays disabled (`SCALP_OFF`).
 **LIVE HOLD.** Een PASS hieronder is geen arm. `PAPER_PASS ≠ live-arm`. Soft PASS ≠ arm.
 
 Statuses: `PASS` (control or unit behavior holds), `FAIL` (the check ran and the system is not allowed to proceed), `INSUFFICIENT_EVIDENCE` (not measured), `PENDING_FORWARD_EVIDENCE` (needs a forward paper window that does not exist yet).
@@ -13,9 +13,9 @@ Statuses: `PASS` (control or unit behavior holds), `FAIL` (the check ran and the
 | G3 BTC reserve never sold | PASS | Reserve qty/quote unchanged across losses, skims, and an explicit sell call (the call raises). | `test_t02_btc_reserve_cannot_be_sold_or_pledged`, conservation test, smoke |
 | G4 Unitized risk | PASS | Daily 3% halt, 5% REDUCED after UTC roll, 10% latched MANUAL_HALT, soft pass does not widen. | `test_t14_daily_halt_at_three_percent`, `test_t16_reduced_halves_risk_and_soft_pass_does_not_widen`, `test_t17_manual_halt_latches_until_ack_below_ten_percent` |
 | G5 Money conservation | PASS | Seeded PnL path: total quote changes only by the applied PnL. Pending is a transfer inside the total. | `test_money_conservation_seeded_pnl_path` |
-| G6 Scalp feasibility | INSUFFICIENT_EVIDENCE | SOL/ETH/PEPE listings, minSz, fees, and any edge are unprobed. Scalp stays disabled. | `config/strategies/atlas_cycle_v1.yaml` (`scalp.enabled: false`), `instruments.py` TODOs, `test_t25_scalp_blocked_until_enabled_and_doge_healthy` |
+| G6 Scalp feasibility | INSUFFICIENT_EVIDENCE | Public snapshot can size one min order at A in {200, 500, 1000} under labeled fee, slip, and 0.50% stop assumptions (paper skip rate 0/9). Val scalp net is 0. OOS scalps 0 and OOS DOGE cycles 20, below 300 / 100. Freeze stays `SCALP_OFF`. Registry stays unverified. | `docs/atlas_cycle_v1/PHASE3_SCALP.md`, `PHASE3_ABCD.md`, `test_p3_selection_is_scalp_off_and_documented` |
 | G7 DOGE trend edge | INSUFFICIENT_EVIDENCE | Variant A synthetic ablation: 40 OOS cycles, bootstrap CI crosses 0. Frozen entry stays `first_retest`. Holdout is not a PASS. Real-market OOS was not scored. | `docs/atlas_cycle_v1/PHASE2_DOGE.md`, `test_variant_a_ablation_is_insufficient_and_documented` |
-| G8 Instrument metadata | INSUFFICIENT_EVIDENCE | Every registry row is `listing_verified=false`, minSz empty. Live spec raises. | `test_registry_placeholders_are_not_proven` |
+| G8 Instrument metadata | INSUFFICIENT_EVIDENCE | Public SWAP snapshot is stored for the paper size table. Every registry row is still `listing_verified=false`, minSz empty. Live spec raises. | `public_probe.py`, `test_p3_public_probe_does_not_verify_the_registry`, `test_registry_placeholders_are_not_proven` |
 | G9 Fee tier / funding | INSUFFICIENT_EVIDENCE | 5 bps taker, 5/10 bps slip are labeled assumptions. Funding unknown. | `FEASIBILITY.md`, broker assumption string |
 | G10 Live capital for the full system | FAIL | Free USDC 0.69 (upload, 2026-09-24) is below T=0.40×A for A in {200, 500, 1000}. Leverage was not raised. | `classify_live_capital` → `INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM` |
 | G11 Forward paper | PENDING_FORWARD_EVIDENCE | No forward session, no public-cache walk, no multi-week journal. Smoke is synthetic and same-day. | `scripts/run_atlas_cycle_v1_smoke.py` |
@@ -48,9 +48,24 @@ These names match the DOGE brief. They sit beside the Phase 1 ids above; Phase 1
 | P2-T03 | Stop active at the bar open is checked before any trail that uses that bar's high. A gap fills at the open; a pierce fills at the stop. |
 | P2-T04 | `SKIP_MIN_SIZE` when the floored quantity is below the paper step. Quantity is never rounded up. A stop inside the 20% cost-of-2R cap is `SKIP_COST_2R`. |
 
+## Phase 3 test ids
+
+Scalp stays off. These checks are the gates around a counterfactual that is not enabled in yaml.
+
+| Id | Behavior |
+|----|----------|
+| P3-T01 | A scalp breakout is rejected with `doge_not_plus_1r` until DOGE unrealized reaches +1R versus the anchor fill. |
+| P3-T02 | An open scalp (unrealized) cannot fund an add. Funding is realized scalp cash only. |
+| P3-T03 | An add whose proposed stop is below the current stop is rejected. The stop does not widen. |
+| P3-T04 | LIVE is refused before the Phase 3 script writes a report. |
+| P3-T05 | BTC reserve quantity is unchanged by a scalp round-trip and by a rejected add. |
+| P3-T06 | Two consecutive net-loss scalps reject the next scalp in that cycle. Settlement clears the streak. |
+
 ## What would move a gate
 
-- G6/G8/G9: a read-only instruments and fee probe, stored as data, with unknowns still labeled. Not a live order.
+- G6: a pre-registered walk with at least 300 OOS scalps and 100 OOS DOGE cycles, positive validation scalp net inside the +1R window, costs on, and a freeze written down before holdout. The public size table does not clear this. Do not shop extra coins and do not loosen the signal.
+- G8: a decision to promote the public snapshot into the registry, including fee tier. Until then `listing_verified` stays false.
+- G9: a measured fee tier and a funding assumption that is no longer labeled unknown.
 - G7: a pre-registered walk on public DOGE candles with at least 200 OOS cycles and a bootstrap interval that stays above 0, costs on. The synthetic ablation does not clear this. Do not loosen the signal to get there.
 - G10: more free collateral or an explicit decision to run a smaller sleeve. Not a higher leverage.
 - G11: a forward paper journal over unseen days. Until then the status stays **PENDING_FORWARD_EVIDENCE**.

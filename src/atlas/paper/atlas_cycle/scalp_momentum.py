@@ -1,10 +1,11 @@
-"""Optional scalp skeleton. Default off.
+"""Scalp research rules for SOL, ETH, and PEPE. Default off.
 
-Candidates are SOL, ETH, PEPE — selectable, not auto-rotated. A signal exists
-only when ``enabled`` is true and the caller reports the DOGE cycle healthy.
-Long only. One slot is enforced by the coordinator, not by stacking here.
+Same signal for every candidate. No extra coins. Long only. The coordinator
+enforces one slot, the +1R DOGE window, the 5-scalp cap, and the two-loss
+streak. This module only reads closed bars.
 
-No edge is claimed. Listings are unverified.
+No edge is claimed. Listings are unverified. The legacy live PEPE position
+is not read or closed here.
 """
 
 from __future__ import annotations
@@ -27,11 +28,12 @@ _SYMBOL = {
 
 @dataclass(frozen=True)
 class ScalpDecision:
-    action: str  # enter_long | none
+    action: str  # enter_long | exit | none
     symbol: str | None
     asset: str | None
     stop: Decimal | None
     reason: str
+    fill_ref: Decimal | None = None
 
 
 class ScalpMomentumStrategy:
@@ -54,15 +56,56 @@ class ScalpMomentumStrategy:
         if not enabled:
             return ScalpDecision("none", None, chosen, None, "scalp_disabled")
         if not doge_cycle_healthy:
-            return ScalpDecision("none", None, chosen, None, "doge_cycle_not_healthy")
+            return ScalpDecision("none", symbol, chosen, None, "doge_cycle_not_healthy")
+        if not bars or not bars[-1].closed:
+            return ScalpDecision("none", symbol, chosen, None, "open_bar")
         channel = donchian_prior(bars, self.lookback)
-        if channel is None or not bars:
+        if channel is None:
             return ScalpDecision("none", symbol, chosen, None, "insufficient_bars")
         last = bars[-1]
-        if last.close > channel[0]:
-            stop = D(last.low) if last.low < last.close else D(last.close) * D("0.99")
-            return ScalpDecision("enter_long", symbol, chosen, stop, "momentum_breakout")
+        if last.close > channel[0] and last.close > last.open and last.low < last.close:
+            return ScalpDecision(
+                "enter_long",
+                symbol,
+                chosen,
+                D(last.low),
+                "momentum_breakout",
+                fill_ref=D(last.close),
+            )
         return ScalpDecision("none", symbol, chosen, None, "no_breakout")
+
+    def manage_open(
+        self,
+        bar: Bar,
+        *,
+        entry: Decimal,
+        stop: Decimal,
+        r_dist: Decimal,
+        entry_index: int,
+        index: int,
+        max_hold_bars: int = 8,
+    ) -> ScalpDecision:
+        """Stop before target. A same-bar high does not cancel a stop touch."""
+        if not bar.closed:
+            return ScalpDecision("none", None, self.asset, stop, "open_bar")
+        if bar.open <= float(stop):
+            return ScalpDecision(
+                "exit", None, self.asset, stop, "stop_gap", fill_ref=D(bar.open)
+            )
+        if bar.low <= float(stop):
+            return ScalpDecision(
+                "exit", None, self.asset, stop, "stop", fill_ref=stop
+            )
+        target = entry + D("1.5") * r_dist
+        if D(bar.high) >= target:
+            return ScalpDecision(
+                "exit", None, self.asset, stop, "target_1_5r", fill_ref=target
+            )
+        if index - entry_index >= max_hold_bars:
+            return ScalpDecision(
+                "exit", None, self.asset, stop, "max_hold", fill_ref=D(bar.close)
+            )
+        return ScalpDecision("none", None, self.asset, stop, "hold")
 
 
 def _require_asset(asset: str) -> str:
@@ -72,3 +115,7 @@ def _require_asset(asset: str) -> str:
             f"scalp asset {asset!r} is not in {SCALP_CANDIDATES}; v1 does not rotate coins"
         )
     return key
+
+
+def symbol_for(asset: str) -> str:
+    return _SYMBOL[_require_asset(asset)]
