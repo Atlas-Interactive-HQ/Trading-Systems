@@ -55,3 +55,6 @@ results/public_md_145_cache/
 results/public_md_148_cache/
 results/public_md_149_cache/
 results/public_md_150_cache/
+
+# Atlas Cycle v1 paper smoke artifacts (regenerate via scripts/run_atlas_cycle_v1_smoke.py)
+results/atlas_cycle_v1/runs/

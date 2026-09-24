@@ -1,0 +1,74 @@
+# Atlas Cycle v1 — PAPER / BACKTEST only.
+# LIVE HOLD. place_orders is false. PAPER_PASS ≠ live-arm. Soft PASS ≠ arm.
+# Do not point this file at config/default.yaml and do not copy these knobs
+# back into the default config.
+# Quote amounts are decimal strings so the loader does not see binary floats.
+
+schema: atlas_cycle_v1
+execution_mode: PAPER
+live_hold: true
+place_orders: false
+not_a_forecast: true
+seed: 20260924
+
+paper_deposit_A:
+  # Simulated research deposits. Not the live account and not a size-up.
+  sensitivity: ["200", "500", "1000"]
+  default: "1000"
+
+split:
+  btc: "0.60"
+  doge: "0.30"
+  scalp: "0.10"
+
+leverage:
+  # Isolated ceilings. The engine refuses anything higher. It will not raise
+  # these to fit a small free-collateral balance.
+  doge_isolated: "2"
+  scalp_isolated_max: "3"
+
+risk:
+  cycle_frac: "0.01"
+  reduced_cycle_frac: "0.005"
+  daily_halt_frac: "0.03"
+  dd_reduced_frac: "0.05"
+  dd_manual_halt_frac: "0.10"
+  soft_neq_widen: true
+
+slots:
+  doge_cycles: 1
+  scalp_slots: 1
+  long_only: true
+  shorts: false
+  averaging_down: false
+  martingale: false
+  auto_coin_rotation: false
+
+scalp:
+  # Stays false until a scalp candidate passes feasibility. SOL is the
+  # research default, not a proven listing.
+  enabled: false
+  candidates: [SOL, ETH, PEPE]
+  default_candidate: SOL
+
+doge_trend:
+  # Primary path is 15m breakout + first retest. Direct breakout is ablation.
+  direct_breakout_ablation: false
+  timeframe_stack: "4H veto / 1H filter / 15m execution"
+
+costs:
+  # ASSUMPTION — not a measured account tier. Funding unknown: do not promote.
+  assumptions_labeled: true
+  taker_fee_rate: "0.0005"
+  doge_slippage_bps: "5"
+  scalp_slippage_bps: "10"
+  funding: unknown
+
+live_context:
+  # Read-only context from SMOKE-HANDOFF-2026-09-24 (free USDC). Not a target.
+  # 0.69 is below 0.40 * A for every sensitivity deposit → full system
+  # INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM. Do not raise leverage to change that.
+  free_usdc_quote: "0.69"
+  as_of: "2026-09-24T08:55:50+02:00"
+  source: "ts-live-ops/SMOKE-HANDOFF-2026-09-24.json"
+  verdict: INSUFFICIENT_CAPITAL_FOR_FULL_SYSTEM

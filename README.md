@@ -11,6 +11,18 @@
 
 Design pack: [`phase1/`](./phase1/) — start with [`phase1/README.md`](./phase1/README.md) and venue preflight [`phase1/07-venue-preflight-notes.md`](./phase1/07-venue-preflight-notes.md).
 
+## Atlas Cycle v1 (PAPER / TEST only)
+
+**LIVE HOLD.** Geen live orders, geen BTC-verkoop, geen wijziging aan bestaande PEPE-bescherming. `PAPER_PASS ≠ live-arm`. Soft PASS ≠ arm. `config/default.yaml` blijft onaangeroerd.
+
+Paper-subsysteem: `src/atlas/paper/atlas_cycle/` en `config/strategies/atlas_cycle_v1.yaml`. Runbook: [`docs/atlas_cycle_v1/PAPER_RUNBOOK.md`](./docs/atlas_cycle_v1/PAPER_RUNBOOK.md). Gates: [`docs/atlas_cycle_v1/GATE_STATUS.md`](./docs/atlas_cycle_v1/GATE_STATUS.md).
+
+```bash
+python -m pytest tests/unit/test_atlas_cycle_v1_settlement.py tests/unit/test_atlas_cycle_v1_gates.py -q
+python scripts/run_atlas_cycle_v1_smoke.py
+python scripts/run_atlas_cycle_v1_smoke.py --execution-mode LIVE   # moet non-zero stoppen
+```
+
 ## Local paper vs OKX demo vs live
 
 Three **different** execution paths. Do not mix them.
